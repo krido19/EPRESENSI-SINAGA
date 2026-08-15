@@ -1,0 +1,449 @@
+[
+  {
+    "type": "info",
+    "message": "🔓 Berhasil masuk ke dashboard aplikasi.",
+    "timestamp": "2026-08-15T02:09:31.243Z"
+  },
+  {
+    "type": "info",
+    "message": "🔓 Berhasil masuk ke dashboard aplikasi.",
+    "timestamp": "2026-08-15T02:08:57.688Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek presensi: Libur / Akhir Pekan (Masuk: -)",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Akhir Pekan",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "dayOfMonth": 15,
+        "targetRowIdx": 14,
+        "totalRows": 31,
+        "rawTanggal": "",
+        "rawMasuk": "-",
+        "rawPulang": "-",
+        "rawStatus": "",
+        "cols": [
+          "",
+          "-",
+          "-",
+          ""
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:43:53.756Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek presensi: Libur / Akhir Pekan (Masuk: -)",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Akhir Pekan",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "dayOfMonth": 15,
+        "targetRowIdx": 14,
+        "totalRows": 31,
+        "rawTanggal": "",
+        "rawMasuk": "-",
+        "rawPulang": "-",
+        "rawStatus": "",
+        "cols": [
+          "",
+          "-",
+          "-",
+          ""
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:40:42.376Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek presensi: Libur / Akhir Pekan (Masuk: -)",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Akhir Pekan",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "dayOfMonth": 15,
+        "targetRowIdx": 14,
+        "totalRows": 31,
+        "rawTanggal": "",
+        "rawMasuk": "-",
+        "rawPulang": "-",
+        "rawStatus": "",
+        "cols": [
+          "",
+          "-",
+          "-",
+          ""
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:40:21.488Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek presensi: Libur / Akhir Pekan (Masuk: -)",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Akhir Pekan",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "dayOfMonth": 15,
+        "targetRowIdx": 14,
+        "totalRows": 31,
+        "rawTanggal": "",
+        "rawMasuk": "-",
+        "rawPulang": "-",
+        "rawStatus": "",
+        "cols": [
+          "",
+          "-",
+          "-",
+          ""
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:40:13.435Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek presensi: Libur / Akhir Pekan (Masuk: -)",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Akhir Pekan",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "dayOfMonth": 15,
+        "targetRowIdx": 14,
+        "totalRows": 31,
+        "rawTanggal": "",
+        "rawMasuk": "-",
+        "rawPulang": "-",
+        "rawStatus": "",
+        "cols": [
+          "",
+          "-",
+          "-",
+          ""
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:38:39.919Z"
+  },
+  {
+    "type": "info",
+    "message": "📥 Import Excel: 3 ditambahkan, 0 dilewati",
+    "timestamp": "2026-08-15T01:31:58.425Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Libur / Akhir Pekan | Masuk: -",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Akhir Pekan",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "dayOfMonth": 15,
+        "targetRowIdx": 14,
+        "totalRows": 31,
+        "rawTanggal": "",
+        "rawMasuk": "-",
+        "rawPulang": "-",
+        "rawStatus": "",
+        "cols": [
+          "",
+          "-",
+          "-",
+          ""
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:31:41.519Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Libur / Akhir Pekan | Masuk: -",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Akhir Pekan",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "dayOfMonth": 15,
+        "targetRowIdx": 14,
+        "totalRows": 31,
+        "rawTanggal": "",
+        "rawMasuk": "-",
+        "rawPulang": "-",
+        "rawStatus": "",
+        "cols": [
+          "",
+          "-",
+          "-",
+          ""
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:30:09.836Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Libur / Akhir Pekan | Masuk: -",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Akhir Pekan",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "dayOfMonth": 15,
+        "targetRowIdx": 14,
+        "totalRows": 31,
+        "rawTanggal": "",
+        "rawMasuk": "-",
+        "rawPulang": "-",
+        "rawStatus": "",
+        "cols": [
+          "",
+          "-",
+          "-",
+          ""
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:29:26.976Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Libur / Tidak Ada Data | Masuk: -",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Tidak Ada Data",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "todayISO": "2026-08-15",
+        "found": false,
+        "note": "Baris tanggal hari ini tidak ada di tabel rekap"
+      }
+    },
+    "timestamp": "2026-08-15T01:28:26.928Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Libur / Tidak Ada Data | Masuk: -",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Libur / Tidak Ada Data",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "todayISO": "2026-08-15",
+        "found": false,
+        "note": "Baris tanggal hari ini tidak ada di tabel rekap"
+      }
+    },
+    "timestamp": "2026-08-15T01:27:29.270Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Tidak Dapat Dibaca | Masuk: -",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": false,
+      "hasAbsenPulang": false,
+      "status": "Tidak Dapat Dibaca",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "source": "fallback",
+        "todayFound": false,
+        "matchedFormat": "",
+        "rowLength": 0,
+        "rowPreview": "",
+        "warning": "Tanggal hari ini tidak ditemukan di halaman rekap"
+      }
+    },
+    "timestamp": "2026-08-15T01:23:13.561Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Hadir | Masuk: 08:21",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": true,
+      "hasAbsenPulang": false,
+      "status": "Hadir",
+      "jamMasuk": "08:21",
+      "jamPulang": null,
+      "rawIndicators": {
+        "source": "today-row",
+        "allTimes": [
+          "08:21"
+        ],
+        "jamMasukArr": [
+          "08:21"
+        ],
+        "jamPulangArr": [],
+        "rowText": "15/08/2026 08:21:32 My profile My balance Messages 58 Account settings --> Profil Saya ",
+        "todayFound": true,
+        "matchedFormat": "15/08/2026",
+        "rowLength": 800,
+        "rowPreview": "15/08/2026 08:21:32 My profile My balance Messages 58 Account settings --> Profil Saya"
+      }
+    },
+    "timestamp": "2026-08-15T01:21:37.526Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Status = Hadir",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": true,
+      "hasAbsenPulang": true,
+      "status": "Hadir",
+      "jamMasuk": "06:01",
+      "jamPulang": "16:51",
+      "rawIndicators": {
+        "hadirCount": 0,
+        "alphaCount": 0,
+        "izinCount": 1,
+        "jamMasukArr": [
+          "06:01",
+          "06:10",
+          "06:13",
+          "06:13",
+          "06:13",
+          "06:17",
+          "06:18",
+          "06:18",
+          "06:21",
+          "06:24",
+          "08:16"
+        ],
+        "jamPulangArr": [
+          "16:51",
+          "16:26",
+          "16:03",
+          "15:42",
+          "15:34",
+          "15:33",
+          "15:32",
+          "15:31",
+          "15:30",
+          "14:01"
+        ],
+        "totalTimes": 21
+      }
+    },
+    "timestamp": "2026-08-15T01:17:00.513Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Status = Hadir",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": true,
+      "hasAbsenPulang": true,
+      "status": "Hadir",
+      "jamMasuk": "06:01",
+      "jamPulang": "16:51",
+      "rawIndicators": {
+        "hadirCount": 0,
+        "alphaCount": 0,
+        "izinCount": 1,
+        "jamMasukArr": [
+          "06:01",
+          "06:10",
+          "06:13",
+          "06:13",
+          "06:13",
+          "06:17",
+          "06:18",
+          "06:18",
+          "06:21",
+          "06:24",
+          "08:14"
+        ],
+        "jamPulangArr": [
+          "16:51",
+          "16:26",
+          "16:03",
+          "15:42",
+          "15:34",
+          "15:33",
+          "15:32",
+          "15:31",
+          "15:30",
+          "14:01"
+        ],
+        "totalTimes": 21
+      }
+    },
+    "timestamp": "2026-08-15T01:14:22.211Z"
+  },
+  {
+    "type": "manual_check",
+    "message": "Cek manual: Status = Hadir",
+    "data": {
+      "date": "15 Agustus 2026",
+      "hasAbsenPagi": true,
+      "hasAbsenPulang": false,
+      "status": "Hadir",
+      "jamMasuk": null,
+      "jamPulang": null,
+      "rawIndicators": {
+        "hadirCount": 0,
+        "alphaCount": 0,
+        "izinCount": 1,
+        "timesFound": [
+          "08:13",
+          "06:13",
+          "15:42",
+          "06:21",
+          "15:30",
+          "06:18",
+          "15:33",
+          "06:13",
+          "15:31",
+          "06:10"
+        ]
+      }
+    },
+    "timestamp": "2026-08-15T01:13:06.277Z"
+  },
+  {
+    "type": "info",
+    "message": "✅ Auto-login berhasil sebagai 199601042025211042",
+    "timestamp": "2026-08-15T01:12:57.999Z"
+  }
+]

@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ePresensi Jateng — Monitoring & Notifikasi WhatsApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+  <!-- ─── 00. Landing / Gatekeeper Access Screen ──────────────────────────── -->
+  <div class="gatekeeper-screen" id="appGatekeeperScreen">
+    <div class="gatekeeper-box">
+      <div class="gatekeeper-logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+
+      <div class="gatekeeper-tag font-mono">PORTAL AKSES KEAMANAN</div>
+      <h2 class="gatekeeper-title">ePresensi <span class="gradient-text">Jateng</span></h2>
+      <p class="gatekeeper-desc">Monitoring & Notifikasi Presensi SMKN 3 Magelang</p>
+
+      <form id="gatekeeperForm" class="gatekeeper-form mt-4">
+        <div class="form-item text-left">
+          <label class="form-label" for="gatekeeperInputPassword">Password Akses Aplikasi</label>
+          <div class="password-input-wrap">
+            <input type="password" id="gatekeeperInputPassword" class="custom-input font-mono" placeholder="Masukkan password..." required autofocus>
+            <button type="button" class="btn-toggle-eye" id="btnToggleGatekeeperEye" title="Lihat Password">👁️</button>
+          </div>
+          <span class="form-hint">Masukkan password akses yang telah ditentukan.</span>
+        </div>
+
+        <div id="gatekeeperErrorMsg" class="feedback-error"></div>
+
+        <button type="submit" class="modern-btn btn-purple-gradient btn-block mt-3" id="btnSubmitGatekeeper">
+          🔓 Buka Dashboard &rarr;
+        </button>
+      </form>
+
+      <div class="gatekeeper-footer font-mono">
+        SMKN 3 MAGELANG &bull; SISTEM TERENKRIPSI
+      </div>
+    </div>
+  </div>
+
+  <div class="app-wrapper" id="mainAppWrapper" style="display: none;">
+
+    <!-- ─── Top Navbar ───────────────────────────────────────────────────────── -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">ePresensi <span class="gradient-text">Jateng</span></div>
+          <div class="brand-subtitle">SMKN 3 MAGELANG &bull; NOTIFIKASI OTOMATIS</div>
+        </div>
+      </div>
+
+      <div class="nav-right" style="display: flex; align-items: center; gap: 12px;">
+        <div class="status-pill" id="headerStatusBadge">
+          <span class="pulse-dot"></span>
+          <span id="headerStatusText">Sistem Terhubung</span>
+        </div>
+        <button class="modern-btn btn-glass btn-xs" id="btnLogoutApp" title="Kunci Aplikasi / Keluar">
+          🔒 Kunci
+        </button>
+      </div>
+    </header>
+
+    <!-- ─── Stat Metric Cards Grid ───────────────────────────────────────────── -->
+    <section class="metrics-grid">
+      <!-- Metric 1: Status Pribadi -->
+      <div class="metric-card metric-card-highlight">
+        <div class="metric-header">
+          <span class="metric-label">STATUS PRESENSI ANDA</span>
+          <span class="metric-icon">👤</span>
+        </div>
+        <div class="metric-body">
+          <div class="metric-value" id="hudPersonalStatus">MEMUAT...</div>
+          <div class="metric-sub" id="hudPersonalTime">Masuk: - &bull; Pulang: -</div>
+        </div>
+      </div>
+
+      <!-- Metric 2: Kehadiran Guru -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">KEHADIRAN REKAN GURU</span>
+          <span class="metric-icon">📊</span>
+        </div>
+        <div class="metric-body">
+          <div class="metric-value gradient-text" id="hudColleaguePercent">0%</div>
+          <div class="metric-sub" id="hudColleagueFraction">0 / 0 Guru Hadir</div>
+        </div>
+      </div>
+
+      <!-- Metric 3: Scheduler Bot -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">JADWAL OTOMATIS BOT</span>
+          <span class="metric-icon">⏰</span>
+        </div>
+        <div class="metric-body">
+          <div class="metric-value font-mono" id="hudBotTime">06:00 WIB</div>
+          <div class="metric-sub text-purple font-mono" id="hudBotCountdown">Countdown...</div>
+        </div>
+      </div>
+
+      <!-- Metric 4: Total Kontak WA -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">PENERIMA WA TERDAFTAR</span>
+          <span class="metric-icon">📱</span>
+        </div>
+        <div class="metric-body">
+          <div class="metric-value font-mono" id="hudRecipientCount">0</div>
+          <div class="metric-sub">Guru Aktif di Database</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Main Content Layout ──────────────────────────────────────────────── -->
+    <main class="main-layout">
+
+      <!-- LEFT COLUMN: Tabs & Main Content -->
+      <div class="main-content-area">
+
+        <!-- Tab Navigation Bar -->
+        <nav class="tabs-bar">
+          <button class="tab-item active" data-tab="monitoring">
+            <span class="tab-icon">👥</span> Monitoring Rekan Guru
+          </button>
+          <button class="tab-item" data-tab="recipients">
+            <span class="tab-icon">📋</span> Daftar Penerima WA
+          </button>
+          <button class="tab-item" data-tab="config">
+            <span class="tab-icon">⚙️</span> Pengaturan Akun
+          </button>
+          <button class="tab-item" data-tab="template">
+            <span class="tab-icon">💬</span> Template Pesan
+          </button>
+          <button class="tab-item" data-tab="logs">
+            <span class="tab-icon">📜</span> Log Aktivitas
+          </button>
+        </nav>
+
+        <!-- TAB 1: Monitoring Rekan Guru -->
+        <div class="tab-panel active" id="tab-monitoring">
+          <div class="glass-card">
+            
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Monitoring Presensi Rekan Guru</h2>
+                <p class="panel-desc">Daftar presensi real-time seluruh guru & staf SMKN 3 Magelang.</p>
+              </div>
+              <div class="panel-actions">
+                <button class="modern-btn btn-purple" id="btnQuickSendUnabsent">
+                  ⚡ Kirim WA ke yang Belum Absen (<span id="unabsentBadgeCount">0</span>)
+                </button>
+                <button class="modern-btn btn-glass" id="btnRefreshColleagues">
+                  🔄 Refresh
+                </button>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-section">
+              <div class="progress-labels">
+                <span class="font-semibold text-purple" id="progressPercentageText">0% Rekan Sudah Hadir</span>
+                <span class="text-muted" id="progressFractionText">0 / 0 Guru</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" id="progressBarFill" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="filter-toolbar">
+              <!-- Filter Pills -->
+              <div class="filter-pills">
+                <button class="pill-btn active" data-filter="all" id="chipFilterAll">
+                  Semua (<span id="countAllChip">0</span>)
+                </button>
+                <button class="pill-btn pill-danger" data-filter="belum" id="chipFilterBelum">
+                  ⚠️ Belum Absen (<span id="countBelumChip">0</span>)
+                </button>
+                <button class="pill-btn pill-success" data-filter="hadir" id="chipFilterHadir">
+                  ✓ Hadir (<span id="countHadirChip">0</span>)
+                </button>
+              </div>
+
+              <!-- Search & Day Filter -->
+              <div class="filter-inputs">
+                <div class="search-input-box">
+                  <span class="search-icon">🔍</span>
+                  <input type="text" id="searchColleagueInput" class="custom-input" placeholder="Cari nama atau NIP guru...">
+                </div>
+                <div class="date-select-box">
+                  <select id="colleagueDaySelect" class="custom-select">
+                    <!-- 1..31 -->
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Table Responsive -->
+            <div class="table-container">
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th width="46">No</th>
+                    <th width="180">NIP</th>
+                    <th>Nama Lengkap</th>
+                    <th width="90">Masuk</th>
+                    <th width="90">Pulang</th>
+                    <th width="120">Status</th>
+                    <th width="80" class="text-center">Riwayat</th>
+                  </tr>
+                </thead>
+                <tbody id="colleaguesTableBody">
+                  <tr>
+                    <td colspan="7" class="table-empty">
+                      <div class="loading-spinner"></div>
+                      <span>Memuat data presensi dari ePresensi Jateng...</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-footer">
+              <span class="text-muted font-mono text-sm" id="tableSummaryFootnote">Menampilkan 0 rekan guru</span>
+              <button class="modern-btn btn-ghost btn-xs" id="btnCopyBelumAbsenToWA">+ Tambah ke Database WA &rarr;</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TAB 2: Daftar Penerima WA -->
+        <div class="tab-panel" id="tab-recipients">
+          <div class="glass-card">
+            
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Daftar Penerima WhatsApp</h2>
+                <p class="panel-desc">Kelola nomor WhatsApp guru untuk pengiriman notifikasi otomatis.</p>
+              </div>
+              <div class="panel-actions">
+                <a href="/api/recipients/template" download="template_98_guru_smkn3_magelang.xlsx" class="modern-btn btn-glass btn-sm">
+                  📥 Unduh Template (98 Guru)
+                </a>
+                <label for="excelFileInput" class="modern-btn btn-purple btn-sm cursor-pointer">
+                  📤 Import Excel
+                </label>
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;">
+                <button class="modern-btn btn-glass btn-sm" id="btnAddRecipientModal">
+                  + Tambah Manual
+                </button>
+              </div>
+            </div>
+
+            <div class="info-alert">
+              <span class="alert-icon">💡</span>
+              <div class="alert-text">
+                Tombol <strong>Unduh Template</strong> otomatis menyiapkan file Excel yang sudah terisi seluruh <strong>98 Nama Guru SMKN 3 Magelang</strong>. Anda tinggal mengisi nomor WA dan meng-import ulang!
+              </div>
+            </div>
+
+            <!-- Table of Recipients -->
+            <div class="table-container">
+              <table class="modern-table" id="recipientsTable">
+                <thead>
+                  <tr>
+                    <th width="46">No</th>
+                    <th>Nama Guru / Penerima</th>
+                    <th width="180">Nomor WhatsApp</th>
+                    <th width="90">Status</th>
+                    <th width="120" class="text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="recipientsTableBody">
+                  <tr>
+                    <td colspan="5" class="table-empty">Memuat daftar penerima...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-footer">
+              <span id="recipientTotalCount" class="text-muted font-mono text-sm">Total: 0 Guru Terdaftar</span>
+              <button class="modern-btn btn-danger-ghost btn-xs" id="btnClearAllRecipients">🗑️ Kosongkan Semua</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TAB 3: Konfigurasi Akun -->
+        <div class="tab-panel" id="tab-config">
+          <div class="glass-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Pengaturan Akun & API</h2>
+                <p class="panel-desc">Konfigurasi akun login ePresensi dan token API WhatsApp Fonnte.</p>
+              </div>
+            </div>
+
+            <form id="configForm" class="modern-form">
+              <div class="form-grid">
+                <div class="form-item">
+                  <label class="form-label">NIP / Username ePresensi</label>
+                  <input type="text" id="cfgUsername" class="custom-input" placeholder="Masukkan 18 digit NIP">
+                </div>
+
+                <div class="form-item">
+                  <label class="form-label">Password ePresensi</label>
+                  <input type="password" id="cfgPassword" class="custom-input" placeholder="Masukkan password">
+                </div>
+              </div>
+
+              <div class="form-action-inline">
+                <button type="button" class="modern-btn btn-glass btn-sm" id="btnTestLogin">
+                  🔑 Uji Auto-Login ePresensi
+                </button>
+                <span id="testLoginFeedback" class="feedback-text"></span>
+              </div>
+
+              <div class="form-divider"></div>
+
+              <div class="form-item">
+                <label class="form-label">Token API Fonnte (WhatsApp)</label>
+                <input type="password" id="cfgFonnteToken" class="custom-input" placeholder="Token dari https://fonnte.com">
+                <span class="form-hint">Token API device WhatsApp dari akun Fonnte Anda.</span>
+              </div>
+
+              <div class="form-divider"></div>
+
+              <div class="form-title">⏰ Jadwal Pengecekan Otomatis (WIB)</div>
+              
+              <!-- Jadwal 1: Pagi -->
+              <div class="schedule-box mb-3" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <div>
+                    <strong style="color: var(--purple-400);">🌅 1. Jadwal Pagi (Absen Masuk)</strong>
+                    <div class="text-muted text-sm">Cek rekan yang belum absen masuk pagi</div>
+                  </div>
+                  <label class="custom-switch">
+                    <input type="checkbox" id="cfgSchedulerPagiEnabled" checked>
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="form-grid-small">
+                  <div class="form-item">
+                    <label class="form-label">Jam (WIB)</label>
+                    <select id="cfgPagiHour" class="custom-select font-mono"></select>
+                  </div>
+                  <div class="form-item">
+                    <label class="form-label">Menit</label>
+                    <select id="cfgPagiMinute" class="custom-select font-mono"></select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Jadwal 2: Sore / Pulang -->
+              <div class="schedule-box mb-4" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <div>
+                    <strong style="color: var(--indigo-400);">🌆 2. Jadwal Sore (Absen Pulang)</strong>
+                    <div class="text-muted text-sm">Cek rekan yang belum absen pulang</div>
+                  </div>
+                  <label class="custom-switch">
+                    <input type="checkbox" id="cfgSchedulerPulangEnabled" checked>
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="form-grid-small">
+                  <div class="form-item">
+                    <label class="form-label">Jam (WIB)</label>
+                    <select id="cfgPulangHour" class="custom-select font-mono"></select>
+                  </div>
+                  <div class="form-item">
+                    <label class="form-label">Menit</label>
+                    <select id="cfgPulangMinute" class="custom-select font-mono"></select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="checkbox-container mt-2">
+                <label class="custom-switch">
+                  <input type="checkbox" id="cfgSchedulerEnabled" checked>
+                  <span class="switch-slider"></span>
+                </label>
+                <span class="switch-label"><strong>Master Switch:</strong> Aktifkan bot otomatisasi WhatsApp</span>
+              </div>
+
+              <button type="submit" class="modern-btn btn-purple btn-block mt-4">
+                💾 Simpan Konfigurasi Jadwal & Akun
+              </button>
+            </form>
+
+            <div class="form-divider" style="margin: 32px 0 24px;"></div>
+
+            <div class="panel-header" style="margin-bottom: 16px;">
+              <div>
+                <h3 class="panel-title" style="font-size: 1.05rem;">🔒 Keamanan Akses Aplikasi</h3>
+                <p class="panel-desc">Ubah password awal pembuka dashboard aplikasi kapan saja.</p>
+              </div>
+            </div>
+
+            <form id="changeAppPasswordForm" class="modern-form">
+              <div class="form-grid">
+                <div class="form-item">
+                  <label class="form-label">Password Akses Saat Ini</label>
+                  <input type="password" id="currentAppPasswordInput" class="custom-input font-mono" placeholder="Masukkan password lama..." required>
+                </div>
+                <div class="form-item">
+                  <label class="form-label">Password Akses Baru</label>
+                  <input type="password" id="newAppPasswordInput" class="custom-input font-mono" placeholder="Masukkan password baru..." required>
+                </div>
+              </div>
+              <button type="submit" class="modern-btn btn-glass btn-sm mt-2">
+                🔑 Perbarui Password Akses
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 4: Template Pesan -->
+        <div class="tab-panel" id="tab-template">
+          <div class="glass-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Template Pesan WhatsApp</h2>
+                <p class="panel-desc">Kustomisasi format pesan WhatsApp pengingat pagi (masuk) dan sore (pulang).</p>
+              </div>
+            </div>
+
+            <!-- Template 1: Pesan Pagi -->
+            <div class="template-section mb-5">
+              <h4 style="color: var(--purple-400); margin-bottom: 8px;">🌅 Template Pesan Pagi (07:30 WIB)</h4>
+              <div class="form-item">
+                <textarea id="cfgMessagePagi" class="custom-textarea" rows="4" placeholder="Format pesan pagi..."></textarea>
+                <span class="form-hint">Variabel <code>{nama}</code> akan otomatis diganti nama rekan guru.</span>
+              </div>
+              <div class="preview-container">
+                <div class="preview-title">📱 Preview Pesan Pagi:</div>
+                <div class="whatsapp-card" id="whatsappPreviewPagi"></div>
+              </div>
+            </div>
+
+            <div class="form-divider" style="margin: 24px 0;"></div>
+
+            <!-- Template 2: Pesan Pulang -->
+            <div class="template-section mb-4">
+              <h4 style="color: var(--indigo-400); margin-bottom: 8px;">🌆 Template Pesan Pulang (18:00 WIB)</h4>
+              <div class="form-item">
+                <textarea id="cfgMessagePulang" class="custom-textarea" rows="4" placeholder="Format pesan pulang..."></textarea>
+                <span class="form-hint">Variabel <code>{nama}</code> akan otomatis diganti nama rekan guru.</span>
+              </div>
+              <div class="preview-container">
+                <div class="preview-title">📱 Preview Pesan Pulang:</div>
+                <div class="whatsapp-card" id="whatsappPreviewPulang"></div>
+              </div>
+            </div>
+
+            <button type="button" class="modern-btn btn-purple btn-block mt-4" id="btnSaveTemplate">
+              💾 Simpan Semua Template Pesan
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 5: Riwayat Log -->
+        <div class="tab-panel" id="tab-logs">
+          <div class="glass-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Log Aktivitas Sistem</h2>
+                <p class="panel-desc">Catatan riwayat pemeriksaan bot dan pengiriman pesan WhatsApp.</p>
+              </div>
+              <button class="modern-btn btn-glass btn-xs" id="btnClearLogs">Bersihkan Log</button>
+            </div>
+
+            <div class="logs-feed" id="logsContainer">
+              <div class="empty-feed">Belum ada aktivitas tercatat.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Quick Action Sidebar (Sticky) -->
+      <aside class="sidebar-area">
+
+        <!-- Action Card -->
+        <div class="glass-card sidebar-card">
+          <div class="sidebar-header">
+            <span class="card-tag">AKSI CEPAT</span>
+            <span class="badge-tag" id="todayDateBadge">-</span>
+          </div>
+
+          <div class="personal-status-box">
+            <span class="status-sub">Status Presensi Anda</span>
+            <div class="status-main" id="statusValue">MEMUAT...</div>
+            
+            <div class="time-chips-grid">
+              <div class="time-chip">
+                <span class="time-chip-label">MASUK PAGI</span>
+                <span class="time-chip-val" id="jamMasukVal">-</span>
+              </div>
+              <div class="time-chip">
+                <span class="time-chip-label">PULANG SORE</span>
+                <span class="time-chip-val" id="jamPulangVal">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-buttons-stack">
+            <button class="modern-btn btn-purple-gradient btn-block" id="btnCheckAndSend">
+              <span class="btn-icon">⚡</span>
+              <div class="btn-double-text">
+                <strong>Cek & Kirim Otomatis</strong>
+                <small>Cek absen, kirim WA jika belum</small>
+              </div>
+            </button>
+
+            <button class="modern-btn btn-glass btn-block" id="btnSendNow">
+              <span class="btn-icon">📢</span>
+              <div class="btn-double-text">
+                <strong>Kirim WA ke Semua</strong>
+                <small>Broadcast ke database penerima</small>
+              </div>
+            </button>
+
+            <button class="modern-btn btn-ghost btn-block" id="btnCheckOnly">
+              🔍 Cek Status Absen Saya
+            </button>
+          </div>
+        </div>
+
+        <!-- Bot Scheduler Card -->
+        <div class="glass-card sidebar-card">
+          <div class="sidebar-header">
+            <span class="card-tag">BOT SCHEDULER</span>
+            <span class="status-badge" id="schedulerBadge">NONAKTIF</span>
+          </div>
+
+          <div class="info-list">
+            <div class="info-list-item">
+              <span class="text-muted">Waktu Cek</span>
+              <strong class="font-mono" id="schedulerTimeText">06:00 WIB</strong>
+            </div>
+            <div class="info-list-item">
+              <span class="text-muted">Jadwal Berikutnya</span>
+              <strong class="font-mono text-sm" id="nextCheckText">-</strong>
+            </div>
+            <div class="info-list-item">
+              <span class="text-muted">Countdown</span>
+              <strong class="font-mono text-purple" id="schedulerCountdownText">Menghitung...</strong>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </main>
+
+  </div>
+
+  <!-- Modal Detail Riwayat Absen Rekan Guru 1 Bulan -->
+  <div class="modal-overlay" id="colleagueHistoryModal">
+    <div class="modal-dialog">
+      <div class="modal-top">
+        <div>
+          <span class="modal-badge font-mono">RIWAYAT PRESENSI 1 BULAN</span>
+          <h3 id="historyModalTeacherName" class="modal-title">-</h3>
+          <p class="modal-subtitle font-mono" id="historyModalTeacherNip">NIP: -</p>
+        </div>
+        <button class="modal-close-btn" id="btnCloseHistoryModal">&times;</button>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="modal-stats-grid">
+        <div class="stat-pill stat-pill-success">
+          <span>HADIR</span>
+          <strong id="historyStatHadir">0</strong>
+        </div>
+        <div class="stat-pill">
+          <span>IZIN</span>
+          <strong id="historyStatIzin">0</strong>
+        </div>
+        <div class="stat-pill">
+          <span>SAKIT</span>
+          <strong id="historyStatSakit">0</strong>
+        </div>
+        <div class="stat-pill stat-pill-danger">
+          <span>ALPHA/BELUM</span>
+          <strong id="historyStatBelum">0</strong>
+        </div>
+      </div>
+
+      <!-- Calendar / Table View -->
+      <div class="modal-table-container">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th width="90">Tanggal</th>
+              <th width="90">Hari</th>
+              <th>Masuk</th>
+              <th>Pulang</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="5" class="table-empty">Memuat riwayat presensi...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <span class="text-muted font-mono text-xs">AGUSTUS 2026</span>
+        <button type="button" class="modern-btn btn-glass btn-sm" id="btnCloseHistoryModalBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Penerima Manual -->
+  <div class="modal-overlay" id="addRecipientModal">
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-top">
+        <div>
+          <span class="modal-badge font-mono">KONTAK BARU</span>
+          <h3 class="modal-title">Tambah Penerima WhatsApp</h3>
+        </div>
+        <button class="modal-close-btn" id="btnCloseModal">&times;</button>
+      </div>
+      <form id="addRecipientForm" class="modern-form">
+        <div class="form-item">
+          <label class="form-label">Nama Lengkap Guru</label>
+          <input type="text" id="manualNama" class="custom-input" placeholder="Contoh: Budi Santoso, S.Pd" required>
+        </div>
+        <div class="form-item">
+          <label class="form-label">Nomor WhatsApp</label>
+          <input type="text" id="manualNomor" class="custom-input" placeholder="Contoh: 081234567890" required>
+        </div>
+        <div class="modal-footer mt-4">
+          <button type="button" class="modern-btn btn-ghost btn-sm" id="btnCancelModal">Batal</button>
+          <button type="submit" class="modern-btn btn-purple btn-sm">Simpan Kontak</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Edit Penerima -->
+  <div class="modal-overlay" id="editRecipientModal">
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="modal-top">
+        <div>
+          <span class="modal-badge font-mono">EDIT KONTAK</span>
+          <h3 class="modal-title">Ubah Data Penerima</h3>
+        </div>
+        <button class="modal-close-btn" id="btnCloseEditModal">&times;</button>
+      </div>
+      <form id="editRecipientForm" class="modern-form">
+        <input type="hidden" id="editRecipientId">
+        <div class="form-item">
+          <label class="form-label">Nama Lengkap Guru</label>
+          <input type="text" id="editNama" class="custom-input" placeholder="Contoh: Budi Santoso, S.Pd" required>
+        </div>
+        <div class="form-item">
+          <label class="form-label">Nomor WhatsApp</label>
+          <input type="text" id="editNomor" class="custom-input" placeholder="Contoh: 081234567890" required>
+        </div>
+        <div class="modal-footer mt-4">
+          <button type="button" class="modern-btn btn-ghost btn-sm" id="btnCancelEditModal">Batal</button>
+          <button type="submit" class="modern-btn btn-purple btn-sm">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast-notification"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

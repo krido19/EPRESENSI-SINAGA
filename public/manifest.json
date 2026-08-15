@@ -1,0 +1,21 @@
+{
+  "name": "ePresensi Jateng Bot",
+  "short_name": "ePresensi",
+  "description": "Monitoring dan Notifikasi Presensi Otomatis ePresensi Jateng",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    {
+      "src": "https://presensi.bkd.jatengprov.go.id/v3/assets/jateng.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://presensi.bkd.jatengprov.go.id/v3/assets/jateng.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

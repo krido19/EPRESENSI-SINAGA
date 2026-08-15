@@ -1,0 +1,20 @@
+{
+  "authMode": "auto",
+  "username": "199601042025211042",
+  "password": "AdminPassword123!",
+  "cookie": "session_epresensi=0o43tepiap90p1vp1h47j58l1f6rprc7; TS01fb383a=016d02df04096a86d4c0c5ad450148d7347eba9465afe47984cae2c05e84bde0f933347641933efd7c127a2325842142607ffed5b2d5a381d31fe119cdd2457c2873876a7a",
+  "cookieExpiry": "2026-08-15T09:12:57.993Z",
+  "fonnteToken": "3a98ZvibPLS7UX9US8x4",
+  "waNumber": "6285868733378",
+  "schedulerEnabled": true,
+  "schedulerPagiEnabled": true,
+  "pagiHour": 7,
+  "pagiMinute": 30,
+  "schedulerPulangEnabled": true,
+  "pulangHour": 18,
+  "pulangMinute": 0,
+  "messagePagi": "Halo *{nama}*! 👋\n\nPengingat presensi pagi:\nAnda tercatat belum melakukan *absen pagi / masuk* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! ⏰\n\n_Pesan otomatis SMKN 3 Magelang_",
+  "messagePulang": "Halo *{nama}*! 👋\n\nPengingat presensi pulang:\nAnda tercatat belum melakukan *absen pulang* hari ini di ePresensi Jateng.\n\nJangan lupa lakukan presensi pulang sebelum batas waktu berakhir! 🏢⏰\n\n_Pesan otomatis SMKN 3 Magelang_",
+  "message": "Halo *{nama}*! 👋\n\nPengingat presensi:\nAnda belum melakukan *absen* hari ini di ePresensi Jateng. Segera absen sekarang! ⏰",
+  "appPassword": "SMK3magelang"
+}
