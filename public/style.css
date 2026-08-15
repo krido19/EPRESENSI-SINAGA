@@ -143,12 +143,6 @@
   color: var(--purple-600) !important;
 }
 
-[data-theme="light"] .theme-toggle-btn {
-  background: rgba(0, 0, 0, 0.05) !important;
-  border-color: rgba(0, 0, 0, 0.1) !important;
-  color: #0f172a !important;
-}
-
 [data-theme="light"] .status-pill {
   background: rgba(0, 0, 0, 0.04) !important;
   border-color: rgba(0, 0, 0, 0.08) !important;
@@ -162,6 +156,57 @@
 
 [data-theme="light"] .progress-track {
   background: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .modal-dialog {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .modal-title {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .modal-subtitle {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .modal-close-btn {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .modal-close-btn:hover {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .stat-pill {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .stat-pill strong {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .stat-pill-success strong {
+  color: var(--emerald-500) !important;
+}
+
+[data-theme="light"] .stat-pill-danger strong {
+  color: var(--rose-500) !important;
+}
+
+[data-theme="light"] .info-alert {
+  background: rgba(147, 51, 234, 0.06) !important;
+  border-color: rgba(147, 51, 234, 0.2) !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .info-alert code {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: var(--purple-600) !important;
 }
 
 /* Base Reset & Global Sleek Scrollbar */
@@ -1626,7 +1671,8 @@ html, body {
 }
 
 .modal-dialog {
-  background: #12141F;
+  background: #141724;
+  color: var(--text-primary);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
   width: 100%;
@@ -1657,13 +1703,14 @@ html, body {
 .modal-badge {
   font-size: 0.7rem;
   font-weight: 700;
-  color: var(--purple-500);
+  color: var(--purple-400);
   letter-spacing: 0.08em;
 }
 
 .modal-title {
   font-size: 1.3rem;
   font-weight: 800;
+  color: var(--text-primary);
   margin-top: 2px;
 }
 
@@ -1693,7 +1740,7 @@ html, body {
 }
 
 .stat-pill {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-glass);
   padding: 10px 12px;
   border-radius: var(--radius-md);
@@ -1701,15 +1748,30 @@ html, body {
 }
 
 .stat-pill span { display: block; font-size: 0.68rem; font-family: var(--font-mono); color: var(--text-muted); }
-.stat-pill strong { font-size: 1.2rem; font-weight: 800; }
-.stat-pill-success strong { color: var(--emerald-500); }
-.stat-pill-danger strong { color: var(--rose-500); }
+.stat-pill strong { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); }
+.stat-pill-success strong { color: var(--emerald-400) !important; }
+.stat-pill-danger strong { color: var(--rose-500) !important; }
 
 .modal-table-container {
   max-height: 360px;
   overflow-y: auto;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
+  background: rgba(11, 12, 17, 0.4);
+}
+
+.modal-table-container table.modern-table th {
+  background: #181c2d;
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .modal-table-container {
+  background: #ffffff;
+}
+
+[data-theme="light"] .modal-table-container table.modern-table th {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
 }
 
 .modal-footer {
