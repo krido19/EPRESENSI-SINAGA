@@ -278,7 +278,16 @@ function initSelectOptions() {
   });
 }
 
-// ─── Tab Switching ────────────────────────────────────────────────────────────
+// ─── Tab Switching & Mobile Sidebar ───────────────────────────────────────────
+const btnToggleMobileSidebar = document.getElementById('btnToggleMobileSidebar');
+const dashboardSidebar = document.getElementById('dashboardSidebar');
+
+if (btnToggleMobileSidebar && dashboardSidebar) {
+  btnToggleMobileSidebar.addEventListener('click', () => {
+    dashboardSidebar.classList.toggle('mobile-open');
+  });
+}
+
 document.querySelectorAll('.tab-item').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
@@ -286,6 +295,11 @@ document.querySelectorAll('.tab-item').forEach(btn => {
     btn.classList.add('active');
     const tabId = `tab-${btn.dataset.tab}`;
     document.getElementById(tabId)?.classList.add('active');
+
+    // Auto-close sidebar on mobile
+    if (window.innerWidth <= 960 && dashboardSidebar) {
+      dashboardSidebar.classList.remove('mobile-open');
+    }
   });
 });
 

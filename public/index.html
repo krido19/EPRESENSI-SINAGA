@@ -45,108 +45,164 @@
     </div>
   </div>
 
-  <div class="app-wrapper" id="mainAppWrapper" style="display: none;">
+  <div class="dashboard-root" id="mainAppWrapper" style="display: none;">
 
-    <!-- ─── Top Navbar ───────────────────────────────────────────────────────── -->
-    <header class="navbar">
-      <div class="nav-brand">
+    <!-- ─── 01. LEFT SIDEBAR NAVIGATION ──────────────────────────────────────── -->
+    <aside class="dashboard-sidebar" id="dashboardSidebar">
+      
+      <!-- Brand Header -->
+      <div class="sidebar-brand">
         <div class="brand-logo">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
           </svg>
         </div>
-        <div class="brand-text">
+        <div class="brand-info">
           <div class="brand-title">ePresensi <span class="gradient-text">Jateng</span></div>
-          <div class="brand-subtitle">SMKN 3 MAGELANG &bull; NOTIFIKASI OTOMATIS</div>
+          <div class="brand-subtitle">SMKN 3 MAGELANG</div>
         </div>
       </div>
 
-      <div class="nav-right" style="display: flex; align-items: center; gap: 12px;">
-        <div class="status-pill" id="headerStatusBadge">
-          <span class="pulse-dot"></span>
-          <span id="headerStatusText">Sistem Terhubung</span>
+      <!-- Navigation Links -->
+      <nav class="sidebar-menu">
+        <div class="menu-label font-mono">MENU UTAMA</div>
+        <button class="nav-item tab-item active" data-tab="monitoring">
+          <span class="nav-icon">👥</span>
+          <span class="nav-text">Monitoring Rekan Guru</span>
+        </button>
+        <button class="nav-item tab-item" data-tab="recipients">
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">Daftar Penerima WA</span>
+        </button>
+        <button class="nav-item tab-item" data-tab="config">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Pengaturan & WhatsApp</span>
+        </button>
+        <button class="nav-item tab-item" data-tab="template">
+          <span class="nav-icon">💬</span>
+          <span class="nav-text">Template Pesan WA</span>
+        </button>
+        <button class="nav-item tab-item" data-tab="logs">
+          <span class="nav-icon">📜</span>
+          <span class="nav-text">Log Aktivitas</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Status & Quick Check Card -->
+      <div class="sidebar-widget">
+        <div class="widget-header">
+          <span class="widget-tag font-mono">STATUS ANDA</span>
+          <span class="widget-date font-mono" id="todayDateBadge">-</span>
         </div>
-        <button class="modern-btn btn-glass btn-xs" id="btnLogoutApp" title="Kunci Aplikasi / Keluar">
-          🔒 Kunci
+        <div class="widget-main" id="statusValue">MEMUAT...</div>
+        <div class="widget-times">
+          <div class="w-time">
+            <span class="w-time-lbl">MASUK</span>
+            <span class="w-time-val font-mono" id="jamMasukVal">-</span>
+          </div>
+          <div class="w-time">
+            <span class="w-time-lbl">PULANG</span>
+            <span class="w-time-val font-mono" id="jamPulangVal">-</span>
+          </div>
+        </div>
+        <button class="modern-btn btn-purple-gradient btn-block btn-xs mt-2" id="btnCheckOnly">
+          🔍 Cek Presensi Anda
         </button>
       </div>
-    </header>
 
-    <!-- ─── Stat Metric Cards Grid ───────────────────────────────────────────── -->
-    <section class="metrics-grid">
-      <!-- Metric 1: Status Pribadi -->
-      <div class="metric-card metric-card-highlight">
-        <div class="metric-header">
-          <span class="metric-label">STATUS PRESENSI ANDA</span>
-          <span class="metric-icon">👤</span>
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="bot-status-mini">
+          <div class="bot-dot"></div>
+          <div class="bot-txt">
+            <span class="text-xs text-muted">Jadwal Bot (WIB):</span>
+            <strong class="font-mono text-purple text-xs" id="schedulerCountdownText">07:30 & 18:00</strong>
+          </div>
         </div>
-        <div class="metric-body">
-          <div class="metric-value" id="hudPersonalStatus">MEMUAT...</div>
-          <div class="metric-sub" id="hudPersonalTime">Masuk: - &bull; Pulang: -</div>
-        </div>
+        <button class="modern-btn btn-danger-ghost btn-xs btn-block mt-2" id="btnLogoutApp" title="Kunci Aplikasi">
+          🔒 Kunci Aplikasi
+        </button>
       </div>
 
-      <!-- Metric 2: Kehadiran Guru -->
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">KEHADIRAN REKAN GURU</span>
-          <span class="metric-icon">📊</span>
-        </div>
-        <div class="metric-body">
-          <div class="metric-value gradient-text" id="hudColleaguePercent">0%</div>
-          <div class="metric-sub" id="hudColleagueFraction">0 / 0 Guru Hadir</div>
-        </div>
-      </div>
+    </aside>
 
-      <!-- Metric 3: Scheduler Bot -->
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">JADWAL OTOMATIS BOT</span>
-          <span class="metric-icon">⏰</span>
-        </div>
-        <div class="metric-body">
-          <div class="metric-value font-mono" id="hudBotTime">06:00 WIB</div>
-          <div class="metric-sub text-purple font-mono" id="hudBotCountdown">Countdown...</div>
-        </div>
-      </div>
+    <!-- ─── 02. MAIN WORKSPACE CONTENT ───────────────────────────────────────── -->
+    <div class="dashboard-main">
 
-      <!-- Metric 4: Total Kontak WA -->
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">PENERIMA WA TERDAFTAR</span>
-          <span class="metric-icon">📱</span>
+      <!-- Top Header Bar -->
+      <header class="main-topbar">
+        <button class="sidebar-toggle-btn" id="btnToggleMobileSidebar" title="Buka Menu">
+          ☰
+        </button>
+
+        <div class="topbar-welcome">
+          <h1 class="topbar-title">Dashboard Presensi Guru</h1>
+          <p class="topbar-desc">Sistem Monitoring & Notifikasi WhatsApp Otomatis SMKN 3 Magelang</p>
         </div>
-        <div class="metric-body">
-          <div class="metric-value font-mono" id="hudRecipientCount">0</div>
-          <div class="metric-sub">Guru Aktif di Database</div>
+
+        <div class="topbar-actions">
+          <div class="status-pill" id="headerStatusBadge">
+            <span class="pulse-dot"></span>
+            <span id="headerStatusText">Sistem Terhubung</span>
+          </div>
         </div>
-      </div>
-    </section>
+      </header>
 
-    <!-- ─── Main Content Layout ──────────────────────────────────────────────── -->
-    <main class="main-layout">
+      <div class="main-body-container">
 
-      <!-- LEFT COLUMN: Tabs & Main Content -->
-      <div class="main-content-area">
+        <!-- ─── Stat Metric Cards Grid ───────────────────────────────────────── -->
+        <section class="metrics-grid">
+          <!-- Metric 1: Status Pribadi -->
+          <div class="metric-card metric-card-highlight">
+            <div class="metric-header">
+              <span class="metric-label">STATUS PRESENSI ANDA</span>
+              <span class="metric-icon">👤</span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-value" id="hudPersonalStatus">MEMUAT...</div>
+              <div class="metric-sub" id="hudPersonalTime">Masuk: - &bull; Pulang: -</div>
+            </div>
+          </div>
 
-        <!-- Tab Navigation Bar -->
-        <nav class="tabs-bar">
-          <button class="tab-item active" data-tab="monitoring">
-            <span class="tab-icon">👥</span> Monitoring Rekan Guru
-          </button>
-          <button class="tab-item" data-tab="recipients">
-            <span class="tab-icon">📋</span> Daftar Penerima WA
-          </button>
-          <button class="tab-item" data-tab="config">
-            <span class="tab-icon">⚙️</span> Pengaturan Akun
-          </button>
-          <button class="tab-item" data-tab="template">
-            <span class="tab-icon">💬</span> Template Pesan
-          </button>
-          <button class="tab-item" data-tab="logs">
-            <span class="tab-icon">📜</span> Log Aktivitas
-          </button>
-        </nav>
+          <!-- Metric 2: Kehadiran Guru -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">KEHADIRAN REKAN GURU</span>
+              <span class="metric-icon">📊</span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-value gradient-text" id="hudColleaguePercent">0%</div>
+              <div class="metric-sub" id="hudColleagueFraction">0 / 0 Guru Hadir</div>
+            </div>
+          </div>
+
+          <!-- Metric 3: Scheduler Bot -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">JADWAL OTOMATIS BOT</span>
+              <span class="metric-icon">⏰</span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-value font-mono" id="hudBotTime">07:30 & 18:00</div>
+              <div class="metric-sub text-purple font-mono" id="hudBotCountdown">Countdown...</div>
+            </div>
+          </div>
+
+          <!-- Metric 4: Total Kontak WA -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">PENERIMA WA TERDAFTAR</span>
+              <span class="metric-icon">📱</span>
+            </div>
+            <div class="metric-body">
+              <div class="metric-value font-mono" id="hudRecipientCount">0</div>
+              <div class="metric-sub">Guru Aktif di Database</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ─── Tab Content Panels ───────────────────────────────────────────── -->
+        <div class="main-panel-wrapper">
 
         <!-- TAB 1: Monitoring Rekan Guru -->
         <div class="tab-panel active" id="tab-monitoring">
@@ -548,85 +604,13 @@
           </div>
         </div>
 
-      </div>
+        </div> <!-- /.main-panel-wrapper -->
 
-      <!-- RIGHT COLUMN: Quick Action Sidebar (Sticky) -->
-      <aside class="sidebar-area">
+      </div> <!-- /.main-body-container -->
 
-        <!-- Action Card -->
-        <div class="glass-card sidebar-card">
-          <div class="sidebar-header">
-            <span class="card-tag">AKSI CEPAT</span>
-            <span class="badge-tag" id="todayDateBadge">-</span>
-          </div>
+    </div> <!-- /.dashboard-main -->
 
-          <div class="personal-status-box">
-            <span class="status-sub">Status Presensi Anda</span>
-            <div class="status-main" id="statusValue">MEMUAT...</div>
-            
-            <div class="time-chips-grid">
-              <div class="time-chip">
-                <span class="time-chip-label">MASUK PAGI</span>
-                <span class="time-chip-val" id="jamMasukVal">-</span>
-              </div>
-              <div class="time-chip">
-                <span class="time-chip-label">PULANG SORE</span>
-                <span class="time-chip-val" id="jamPulangVal">-</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="action-buttons-stack">
-            <button class="modern-btn btn-purple-gradient btn-block" id="btnCheckAndSend">
-              <span class="btn-icon">⚡</span>
-              <div class="btn-double-text">
-                <strong>Cek & Kirim Otomatis</strong>
-                <small>Cek absen, kirim WA jika belum</small>
-              </div>
-            </button>
-
-            <button class="modern-btn btn-glass btn-block" id="btnSendNow">
-              <span class="btn-icon">📢</span>
-              <div class="btn-double-text">
-                <strong>Kirim WA ke Semua</strong>
-                <small>Broadcast ke database penerima</small>
-              </div>
-            </button>
-
-            <button class="modern-btn btn-ghost btn-block" id="btnCheckOnly">
-              🔍 Cek Status Absen Saya
-            </button>
-          </div>
-        </div>
-
-        <!-- Bot Scheduler Card -->
-        <div class="glass-card sidebar-card">
-          <div class="sidebar-header">
-            <span class="card-tag">BOT SCHEDULER</span>
-            <span class="status-badge" id="schedulerBadge">NONAKTIF</span>
-          </div>
-
-          <div class="info-list">
-            <div class="info-list-item">
-              <span class="text-muted">Waktu Cek</span>
-              <strong class="font-mono" id="schedulerTimeText">06:00 WIB</strong>
-            </div>
-            <div class="info-list-item">
-              <span class="text-muted">Jadwal Berikutnya</span>
-              <strong class="font-mono text-sm" id="nextCheckText">-</strong>
-            </div>
-            <div class="info-list-item">
-              <span class="text-muted">Countdown</span>
-              <strong class="font-mono text-purple" id="schedulerCountdownText">Menghitung...</strong>
-            </div>
-          </div>
-        </div>
-
-      </aside>
-
-    </main>
-
-  </div>
+  </div> <!-- /.dashboard-root -->
 
   <!-- Modal Detail Riwayat Absen Rekan Guru 1 Bulan -->
   <div class="modal-overlay" id="colleagueHistoryModal">
