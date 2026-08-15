@@ -17,7 +17,7 @@ function checkAppAuth() {
   const token = localStorage.getItem('epresensi_app_token');
   if (token) {
     if (appGatekeeperScreen) appGatekeeperScreen.style.display = 'none';
-    if (mainAppWrapper) mainAppWrapper.style.display = 'block';
+    if (mainAppWrapper) mainAppWrapper.style.display = 'flex';
   } else {
     if (appGatekeeperScreen) appGatekeeperScreen.style.display = 'flex';
     if (mainAppWrapper) mainAppWrapper.style.display = 'none';
@@ -278,15 +278,43 @@ function initSelectOptions() {
   });
 }
 
-// ─── Tab Switching & Mobile Sidebar ───────────────────────────────────────────
-const btnToggleMobileSidebar = document.getElementById('btnToggleMobileSidebar');
-const dashboardSidebar = document.getElementById('dashboardSidebar');
+// ─── Tab Switching & Universal Hamburger Sidebar ──────────────────────────────
+const btnToggleSidebar  = document.getElementById('btnToggleSidebar');
+const dashboardSidebar  = document.getElementById('dashboardSidebar');
+const sidebarBackdrop   = document.getElementById('sidebarBackdrop');
 
-if (btnToggleMobileSidebar && dashboardSidebar) {
-  btnToggleMobileSidebar.addEventListener('click', () => {
-    dashboardSidebar.classList.toggle('mobile-open');
+function initSidebarState() {
+  const isCollapsed = localStorage.getItem('epresensi_sidebar_collapsed') === 'true';
+  if (isCollapsed && window.innerWidth > 960 && mainAppWrapper) {
+    mainAppWrapper.classList.add('sidebar-collapsed');
+  }
+}
+
+if (btnToggleSidebar) {
+  btnToggleSidebar.addEventListener('click', () => {
+    if (window.innerWidth <= 960) {
+      const isOpen = dashboardSidebar?.classList.toggle('mobile-open');
+      if (sidebarBackdrop) {
+        if (isOpen) sidebarBackdrop.classList.add('show');
+        else sidebarBackdrop.classList.remove('show');
+      }
+    } else {
+      if (mainAppWrapper) {
+        const isCollapsed = mainAppWrapper.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('epresensi_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+      }
+    }
   });
 }
+
+if (sidebarBackdrop) {
+  sidebarBackdrop.addEventListener('click', () => {
+    dashboardSidebar?.classList.remove('mobile-open');
+    sidebarBackdrop.classList.remove('show');
+  });
+}
+
+initSidebarState();
 
 document.querySelectorAll('.tab-item').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -299,6 +327,7 @@ document.querySelectorAll('.tab-item').forEach(btn => {
     // Auto-close sidebar on mobile
     if (window.innerWidth <= 960 && dashboardSidebar) {
       dashboardSidebar.classList.remove('mobile-open');
+      sidebarBackdrop?.classList.remove('show');
     }
   });
 });
@@ -548,6 +577,198 @@ async function performCheck(silenceToast = false) {
   }
 }
 
+// ─── Theme Switcher (Dark & Light Mode) ───────────────────────────────────────
+const themeToggleIcon = document.getElementById('themeToggleIcon');
+const themeToggleText = document.getElementById('themeToggleText');
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    if (themeToggleIcon) themeToggleIcon.textContent = '☀️';
+    if (themeToggleText) themeToggleText.textContent = 'Light';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    if (themeToggleIcon) themeToggleIcon.textContent = '🌙';
+    if (themeToggleText) themeToggleText.textContent = 'Dark';
+  }
+  localStorage.setItem('epresensi_theme', theme);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('epresensi_theme') || 'dark';
+  applyTheme(saved);
+}
+
+window.toggleAppTheme = function() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  applyTheme(isLight ? 'dark' : 'light');
+};
+
+initTheme();
+
+// ─── Dynamic Avatar Initial Generator ─────────────────────────────────────────
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #8b5cf6, #6366f1)',
+  'linear-gradient(135deg, #10b981, #06b6d4)',
+  'linear-gradient(135deg, #f43f5e, #fb923c)',
+  'linear-gradient(135deg, #3b82f6, #6366f1)',
+  'linear-gradient(135deg, #f59e0b, #eab308)',
+  'linear-gradient(135deg, #d946ef, #ec4899)'
+];
+
+function getTeacherAvatar(name) {
+  if (!name) return '<span class="teacher-avatar" style="background: var(--accent-gradient)">GR</span>';
+  const clean = name.replace(/S\.Kom|S\.Pd|M\.Pd|S\.T|M\.Kom|Dr\.|Drs\.|H\.|Hj\.|,/gi, '').trim();
+  const parts = clean.split(/\s+/).filter(Boolean);
+  let initials = parts[0] ? parts[0][0] : 'G';
+  if (parts.length > 1) {
+    initials += parts[parts.length - 1][0];
+  } else if (parts[0] && parts[0].length > 1) {
+    initials += parts[0][1];
+  }
+  initials = initials.toUpperCase();
+
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const grad = AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+
+  return `<span class="teacher-avatar" style="background: ${grad}">${initials}</span>`;
+}
+
+// ─── SVG Donut Chart ──────────────────────────────────────────────────────────
+function updateDonutChart(percent) {
+  const path = document.getElementById('hudDonutProgress');
+  if (path) {
+    const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+    path.setAttribute('stroke-dasharray', `${clamped}, 100`);
+    if (clamped >= 80) {
+      path.style.stroke = 'var(--emerald-400)';
+    } else if (clamped >= 50) {
+      path.style.stroke = 'var(--purple-400)';
+    } else {
+      path.style.stroke = 'var(--rose-500)';
+    }
+  }
+}
+
+// ─── Shimmer Skeleton Table Loader ────────────────────────────────────────────
+function renderTableSkeleton(tableBody, rows = 6, cols = 8) {
+  if (!tableBody) return;
+  let html = '';
+  for (let r = 0; r < rows; r++) {
+    html += '<tr>';
+    for (let c = 0; c < cols; c++) {
+      const width = c === 3 ? '160px' : (c === 0 ? '18px' : (c === 2 ? '130px' : '55px'));
+      html += `<td><span class="skeleton-box" style="width: ${width}; height: 16px;"></span></td>`;
+    }
+    html += '</tr>';
+  }
+  tableBody.innerHTML = html;
+}
+
+// ─── Multi-Select Batch Actions ───────────────────────────────────────────────
+const selectedTeachers = new Map(); // key: identifier, val: { nama, nomor }
+const floatingBatchBar  = document.getElementById('floatingBatchBar');
+const batchCountTag     = document.getElementById('batchCountTag');
+const batchCountBtn     = document.getElementById('batchCountBtn');
+const btnSendBatchWa    = document.getElementById('btnSendBatchWa');
+const btnCancelBatch    = document.getElementById('btnCancelBatch');
+const selectAllColleagues = document.getElementById('selectAllColleagues');
+const selectAllRecipients = document.getElementById('selectAllRecipients');
+
+function updateBatchBar() {
+  const count = selectedTeachers.size;
+  if (count > 0) {
+    if (batchCountTag) batchCountTag.textContent = `${count} Guru Terpilih`;
+    if (batchCountBtn) batchCountBtn.textContent = count;
+    floatingBatchBar?.classList.add('show');
+  } else {
+    floatingBatchBar?.classList.remove('show');
+  }
+}
+
+window.toggleTeacherSelect = function(id, nama, nomor, checked) {
+  if (checked) {
+    selectedTeachers.set(id, { nama, nomor });
+  } else {
+    selectedTeachers.delete(id);
+  }
+  updateBatchBar();
+};
+
+if (btnCancelBatch) {
+  btnCancelBatch.addEventListener('click', () => {
+    selectedTeachers.clear();
+    document.querySelectorAll('.teacher-select-cb').forEach(cb => cb.checked = false);
+    updateBatchBar();
+  });
+}
+
+if (btnSendBatchWa) {
+  btnSendBatchWa.addEventListener('click', async () => {
+    const list = Array.from(selectedTeachers.values()).filter(t => t.nomor);
+    if (list.length === 0) {
+      showToast('Tidak ada guru dengan nomor WA valid di pilihan Anda.', 'warning');
+      return;
+    }
+
+    const confirmSend = confirm(`Kirim pesan WhatsApp sekarang ke ${list.length} guru yang Anda pilih?`);
+    if (!confirmSend) return;
+
+    showToast(`Mengirim pesan WhatsApp ke ${list.length} guru terpilih...`, 'info');
+    let successCount = 0;
+
+    for (const t of list) {
+      try {
+        const res = await fetch('/api/send-direct', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nomor: t.nomor, nama: t.nama })
+        });
+        const data = await res.json();
+        if (data.success) successCount++;
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 1200));
+    }
+
+    showToast(`✅ Berhasil terkirim ke ${successCount} dari ${list.length} guru terpilih!`, 'success');
+    selectedTeachers.clear();
+    document.querySelectorAll('.teacher-select-cb').forEach(cb => cb.checked = false);
+    updateBatchBar();
+    loadLogs();
+  });
+}
+
+if (selectAllColleagues) {
+  selectAllColleagues.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#colleaguesTableBody .teacher-select-cb').forEach(cb => {
+      cb.checked = checked;
+      const id = cb.dataset.id;
+      const nama = cb.dataset.nama;
+      const nomor = cb.dataset.nomor;
+      if (checked) selectedTeachers.set(id, { nama, nomor });
+      else selectedTeachers.delete(id);
+    });
+    updateBatchBar();
+  });
+}
+
+if (selectAllRecipients) {
+  selectAllRecipients.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#recipientsTableBody .teacher-select-cb').forEach(cb => {
+      cb.checked = checked;
+      const id = cb.dataset.id;
+      const nama = cb.dataset.nama;
+      const nomor = cb.dataset.nomor;
+      if (checked) selectedTeachers.set(id, { nama, nomor });
+      else selectedTeachers.delete(id);
+    });
+    updateBatchBar();
+  });
+}
+
 // ─── Monitoring Rekan Guru (SMKN 3 Magelang with Instant Local Cache) ─────────
 function applyColleaguesData(data) {
   colleagues = data.colleagues || [];
@@ -562,14 +783,15 @@ function applyColleaguesData(data) {
   if (unabsentBadgeCount) unabsentBadgeCount.textContent = belum;
 
   // Update Progress Bar & HUD Metrics
-  const percentage = total > 0 ? ((hadir / total) * 100).toFixed(1) : 0;
+  const percentage = total > 0 ? parseFloat(((hadir / total) * 100).toFixed(1)) : 0;
   if (progressPercentageText) progressPercentageText.textContent = `${percentage}% Rekan Sudah Hadir`;
   if (progressFractionText) progressFractionText.textContent = `${hadir} / ${total} Guru`;
   if (progressBarFill) progressBarFill.style.width = `${percentage}%`;
 
   if (hudColleaguePercent) hudColleaguePercent.textContent = `${percentage}%`;
   if (hudColleagueFraction) hudColleagueFraction.textContent = `${hadir} / ${total} Guru Hadir`;
-
+  
+  updateDonutChart(percentage);
   renderColleaguesTable();
 }
 
@@ -594,15 +816,9 @@ async function loadColleagues(force = false) {
     }
   }
 
-  // Jika belum ada cache lokal sama sekali, tampilkan loading spinner
+  // Jika belum ada cache lokal sama sekali, tampilkan shimmer skeleton
   if (!hasRenderedFromCache) {
-    colleaguesTableBody.innerHTML = `
-      <tr>
-        <td colspan="7" class="table-empty">
-          <div class="loading-spinner"></div>
-          <span>Mengambil data presensi tanggal ${selectedDay} dari ePresensi Jateng...</span>
-        </td>
-      </tr>`;
+    renderTableSkeleton(colleaguesTableBody, 8, 8);
   }
 
   // 2. BACKGROUND FETCH (Update fresh data)
@@ -615,7 +831,7 @@ async function loadColleagues(force = false) {
       if (!hasRenderedFromCache) {
         colleaguesTableBody.innerHTML = `
           <tr>
-            <td colspan="7" class="table-empty" style="color: var(--rose-500);">
+            <td colspan="8" class="table-empty" style="color: var(--rose-500);">
               ❌ Gagal memuat data: ${data.error}
             </td>
           </tr>`;
@@ -623,7 +839,6 @@ async function loadColleagues(force = false) {
       return;
     }
 
-    // Simpan ke LocalStorage untuk akses instan selanjutnya
     localStorage.setItem(cacheKey, JSON.stringify(data));
     applyColleaguesData(data);
 
@@ -634,7 +849,7 @@ async function loadColleagues(force = false) {
     if (!hasRenderedFromCache && colleaguesTableBody) {
       colleaguesTableBody.innerHTML = `
         <tr>
-          <td colspan="7" class="table-empty" style="color: var(--rose-500);">
+          <td colspan="8" class="table-empty" style="color: var(--rose-500);">
             ❌ Error koneksi: ${err.message}
           </td>
         </tr>`;
@@ -660,7 +875,7 @@ function renderColleaguesTable() {
   if (filtered.length === 0) {
     colleaguesTableBody.innerHTML = `
       <tr>
-        <td colspan="7" class="table-empty">
+        <td colspan="8" class="table-empty">
           Tidak ada data guru yang sesuai dengan pencarian/filter.
         </td>
       </tr>`;
@@ -686,6 +901,7 @@ function renderColleaguesTable() {
       return cleanR.includes(cleanC) || cleanC.includes(cleanR);
     });
 
+    const isSelected = selectedTeachers.has(c.nip || c.no);
     const waBtnHtml = matchedRecipient
       ? `<button class="modern-btn btn-purple btn-xs mr-1" onclick="sendDirectWa('${matchedRecipient.nomor}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}')" title="Kirim WA ke ${escapeHtml(c.nama)}">
           💬 WA
@@ -694,13 +910,19 @@ function renderColleaguesTable() {
 
     return `
       <tr>
+        <td class="text-center">
+          <input type="checkbox" class="teacher-select-cb" ${isSelected ? 'checked' : ''} data-id="${c.nip || c.no}" data-nama="${escapeHtml(c.nama)}" data-nomor="${matchedRecipient ? matchedRecipient.nomor : ''}" onchange="toggleTeacherSelect('${c.nip || c.no}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}', '${matchedRecipient ? matchedRecipient.nomor : ''}', this.checked)">
+        </td>
         <td class="text-muted font-mono">${c.no}</td>
         <td class="font-mono text-muted">${c.nip || '-'}</td>
         <td>
-          <a href="javascript:void(0)" class="teacher-link" onclick="openTeacherHistory('${c.nip}', '${escapeHtml(c.nama)}')">
-            <strong>${escapeHtml(c.nama)}</strong>
-            <small>Lihat Riwayat 1 Bulan &rarr;</small>
-          </a>
+          <div class="teacher-avatar-wrap">
+            ${getTeacherAvatar(c.nama)}
+            <a href="javascript:void(0)" class="teacher-link" onclick="openTeacherHistory('${c.nip}', '${escapeHtml(c.nama)}')">
+              <strong>${escapeHtml(c.nama)}</strong>
+              <small>Lihat Riwayat 1 Bulan &rarr;</small>
+            </a>
+          </div>
         </td>
         <td class="font-mono">${c.jamMasuk ? `<strong>${c.jamMasuk}</strong>` : '-'}</td>
         <td class="font-mono">${c.jamPulang ? `<strong>${c.jamPulang}</strong>` : '-'}</td>
@@ -773,7 +995,7 @@ async function triggerSendUnabsent() {
   }
 }
 
-btnQuickSendUnabsent.addEventListener('click', triggerSendUnabsent);
+if (btnQuickSendUnabsent) btnQuickSendUnabsent.addEventListener('click', triggerSendUnabsent);
 
 // ─── Teacher 1-Month History Modal ────────────────────────────────────────────
 window.openTeacherHistory = async function(nip, nama) {
@@ -882,17 +1104,27 @@ function renderRecipientsTable() {
   if (recipients.length === 0) {
     recipientsTableBody.innerHTML = `
       <tr>
-        <td colspan="5" class="table-empty">
+        <td colspan="6" class="table-empty">
           Belum ada nomor guru terdaftar. Silakan import Excel atau tambah manual.
         </td>
       </tr>`;
     return;
   }
 
-  recipientsTableBody.innerHTML = recipients.map((r, i) => `
+  recipientsTableBody.innerHTML = recipients.map((r, i) => {
+    const isSelected = selectedTeachers.has(r.id);
+    return `
     <tr>
+      <td class="text-center">
+        <input type="checkbox" class="teacher-select-cb" ${isSelected ? 'checked' : ''} data-id="${r.id}" data-nama="${escapeHtml(r.nama)}" data-nomor="${r.nomor}" onchange="toggleTeacherSelect('${r.id}', '${escapeHtml(r.nama).replace(/'/g, "\\'")}', '${r.nomor}', this.checked)">
+      </td>
       <td class="text-muted font-mono">${i + 1}</td>
-      <td><strong>${escapeHtml(r.nama)}</strong></td>
+      <td>
+        <div class="teacher-avatar-wrap">
+          ${getTeacherAvatar(r.nama)}
+          <strong>${escapeHtml(r.nama)}</strong>
+        </div>
+      </td>
       <td class="font-mono">${r.nomor}</td>
       <td>
         <label class="custom-switch" style="transform: scale(0.8);">
@@ -912,7 +1144,7 @@ function renderRecipientsTable() {
         </button>
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 
 window.sendDirectWa = async function(nomor, nama) {

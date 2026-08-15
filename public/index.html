@@ -47,6 +47,9 @@
 
   <div class="dashboard-root" id="mainAppWrapper" style="display: none;">
 
+    <!-- Mobile / Drawer Backdrop Overlay -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
     <!-- ─── 01. LEFT SIDEBAR NAVIGATION ──────────────────────────────────────── -->
     <aside class="dashboard-sidebar" id="dashboardSidebar">
       
@@ -66,23 +69,23 @@
       <!-- Navigation Links -->
       <nav class="sidebar-menu">
         <div class="menu-label font-mono">MENU UTAMA</div>
-        <button class="nav-item tab-item active" data-tab="monitoring">
+        <button class="nav-item tab-item active" data-tab="monitoring" title="Monitoring Rekan Guru">
           <span class="nav-icon">👥</span>
           <span class="nav-text">Monitoring Rekan Guru</span>
         </button>
-        <button class="nav-item tab-item" data-tab="recipients">
+        <button class="nav-item tab-item" data-tab="recipients" title="Daftar Penerima WA">
           <span class="nav-icon">📋</span>
           <span class="nav-text">Daftar Penerima WA</span>
         </button>
-        <button class="nav-item tab-item" data-tab="config">
+        <button class="nav-item tab-item" data-tab="config" title="Pengaturan & WhatsApp">
           <span class="nav-icon">⚙️</span>
           <span class="nav-text">Pengaturan & WhatsApp</span>
         </button>
-        <button class="nav-item tab-item" data-tab="template">
+        <button class="nav-item tab-item" data-tab="template" title="Template Pesan WA">
           <span class="nav-icon">💬</span>
           <span class="nav-text">Template Pesan WA</span>
         </button>
-        <button class="nav-item tab-item" data-tab="logs">
+        <button class="nav-item tab-item" data-tab="logs" title="Log Aktivitas">
           <span class="nav-icon">📜</span>
           <span class="nav-text">Log Aktivitas</span>
         </button>
@@ -120,7 +123,7 @@
           </div>
         </div>
         <button class="modern-btn btn-danger-ghost btn-xs btn-block mt-2" id="btnLogoutApp" title="Kunci Aplikasi">
-          🔒 Kunci Aplikasi
+          🔒 <span class="nav-text">Kunci Aplikasi</span>
         </button>
       </div>
 
@@ -131,16 +134,23 @@
 
       <!-- Top Header Bar -->
       <header class="main-topbar">
-        <button class="sidebar-toggle-btn" id="btnToggleMobileSidebar" title="Buka Menu">
-          ☰
-        </button>
+        <div class="topbar-left" style="display: flex; align-items: center; gap: 14px;">
+          <button class="hamburger-btn" id="btnToggleSidebar" title="Tutup / Buka Sidebar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
 
-        <div class="topbar-welcome">
-          <h1 class="topbar-title">Dashboard Presensi Guru</h1>
-          <p class="topbar-desc">Sistem Monitoring & Notifikasi WhatsApp Otomatis SMKN 3 Magelang</p>
+          <div class="topbar-welcome">
+            <h1 class="topbar-title">Dashboard Presensi Guru</h1>
+            <p class="topbar-desc">Sistem Monitoring & Notifikasi WhatsApp Otomatis SMKN 3 Magelang</p>
+          </div>
         </div>
 
-        <div class="topbar-actions">
+        <div class="topbar-actions" style="display: flex; align-items: center; gap: 12px;">
+          <button class="theme-toggle-btn" id="btnToggleTheme" onclick="toggleAppTheme()" title="Ganti Tema (Dark / Light)">
+            <span id="themeToggleIcon">🌙</span> <span id="themeToggleText">Dark</span>
+          </button>
           <div class="status-pill" id="headerStatusBadge">
             <span class="pulse-dot"></span>
             <span id="headerStatusText">Sistem Terhubung</span>
@@ -164,15 +174,21 @@
             </div>
           </div>
 
-          <!-- Metric 2: Kehadiran Guru -->
+          <!-- Metric 2: Kehadiran Guru (With SVG Donut Chart) -->
           <div class="metric-card">
             <div class="metric-header">
               <span class="metric-label">KEHADIRAN REKAN GURU</span>
               <span class="metric-icon">📊</span>
             </div>
-            <div class="metric-body">
-              <div class="metric-value gradient-text" id="hudColleaguePercent">0%</div>
-              <div class="metric-sub" id="hudColleagueFraction">0 / 0 Guru Hadir</div>
+            <div class="metric-body metric-donut-wrap">
+              <div>
+                <div class="metric-value gradient-text" id="hudColleaguePercent">0%</div>
+                <div class="metric-sub" id="hudColleagueFraction">0 / 0 Guru Hadir</div>
+              </div>
+              <svg class="donut-chart-svg" viewBox="0 0 36 36">
+                <path class="donut-bg" stroke-width="3.6" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="hudDonutProgress" class="donut-progress" stroke-dasharray="0, 100" stroke-width="3.6" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
             </div>
           </div>
 
@@ -268,13 +284,16 @@
               <table class="modern-table">
                 <thead>
                   <tr>
-                    <th width="46">No</th>
-                    <th width="180">NIP</th>
+                    <th width="38" class="text-center">
+                      <input type="checkbox" id="selectAllColleagues" class="teacher-select-cb" title="Pilih Semua">
+                    </th>
+                    <th width="44">No</th>
+                    <th width="170">NIP</th>
                     <th>Nama Lengkap</th>
-                    <th width="90">Masuk</th>
-                    <th width="90">Pulang</th>
-                    <th width="120">Status</th>
-                    <th width="80" class="text-center">Riwayat</th>
+                    <th width="85">Masuk</th>
+                    <th width="85">Pulang</th>
+                    <th width="110">Status</th>
+                    <th width="120" class="text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody id="colleaguesTableBody">
@@ -331,11 +350,14 @@
               <table class="modern-table" id="recipientsTable">
                 <thead>
                   <tr>
-                    <th width="46">No</th>
+                    <th width="38" class="text-center">
+                      <input type="checkbox" id="selectAllRecipients" class="teacher-select-cb" title="Pilih Semua">
+                    </th>
+                    <th width="44">No</th>
                     <th>Nama Guru / Penerima</th>
-                    <th width="180">Nomor WhatsApp</th>
-                    <th width="90">Status</th>
-                    <th width="120" class="text-center">Aksi</th>
+                    <th width="160">Nomor WhatsApp</th>
+                    <th width="85">Status</th>
+                    <th width="180" class="text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody id="recipientsTableBody">
@@ -611,6 +633,17 @@
     </div> <!-- /.dashboard-main -->
 
   </div> <!-- /.dashboard-root -->
+
+  <!-- Floating Batch Action Bar -->
+  <div class="floating-batch-bar" id="floatingBatchBar">
+    <span class="batch-count-tag" id="batchCountTag">0 Guru Terpilih</span>
+    <button class="modern-btn btn-purple-gradient btn-sm" id="btnSendBatchWa">
+      💬 Kirim WA ke Terpilih (<span id="batchCountBtn">0</span>)
+    </button>
+    <button class="modern-btn btn-ghost btn-xs" id="btnCancelBatch">
+      ✕ Batal
+    </button>
+  </div>
 
   <!-- Modal Detail Riwayat Absen Rekan Guru 1 Bulan -->
   <div class="modal-overlay" id="colleagueHistoryModal">

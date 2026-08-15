@@ -4,59 +4,206 @@
 ═══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Colors */
-  --bg-main: #0B0C11;
-  --bg-card: rgba(18, 20, 29, 0.72);
-  --bg-card-hover: rgba(24, 27, 40, 0.82);
-  --bg-input: rgba(14, 16, 23, 0.85);
+  /* Dark Mode (Default) Design Tokens */
+  --bg-main: #0a0b12;
+  --bg-card: rgba(18, 20, 32, 0.72);
+  --bg-card-hover: rgba(24, 27, 42, 0.82);
+  --bg-input: rgba(13, 15, 26, 0.85);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-glass-hover: rgba(168, 85, 247, 0.35);
+  --glass-blur: blur(20px);
   
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
   
-  /* Vibrant Electric Purple / Indigo */
-  --purple-500: #A855F7;
-  --purple-600: #9333EA;
-  --purple-700: #7E22CE;
-  --indigo-500: #6366F1;
-  --indigo-600: #4F46E5;
-  --accent-gradient: linear-gradient(135deg, #A855F7 0%, #6366F1 100%);
+  /* Brand Accent: Rich Violet / Indigo */
+  --purple-400: #c084fc;
+  --purple-500: #a855f7;
+  --purple-600: #9333ea;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --accent-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
   --accent-glow: rgba(168, 85, 247, 0.35);
 
   /* Status Colors */
-  --emerald-500: #10B981;
-  --emerald-glow: rgba(16, 185, 129, 0.2);
-  --amber-500: #F59E0B;
-  --rose-500: #F43F5E;
-  --rose-glow: rgba(244, 63, 94, 0.2);
+  --emerald-400: #34d399;
+  --emerald-500: #10b981;
+  --emerald-glow: rgba(16, 185, 129, 0.25);
+  --rose-500: #f43f5e;
+  --rose-glow: rgba(244, 63, 94, 0.25);
+  --amber-500: #f59e0b;
+  --blue-500: #3b82f6;
 
-  /* Borders & Glass */
-  --border-glass: rgba(255, 255, 255, 0.08);
-  --border-glass-hover: rgba(168, 85, 247, 0.4);
-  --glass-blur: blur(16px);
-  
-  /* Radii */
+  /* UI Components: Avatars & Skeletons */
+  --avatar-bg: rgba(255, 255, 255, 0.1);
+  --skeleton-base: rgba(255, 255, 255, 0.05);
+  --skeleton-highlight: rgba(255, 255, 255, 0.1);
+
+  /* Geometry */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
   --radius-pill: 9999px;
-
-  /* Fonts */
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* Shadows */
-  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-glass);
   --shadow-glow: 0 0 25px rgba(168, 85, 247, 0.25);
   --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Base Reset */
+/* ─── Light Mode Theme System ─────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-main: #f8fafc;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-card-hover: #ffffff;
+  --bg-input: #ffffff;
+  --border-glass: rgba(0, 0, 0, 0.08);
+  --border-glass-hover: rgba(147, 51, 234, 0.4);
+  --glass-blur: blur(16px);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --shadow-card: 0 10px 25px -3px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 0 25px rgba(168, 85, 247, 0.15);
+}
+
+[data-theme="light"] body {
+  background-color: var(--bg-main) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .dashboard-sidebar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-right-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .main-topbar {
+  background: rgba(248, 250, 252, 0.88) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .glass-card,
+[data-theme="light"] .metric-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .w-time,
+[data-theme="light"] .bot-status-mini,
+[data-theme="light"] .sidebar-widget {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .modern-table th {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .modern-table td {
+  border-bottom-color: rgba(0, 0, 0, 0.04) !important;
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .modern-table tr:hover {
+  background: rgba(241, 245, 249, 0.7) !important;
+}
+
+[data-theme="light"] .custom-input,
+[data-theme="light"] .custom-select {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .teacher-link {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .sidebar-menu .nav-item {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .sidebar-menu .nav-item:hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .sidebar-menu .nav-item.active {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(99, 102, 241, 0.15)) !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+  color: var(--purple-600) !important;
+}
+
+[data-theme="light"] .theme-toggle-btn {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .status-pill {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .progress-section {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .progress-track {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Base Reset & Global Sleek Scrollbar */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.25) transparent;
+}
+
+/* ─── Ultra-Sleek Modern Custom Scrollbar (Eliminate Clunky Native Scrollbars) ─ */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.25);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.65);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(147, 51, 234, 0.45);
 }
 
 html, body {
@@ -120,10 +267,27 @@ html, body {
   z-index: 1;
 }
 
-/* ─── Left Sidebar ───────────────────────────────────────────────────────── */
+/* ─── Mobile & Drawer Backdrop ────────────────────────────────────────────── */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 95;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── Left Sidebar (With Smooth Collapsible Auto-Hide) ────────────────────── */
 .dashboard-sidebar {
   width: 275px;
-  background: rgba(12, 14, 24, 0.92);
+  background: rgba(12, 14, 24, 0.94);
   backdrop-filter: var(--glass-blur);
   border-right: 1px solid var(--border-glass);
   display: flex;
@@ -135,8 +299,96 @@ html, body {
   z-index: 100;
   padding: 24px 18px 20px;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Collapsed Desktop State */
+.dashboard-root.sidebar-collapsed .dashboard-sidebar {
+  width: 78px;
+  padding: 24px 12px 20px;
+}
+
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover {
+  width: 275px;
+  padding: 24px 18px 20px;
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.2);
+}
+
+.dashboard-root.sidebar-collapsed .dashboard-main {
+  margin-left: 78px;
+}
+
+.dashboard-root.sidebar-collapsed .sidebar-brand .brand-info,
+.dashboard-root.sidebar-collapsed .sidebar-menu .nav-text,
+.dashboard-root.sidebar-collapsed .menu-label,
+.dashboard-root.sidebar-collapsed .sidebar-widget,
+.dashboard-root.sidebar-collapsed .bot-txt {
+  opacity: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-brand .brand-info,
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-menu .nav-text,
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .menu-label,
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-widget,
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .bot-txt {
+  opacity: 1;
+  pointer-events: auto;
+  display: block;
+}
+
+.dashboard-root.sidebar-collapsed .sidebar-menu .nav-item {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-menu .nav-item {
+  justify-content: flex-start;
+  padding: 12px 14px;
+}
+
+/* ─── Animated Hamburger Button ───────────────────────────────────────────── */
+.hamburger-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.hamburger-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--purple-400);
+  transform: translateY(-1px);
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background-color: var(--text-primary);
+  border-radius: 2px;
+  transition: all 0.25s ease;
+}
+
+[data-theme="light"] .hamburger-btn {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .hamburger-btn span {
+  background-color: #0f172a !important;
 }
 
 .dashboard-sidebar::-webkit-scrollbar {
@@ -621,18 +873,39 @@ html, body {
 
 /* ─── Modern Tables ────────────────────────────────────────────────────────── */
 .table-container {
-  max-height: 480px;
+  max-height: 520px;
   overflow-x: auto;
   overflow-y: auto;
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
-  background: rgba(11, 12, 17, 0.5);
+  background: rgba(11, 12, 17, 0.45);
   -webkit-overflow-scrolling: touch;
+}
+
+[data-theme="light"] .table-container {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.table-container::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.25);
+  border-radius: 9999px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.65);
 }
 
 .modern-table {
   width: 100%;
-  min-width: 720px;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
@@ -647,14 +920,14 @@ html, body {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border-glass);
   z-index: 2;
   text-align: left;
 }
 
 .modern-table td {
-  padding: 14px 16px;
+  padding: 11px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   vertical-align: middle;
 }
@@ -714,6 +987,143 @@ html, body {
   margin-top: 14px;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* ─── Avatar Inisial Berwarna ─────────────────────────────────────────────── */
+.teacher-avatar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.teacher-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: #ffffff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* ─── SVG Donut Chart Metric ───────────────────────────────────────────────── */
+.metric-donut-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.donut-chart-svg {
+  width: 46px;
+  height: 46px;
+  transform: rotate(-90deg);
+}
+
+.donut-bg {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .donut-bg {
+  stroke: rgba(0, 0, 0, 0.08);
+}
+
+.donut-progress {
+  stroke: var(--purple-400);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease;
+  filter: drop-shadow(0 0 6px var(--purple-500));
+}
+
+/* ─── Shimmer Skeleton Loading ─────────────────────────────────────────────── */
+.skeleton-box {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmerAnim 1.4s infinite;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
+[data-theme="light"] .skeleton-box {
+  background: linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.09) 50%, rgba(0,0,0,0.04) 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes shimmerAnim {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Floating Batch Action Bar ────────────────────────────────────────────── */
+.floating-batch-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(20, 23, 36, 0.95);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-glass-hover);
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 25px rgba(168,85,247,0.25);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] .floating-batch-bar {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.15), 0 0 25px rgba(168,85,247,0.15);
+}
+
+.floating-batch-bar.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.batch-count-tag {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--purple-400);
+}
+
+/* ─── Theme Switcher Toggle Button ─────────────────────────────────────────── */
+.theme-toggle-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.theme-toggle-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--purple-400);
+  transform: translateY(-1px);
+}
+
+.teacher-select-cb {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--purple-500);
+  cursor: pointer;
 }
 
 /* ─── Status Badges ────────────────────────────────────────────────────────── */
