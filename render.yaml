@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: epresensi-sinaga
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_PASSWORD
+        value: SMK3magelang

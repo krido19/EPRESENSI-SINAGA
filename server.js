@@ -13,12 +13,12 @@ const { exec } = require('child_process');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 
 const app  = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // ─── Security Configuration & Middleware ──────────────────────────────────────
 const AUTH_SECRET = process.env.APP_SECRET || 'epresensi_sec_salt_key_2026';
 
-// 1. CORS Boundary Hardening
+// 1. CORS Boundary Hardening (Allows Localhost, Render, Railway, Koyeb)
 const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
@@ -28,7 +28,15 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      origin.includes('.onrender.com') ||
+      origin.includes('.up.railway.app') ||
+      origin.includes('.koyeb.app')
+    ) {
       return callback(null, true);
     }
     return callback(new Error('CORS Policy: Akses dari domain luar tidak diizinkan.'));
