@@ -1,3 +1,24 @@
+// ─── Authenticated Fetch Interceptor (Security Layer) ─────────────────────────
+const originalFetch = window.fetch;
+window.fetch = async function (url, options = {}) {
+  const token = localStorage.getItem('epresensi_app_token');
+  const opts = { ...options };
+
+  if (typeof url === 'string' && url.startsWith('/api') && !url.includes('/api/auth/app-login')) {
+    opts.headers = { ...(opts.headers || {}) };
+    if (token && !opts.headers['Authorization']) {
+      opts.headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  const response = await originalFetch(url, opts);
+  if (response.status === 401 && typeof url === 'string' && url.startsWith('/api') && !url.includes('/api/auth/app-login')) {
+    localStorage.removeItem('epresensi_app_token');
+    if (typeof checkAppAuth === 'function') checkAppAuth();
+  }
+  return response;
+};
+
 // ─── App Gatekeeper Security Elements ───────────────────────────────────────
 const appGatekeeperScreen        = document.getElementById('appGatekeeperScreen');
 const mainAppWrapper             = document.getElementById('mainAppWrapper');
@@ -103,6 +124,9 @@ if (changeAppPasswordForm) {
       const data = await res.json();
 
       if (data.success) {
+        if (data.token) {
+          localStorage.setItem('epresensi_app_token', data.token);
+        }
         showToast('✅ Password akses aplikasi berhasil diubah!', 'success');
         changeAppPasswordForm.reset();
       } else {
@@ -862,11 +886,11 @@ function renderColleaguesTable() {
   const query = searchColleagueInput ? searchColleagueInput.value.toLowerCase().trim() : '';
 
   const filtered = colleagues.filter(c => {
-    const matchSearch = c.nama.toLowerCase().includes(query) || c.nip.includes(query);
+    const matchSearch = (c.nama || '').toLowerCase().includes(query) || (c.nip || '').includes(query);
     if (!matchSearch) return false;
 
     if (activeFilter === 'hadir') return c.isHadir;
-    if (activeFilter === 'belum') return !c.isHadir && !c.status.includes('Libur');
+    if (activeFilter === 'belum') return !c.isHadir;
     return true;
   });
 
@@ -1081,11 +1105,13 @@ window.openTeacherHistory = async function(nip, nama) {
   }
 };
 
-btnCloseHistoryModal.addEventListener('click', () => colleagueHistoryModal.classList.remove('show'));
-btnCloseHistoryModalBtn.addEventListener('click', () => colleagueHistoryModal.classList.remove('show'));
-colleagueHistoryModal.addEventListener('click', (e) => {
-  if (e.target === colleagueHistoryModal) colleagueHistoryModal.classList.remove('show');
-});
+if (btnCloseHistoryModal) btnCloseHistoryModal.addEventListener('click', () => colleagueHistoryModal?.classList.remove('show'));
+if (btnCloseHistoryModalBtn) btnCloseHistoryModalBtn.addEventListener('click', () => colleagueHistoryModal?.classList.remove('show'));
+if (colleagueHistoryModal) {
+  colleagueHistoryModal.addEventListener('click', (e) => {
+    if (e.target === colleagueHistoryModal) colleagueHistoryModal.classList.remove('show');
+  });
+}
 
 // ─── Recipients Management ────────────────────────────────────────────────────
 async function loadRecipients() {
@@ -1313,85 +1339,90 @@ if (addRecipientForm) {
   });
 }
 
-// Import Excel
-excelFileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+if (excelFileInput) {
+  excelFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const formData = new FormData();
-  formData.append('file', file);
+    const formData = new FormData();
+    formData.append('file', file);
 
-  showToast('Mengimpor file Excel...', 'info');
+    showToast('Mengimpor file Excel...', 'info');
 
-  try {
-    const res = await fetch('/api/recipients/import', {
-      method: 'POST',
-      body: formData
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch('/api/recipients/import', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
 
-    if (!data.success) {
-      showToast(`Gagal import: ${data.error}`, 'error');
-    } else {
-      showToast(`✅ Berhasil import ${data.added} guru! (${data.skipped} dilewati)`, 'success');
-      loadRecipients();
+      if (!data.success) {
+        showToast(`Gagal import: ${data.error}`, 'error');
+      } else {
+        showToast(`✅ Berhasil import ${data.added} guru! (${data.skipped} dilewati)`, 'success');
+        loadRecipients();
+      }
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+    } finally {
+      excelFileInput.value = '';
     }
-  } catch (err) {
-    showToast(`Error: ${err.message}`, 'error');
-  } finally {
-    excelFileInput.value = '';
-  }
-});
+  });
+}
 
 // ─── Instant Actions ──────────────────────────────────────────────────────────
-btnCheckOnly.addEventListener('click', () => performCheck(false));
+if (btnCheckOnly) btnCheckOnly.addEventListener('click', () => performCheck(false));
 
-btnCheckAndSend.addEventListener('click', async () => {
-  showToast('Memeriksa presensi dan memproses notifikasi...', 'info');
-  try {
-    const res = await fetch('/api/check-and-send', { method: 'POST' });
-    const data = await res.json();
+if (btnCheckAndSend) {
+  btnCheckAndSend.addEventListener('click', async () => {
+    showToast('Memeriksa presensi dan memproses notifikasi...', 'info');
+    try {
+      const res = await fetch('/api/check-and-send', { method: 'POST' });
+      const data = await res.json();
 
-    if (!data.success) {
-      showToast(`Gagal: ${data.error}`, 'error');
-      return;
+      if (!data.success) {
+        showToast(`Gagal: ${data.error}`, 'error');
+        return;
+      }
+
+      const att = data.attendance;
+      if (att.hasAbsenPagi) {
+        showToast(`Anda sudah absen pagi (${att.jamMasuk}). Pesan tidak dikirim.`, 'info');
+      } else if (data.waSent) {
+        showToast(`✅ Terkirim ke ${data.sendResult.successCount} penerima!`, 'success');
+      } else {
+        showToast('Belum absen pagi, namun gagal kirim WA.', 'warning');
+      }
+
+      loadStatus();
+      loadLogs();
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
     }
+  });
+}
 
-    const att = data.attendance;
-    if (att.hasAbsenPagi) {
-      showToast(`Anda sudah absen pagi (${att.jamMasuk}). Pesan tidak dikirim.`, 'info');
-    } else if (data.waSent) {
-      showToast(`✅ Terkirim ke ${data.sendResult.successCount} penerima!`, 'success');
-    } else {
-      showToast('Belum absen pagi, namun gagal kirim WA.', 'warning');
+if (btnSendNow) {
+  btnSendNow.addEventListener('click', async () => {
+    if (!confirm('Kirim pesan WhatsApp sekarang ke semua penerima yang terdaftar?')) return;
+    showToast('Mengirim pesan WhatsApp...', 'info');
+
+    try {
+      const res = await fetch('/api/send-now', { method: 'POST' });
+      const data = await res.json();
+
+      if (!data.success) {
+        showToast(`Gagal: ${data.error}`, 'error');
+      } else {
+        showToast(`✅ Terkirim ke ${data.successCount} dari ${data.totalCount} penerima!`, 'success');
+      }
+
+      loadLogs();
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
     }
-
-    loadStatus();
-    loadLogs();
-  } catch (err) {
-    showToast(`Error: ${err.message}`, 'error');
-  }
-});
-
-btnSendNow.addEventListener('click', async () => {
-  if (!confirm('Kirim pesan WhatsApp sekarang ke semua penerima yang terdaftar?')) return;
-  showToast('Mengirim pesan WhatsApp...', 'info');
-
-  try {
-    const res = await fetch('/api/send-now', { method: 'POST' });
-    const data = await res.json();
-
-    if (!data.success) {
-      showToast(`Gagal: ${data.error}`, 'error');
-    } else {
-      showToast(`✅ Terkirim ke ${data.successCount} dari ${data.totalCount} penerima!`, 'success');
-    }
-
-    loadLogs();
-  } catch (err) {
-    showToast(`Error: ${err.message}`, 'error');
-  }
-});
+  });
+}
 
 // ─── Config Form ──────────────────────────────────────────────────────
 if (configForm) {
@@ -1471,10 +1502,10 @@ if (btnTestLogin) {
   });
 }
 
-// ─── Dual Template Preview & Save ─────────────────────────────────────────────
 function formatWaHtml(tmpl) {
   if (!tmpl) return '';
-  return tmpl
+  const sanitized = escapeHtml(tmpl);
+  return sanitized
     .replace(/\{nama\}/gi, 'Bapak/Ibu Guru')
     .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
     .replace(/_([^_]+)_/g, '<em>$1</em>')
@@ -1514,7 +1545,24 @@ if (btnSaveTemplate) {
   });
 }
 
-// ─── Logs ─────────────────────────────────────────────────────────────────────
+// ─── Logs & Log Detail Modal ──────────────────────────────────────────────────
+const logDetailModal       = document.getElementById('logDetailModal');
+const btnCloseLogModal     = document.getElementById('btnCloseLogModal');
+const btnCloseLogModalBtn  = document.getElementById('btnCloseLogModalBtn');
+const btnCopyLogMessage    = document.getElementById('btnCopyLogMessage');
+const logModalBadge        = document.getElementById('logModalBadge');
+const logModalTitle        = document.getElementById('logModalTitle');
+const logModalTime         = document.getElementById('logModalTime');
+const logModalMetaCard     = document.getElementById('logModalMetaCard');
+const logModalRecipient    = document.getElementById('logModalRecipient');
+const logModalPhone        = document.getElementById('logModalPhone');
+const logModalMessageBox   = document.getElementById('logModalMessageBox');
+const logModalMessageBody  = document.getElementById('logModalMessageBody');
+const logModalMultiTargets = document.getElementById('logModalMultiTargets');
+const logModalTargetsList  = document.getElementById('logModalTargetsList');
+
+let activeLogRawMessage = '';
+
 async function loadLogs() {
   try {
     const res = await fetch('/api/logs');
@@ -1526,32 +1574,179 @@ async function loadLogs() {
 }
 
 function renderLogs() {
-  if (logs.length === 0) {
+  if (!logsContainer) return;
+  if (!logs || logs.length === 0) {
     logsContainer.innerHTML = '<div class="empty-feed">Belum ada aktivitas tercatat.</div>';
     return;
   }
 
-  logsContainer.innerHTML = logs.map(l => {
-    const time = new Date(l.timestamp).toLocaleTimeString('id-ID');
+  logsContainer.innerHTML = logs.map((l, idx) => {
+    const d = new Date(l.timestamp);
+    const dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
     let color = 'var(--text-primary)';
-    if (l.type === 'sent') color = 'var(--emerald-500)';
-    if (l.type === 'error') color = 'var(--rose-500)';
+    let isWaLog = false;
+
+    if (l.type === 'sent') {
+      color = 'var(--emerald-400)';
+      isWaLog = true;
+    } else if (l.type === 'error') {
+      color = 'var(--rose-400)';
+      if (l.message?.includes('Kirim') || l.message?.includes('WA')) isWaLog = true;
+    } else if (l.message?.includes('WhatsApp') || l.message?.includes('Kirim')) {
+      isWaLog = true;
+    }
+
+    const actionBadge = isWaLog 
+      ? `<button type="button" class="log-view-btn" onclick="event.stopPropagation(); window.openLogDetail(${idx})">💬 Lihat Pesan &rarr;</button>` 
+      : `<button type="button" class="log-view-btn log-view-btn-ghost" onclick="event.stopPropagation(); window.openLogDetail(${idx})">👁️ Detail</button>`;
 
     return `
-      <div class="log-row">
-        <span style="color: ${color};">${escapeHtml(l.message)}</span>
-        <span class="log-time">${time}</span>
+      <div class="log-row log-row-clickable" onclick="window.openLogDetail(${idx})" title="Klik untuk melihat rincian & pesan yang dikirim">
+        <div class="log-row-left">
+          <span class="log-msg-text" style="color: ${color};">${escapeHtml(l.message)}</span>
+        </div>
+        <div class="log-row-right">
+          ${actionBadge}
+          <span class="log-time">${dateStr}, ${timeStr}</span>
+        </div>
       </div>
     `;
   }).join('');
 }
 
-btnClearLogs.addEventListener('click', async () => {
-  await fetch('/api/logs', { method: 'DELETE' });
-  logs = [];
-  renderLogs();
-  showToast('Log aktivitas dibersihkan', 'info');
-});
+window.openLogDetail = function(idx) {
+  const l = logs[idx];
+  if (!l) return;
+  const modal = document.getElementById('logDetailModal');
+  if (!modal) return;
+
+  const d = new Date(l.timestamp);
+  const formattedTime = d.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'medium' });
+  const timeEl = document.getElementById('logModalTime');
+  if (timeEl) timeEl.textContent = formattedTime;
+
+  let recipientName = '-';
+  let recipientPhone = '-';
+  let rawText = '';
+  let isMulti = false;
+
+  // Extract recipient info
+  if (l.recipient) {
+    recipientName = l.recipient.nama || '-';
+    recipientPhone = l.recipient.nomor || '-';
+  } else {
+    // Try to parse from message string: "...ke Nama (08123456789)"
+    const match = l.message.match(/ke\s+([^(]+?)(?:\s*\(([^)]+)\))?$/i);
+    if (match) {
+      recipientName = match[1]?.trim() || '-';
+      recipientPhone = match[2]?.trim() || '-';
+    }
+  }
+
+  // Extract message content
+  if (l.detailMessage) {
+    rawText = l.detailMessage;
+  } else if (l.type === 'sent' || l.message.includes('Kirim Langsung') || l.message.includes('Notifikasi')) {
+    // Fallback if detailMessage was not saved in older logs
+    const defaultTmpl = config.messagePagi || config.message || 'Halo *{nama}*! 👋\n\nPengingat presensi:\nAnda tercatat belum melakukan *absen* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi sekarang ya! ⏰\n\n_Pesan otomatis SMKN 3 Magelang_';
+    rawText = defaultTmpl.replace(/\{nama\}/gi, recipientName !== '-' ? recipientName : 'Bapak/Ibu');
+  } else {
+    rawText = l.message;
+  }
+
+  // Check multi targets
+  const multiBox = document.getElementById('logModalMultiTargets');
+  const multiList = document.getElementById('logModalTargetsList');
+  if (l.targets && Array.isArray(l.targets) && l.targets.length > 0) {
+    isMulti = true;
+    if (multiBox) multiBox.style.display = 'block';
+    if (multiList) {
+      multiList.innerHTML = l.targets.map(t => `
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 4px;">
+          <strong>${escapeHtml(t.nama)}</strong>
+          <span class="font-mono text-muted">${escapeHtml(t.nomor || '-')}</span>
+        </div>
+      `).join('');
+    }
+  } else {
+    if (multiBox) multiBox.style.display = 'none';
+  }
+
+  activeLogRawMessage = rawText;
+
+  // Update UI elements
+  const badgeEl = document.getElementById('logModalBadge');
+  const titleEl = document.getElementById('logModalTitle');
+  if (l.type === 'sent') {
+    if (badgeEl) { badgeEl.textContent = 'NOTIFIKASI WHATSAPP TERKIRIM'; badgeEl.style.color = 'var(--emerald-400)'; }
+    if (titleEl) titleEl.textContent = 'Detail Pesan WhatsApp';
+  } else if (l.type === 'error') {
+    if (badgeEl) { badgeEl.textContent = 'LOG ERROR / GAGAL'; badgeEl.style.color = 'var(--rose-400)'; }
+    if (titleEl) titleEl.textContent = 'Detail Kegagalan';
+  } else {
+    if (badgeEl) { badgeEl.textContent = 'LOG SISTEM'; badgeEl.style.color = 'var(--purple-400)'; }
+    if (titleEl) titleEl.textContent = 'Rincian Aktivitas';
+  }
+
+  const metaCard = document.getElementById('logModalMetaCard');
+  const recEl = document.getElementById('logModalRecipient');
+  const phoneEl = document.getElementById('logModalPhone');
+  if (recipientName !== '-' || recipientPhone !== '-') {
+    if (metaCard) metaCard.style.display = 'block';
+    if (recEl) recEl.textContent = recipientName;
+    if (phoneEl) phoneEl.textContent = recipientPhone;
+  } else {
+    if (metaCard) metaCard.style.display = 'none';
+  }
+
+  const bodyEl = document.getElementById('logModalMessageBody');
+  if (bodyEl) {
+    bodyEl.innerHTML = formatWaHtml(rawText);
+  }
+
+  modal.classList.add('show');
+};
+
+if (btnCloseLogModal) btnCloseLogModal.addEventListener('click', () => document.getElementById('logDetailModal')?.classList.remove('show'));
+if (btnCloseLogModalBtn) btnCloseLogModalBtn.addEventListener('click', () => document.getElementById('logDetailModal')?.classList.remove('show'));
+const modalLogOverlay = document.getElementById('logDetailModal');
+if (modalLogOverlay) {
+  modalLogOverlay.addEventListener('click', (e) => {
+    if (e.target === modalLogOverlay) modalLogOverlay.classList.remove('show');
+  });
+}
+
+if (btnCopyLogMessage) {
+  btnCopyLogMessage.addEventListener('click', () => {
+    if (!activeLogRawMessage) return;
+    navigator.clipboard.writeText(activeLogRawMessage).then(() => {
+      showToast('📋 Pesan berhasil disalin ke clipboard!', 'success');
+    }).catch(() => {
+      showToast('Gagal menyalin teks', 'error');
+    });
+  });
+}
+
+window.clearAllLogs = async function() {
+  if (!confirm('Apakah Anda yakin ingin menghapus semua catatan riwayat log aktivitas?')) return;
+  try {
+    const res = await fetch('/api/logs', { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      logs = [];
+      renderLogs();
+      showToast('Log aktivitas dibersihkan', 'info');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+};
+
+if (btnClearLogs) {
+  btnClearLogs.addEventListener('click', window.clearAllLogs);
+}
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 function escapeHtml(text) {
@@ -1564,11 +1759,282 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
+// ─── Graphify Knowledge Graph UI ──────────────────────────────────────────────
+const graphIframe             = document.getElementById('graphIframe');
+const btnRefreshGraph         = document.getElementById('btnRefreshGraph');
+const btnOpenGraphExternal    = document.getElementById('btnOpenGraphExternal');
+const graphStatNodes          = document.getElementById('graphStatNodes');
+const graphStatEdges          = document.getElementById('graphStatEdges');
+const graphStatCommunities    = document.getElementById('graphStatCommunities');
+const graphViewBtns           = document.querySelectorAll('.graph-view-btn');
+
+async function loadGraphStats() {
+  try {
+    const res = await fetch('/api/graph/stats');
+    const data = await res.json();
+    if (data.success) {
+      if (graphStatNodes) graphStatNodes.textContent = data.nodesCount;
+      if (graphStatEdges) graphStatEdges.textContent = data.edgesCount;
+      if (graphStatCommunities) graphStatCommunities.textContent = data.communityCount;
+    }
+  } catch (err) {
+    console.error('Error loadGraphStats:', err);
+  }
+}
+
+graphViewBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    graphViewBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const targetSrc = btn.dataset.src;
+    if (graphIframe && targetSrc) {
+      graphIframe.src = targetSrc;
+    }
+    if (btnOpenGraphExternal && targetSrc) {
+      btnOpenGraphExternal.href = targetSrc;
+    }
+  });
+});
+
+if (btnRefreshGraph) {
+  btnRefreshGraph.addEventListener('click', async () => {
+    btnRefreshGraph.disabled = true;
+    btnRefreshGraph.textContent = '⏳ Memproses AST...';
+    showToast('Menganalisis kode & memperbarui Knowledge Graph...', 'info');
+
+    try {
+      const res = await fetch('/api/graph/refresh', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✅ Knowledge Graph berhasil diperbarui!', 'success');
+        loadGraphStats();
+        if (graphIframe) {
+          const currentSrc = graphIframe.src;
+          graphIframe.src = '';
+          setTimeout(() => { graphIframe.src = currentSrc; }, 300);
+        }
+        loadLogs();
+      } else {
+        showToast(`Gagal update graph: ${data.error}`, 'error');
+      }
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+    } finally {
+      btnRefreshGraph.disabled = false;
+      btnRefreshGraph.textContent = '🔄 Update Graph';
+    }
+  });
+}
+
+// ─── Multi-School Account Management Controller ───────────────────────────────
+const btnOpenSchoolModal      = document.getElementById('btnOpenSchoolModal');
+const schoolAccountModal      = document.getElementById('schoolAccountModal');
+const btnCloseSchoolModal     = document.getElementById('btnCloseSchoolModal');
+const btnCloseSchoolModalBtn  = document.getElementById('btnCloseSchoolModalBtn');
+const topbarSchoolName        = document.getElementById('topbarSchoolName');
+const topbarSubtitle          = document.getElementById('topbarSubtitle');
+const savedAccountsList       = document.getElementById('savedAccountsList');
+const savedAccountsCount      = document.getElementById('savedAccountsCount');
+const formAddSchoolAccount    = document.getElementById('formAddSchoolAccount');
+const newAccUsername          = document.getElementById('newAccUsername');
+const newAccPassword          = document.getElementById('newAccPassword');
+const newAccSchoolName        = document.getElementById('newAccSchoolName');
+const btnSubmitAddAccount     = document.getElementById('btnSubmitAddAccount');
+const addAccountFeedback      = document.getElementById('addAccountFeedback');
+
+let schoolAccounts = [];
+let activeSchoolAccount = null;
+
+async function loadSchoolAccounts() {
+  try {
+    const res = await fetch('/api/accounts');
+    const data = await res.json();
+    activeSchoolAccount = data.activeAccount;
+    schoolAccounts = data.accounts || [];
+
+    if (topbarSchoolName && activeSchoolAccount) {
+      topbarSchoolName.textContent = activeSchoolAccount.namaSekolah || 'SMKN 3 MAGELANG';
+    }
+    if (topbarSubtitle && activeSchoolAccount) {
+      topbarSubtitle.textContent = `Sistem Monitoring & Notifikasi WhatsApp — ${activeSchoolAccount.namaSekolah || 'SMKN 3 Magelang'}`;
+    }
+
+    renderSavedAccounts();
+  } catch (err) {
+    console.error('Error loadSchoolAccounts:', err);
+  }
+}
+
+function renderSavedAccounts() {
+  if (!savedAccountsList) return;
+  if (savedAccountsCount) savedAccountsCount.textContent = `${schoolAccounts.length} Akun Tersimpan`;
+
+  if (schoolAccounts.length === 0) {
+    savedAccountsList.innerHTML = `<div class="text-muted text-xs p-3 text-center">Belum ada akun sekolah tambahan tersimpan.</div>`;
+    return;
+  }
+
+  savedAccountsList.innerHTML = schoolAccounts.map(acc => {
+    const isActive = acc.isActive;
+    const initial = (acc.namaSekolah || 'S').charAt(0).toUpperCase();
+
+    const switchBtn = isActive
+      ? `<span class="badge-status badge-status-hadir font-mono" style="font-size: 0.72rem; padding: 4px 10px;">🟢 Aktif</span>`
+      : `<button type="button" class="modern-btn btn-purple btn-xs" onclick="switchSchoolAccount('${escapeHtml(acc.username)}')">⚡ Beralih</button>`;
+
+    const deleteBtn = !isActive && schoolAccounts.length > 1
+      ? `<button type="button" class="modern-btn btn-danger btn-xs" onclick="deleteSchoolAccount('${escapeHtml(acc.username)}')" title="Hapus Akun">🗑️</button>`
+      : '';
+
+    return `
+      <div class="school-account-card ${isActive ? 'active-card' : ''}">
+        <div class="school-acc-left">
+          <div class="school-acc-avatar">${initial === 'S' ? '🏫' : '🎓'}</div>
+          <div>
+            <div class="school-acc-name">${escapeHtml(acc.namaSekolah || 'Unit Sekolah')}</div>
+            <div class="school-acc-meta">👤 ${escapeHtml(acc.namaUser || acc.username)} • NIP: ${escapeHtml(acc.username)}</div>
+          </div>
+        </div>
+        <div class="school-acc-actions">
+          ${switchBtn}
+          ${deleteBtn}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.switchSchoolAccount = async function(username) {
+  showToast('Beralih akun sekolah & menghubungkan session...', 'info');
+  try {
+    const res = await fetch('/api/accounts/switch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      showToast(`Gagal beralih: ${data.error}`, 'error');
+      return;
+    }
+
+    showToast(`🏫 Berhasil beralih ke ${data.account.namaSekolah}!`, 'success');
+    if (schoolAccountModal) schoolAccountModal.classList.remove('show');
+
+    // Reload all dashboard components
+    await loadSchoolAccounts();
+    await loadStatus();
+    await loadConfig();
+    await loadColleagues(true);
+    await loadLogs();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+};
+
+window.deleteSchoolAccount = async function(username) {
+  if (!confirm(`Hapus akun ${username} dari daftar multi-sekolah?`)) return;
+  try {
+    const res = await fetch(`/api/accounts/${username}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Akun berhasil dihapus dari daftar.', 'info');
+      loadSchoolAccounts();
+    } else {
+      showToast(`Gagal: ${data.error}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+};
+
+if (btnOpenSchoolModal) {
+  btnOpenSchoolModal.addEventListener('click', () => {
+    loadSchoolAccounts();
+    if (addAccountFeedback) addAccountFeedback.style.display = 'none';
+    schoolAccountModal?.classList.add('show');
+  });
+}
+
+if (btnCloseSchoolModal) btnCloseSchoolModal.addEventListener('click', () => schoolAccountModal?.classList.remove('show'));
+if (btnCloseSchoolModalBtn) btnCloseSchoolModalBtn.addEventListener('click', () => schoolAccountModal?.classList.remove('show'));
+if (schoolAccountModal) {
+  schoolAccountModal.addEventListener('click', (e) => {
+    if (e.target === schoolAccountModal) schoolAccountModal.classList.remove('show');
+  });
+}
+
+if (formAddSchoolAccount) {
+  formAddSchoolAccount.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = newAccUsername?.value.trim();
+    const password = newAccPassword?.value.trim();
+    const customSchoolName = newAccSchoolName?.value.trim();
+
+    if (!username || !password) {
+      showToast('Username dan Password wajib diisi.', 'warning');
+      return;
+    }
+
+    btnSubmitAddAccount.disabled = true;
+    btnSubmitAddAccount.textContent = '⏳ Masuk ke ePresensi...';
+    if (addAccountFeedback) {
+      addAccountFeedback.style.display = 'block';
+      addAccountFeedback.style.color = 'var(--purple-400)';
+      addAccountFeedback.textContent = 'Sedang melakukan autentikasi & mendeteksi profil sekolah...';
+    }
+
+    try {
+      const res = await fetch('/api/accounts/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, customSchoolName })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        if (addAccountFeedback) {
+          addAccountFeedback.style.color = 'var(--rose-500)';
+          addAccountFeedback.textContent = `❌ ${data.error}`;
+        }
+        showToast(`Login gagal: ${data.error}`, 'error');
+        return;
+      }
+
+      showToast(`🎉 Berhasil masuk ke ${data.account.namaSekolah}!`, 'success');
+      if (newAccUsername) newAccUsername.value = '';
+      if (newAccPassword) newAccPassword.value = '';
+      if (newAccSchoolName) newAccSchoolName.value = '';
+      if (addAccountFeedback) addAccountFeedback.style.display = 'none';
+      if (schoolAccountModal) schoolAccountModal.classList.remove('show');
+
+      // Refresh everything
+      await loadSchoolAccounts();
+      await loadStatus();
+      await loadConfig();
+      await loadColleagues(true);
+      await loadLogs();
+    } catch (err) {
+      if (addAccountFeedback) {
+        addAccountFeedback.style.color = 'var(--rose-500)';
+        addAccountFeedback.textContent = `❌ ${err.message}`;
+      }
+      showToast(`Error: ${err.message}`, 'error');
+    } finally {
+      btnSubmitAddAccount.disabled = false;
+      btnSubmitAddAccount.textContent = '🚀 Masuk & Simpan Profil Sekolah';
+    }
+  });
+}
+
 // ─── Initialize ───────────────────────────────────────────────────────────────
 checkAppAuth();
 initSelectOptions();
+loadSchoolAccounts();
 loadStatus();
 loadConfig();
 loadRecipients();
 loadColleagues();
 loadLogs();
+loadGraphStats();

@@ -89,6 +89,10 @@
           <span class="nav-icon">📜</span>
           <span class="nav-text">Log Aktivitas</span>
         </button>
+        <button class="nav-item tab-item" data-tab="graph" title="Peta Arsitektur & Knowledge Graph">
+          <span class="nav-icon">🕸️</span>
+          <span class="nav-text">Peta Arsitektur (Graph)</span>
+        </button>
       </nav>
 
       <!-- Sidebar Status & Quick Check Card -->
@@ -143,11 +147,18 @@
 
           <div class="topbar-welcome">
             <h1 class="topbar-title">Dashboard Presensi Guru</h1>
-            <p class="topbar-desc">Sistem Monitoring & Notifikasi WhatsApp Otomatis SMKN 3 Magelang</p>
+            <p class="topbar-desc" id="topbarSubtitle">Sistem Monitoring & Notifikasi WhatsApp Otomatis</p>
           </div>
         </div>
 
-        <div class="topbar-actions" style="display: flex; align-items: center; gap: 12px;">
+        <div class="topbar-actions" style="display: flex; align-items: center; gap: 10px;">
+          <!-- Multi-School Profile Switcher Button -->
+          <button type="button" class="school-switcher-btn" id="btnOpenSchoolModal" title="Ganti Profil Sekolah / Tambah Akun">
+            <span class="school-btn-icon">🏫</span>
+            <span class="school-btn-label font-mono" id="topbarSchoolName">SMKN 3 MAGELANG</span>
+            <span class="school-btn-badge font-mono">Ganti</span>
+          </button>
+
           <button class="theme-toggle-btn" id="btnToggleTheme" onclick="toggleAppTheme()" title="Ganti Tema (Dark / Light)">
             <span id="themeToggleIcon">🌙</span> <span id="themeToggleText">Dark</span>
           </button>
@@ -617,12 +628,67 @@
                 <h2 class="panel-title">Log Aktivitas Sistem</h2>
                 <p class="panel-desc">Catatan riwayat pemeriksaan bot dan pengiriman pesan WhatsApp.</p>
               </div>
-              <button class="modern-btn btn-glass btn-xs" id="btnClearLogs">Bersihkan Log</button>
+              <button class="modern-btn btn-glass btn-xs" id="btnClearLogs" onclick="clearAllLogs()">Bersihkan Log</button>
             </div>
 
             <div class="logs-feed" id="logsContainer">
               <div class="empty-feed">Belum ada aktivitas tercatat.</div>
             </div>
+          </div>
+        </div>
+
+        <!-- TAB 6: Peta Arsitektur & Knowledge Graph (Graphify) -->
+        <div class="tab-panel" id="tab-graph">
+          <div class="glass-card">
+            
+            <div class="panel-header" style="flex-wrap: wrap; gap: 14px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <h2 class="panel-title">Peta Arsitektur & Knowledge Graph</h2>
+                  <span class="badge-status badge-status-hadir font-mono" style="font-size: 0.7rem;">Graphify AST Engine</span>
+                </div>
+                <p class="panel-desc">Visualisasi interaktif relasi fungsi, modul, dependensi, dan aliran logika aplikasi ePresensi Jateng.</p>
+              </div>
+
+              <!-- Action toolbar -->
+              <div class="panel-actions" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <!-- View Switcher -->
+                <div class="graph-view-switcher" style="display: flex; background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: var(--radius-pill); padding: 3px;">
+                  <button type="button" class="graph-view-btn active" data-src="/graphify-out/graph.html" id="btnViewForceGraph">🌐 Force Graph</button>
+                  <button type="button" class="graph-view-btn" data-src="/graphify-out/GRAPH_TREE.html" id="btnViewTreeGraph">🌳 Hierarchy Tree</button>
+                  <button type="button" class="graph-view-btn" data-src="/graphify-out/epresensi-jateng-callflow.html" id="btnViewCallflow">🔀 Call Flow</button>
+                </div>
+
+                <button class="modern-btn btn-glass btn-sm" id="btnRefreshGraph" title="Regenerate Knowledge Graph">
+                  🔄 Update Graph
+                </button>
+                <a href="/graphify-out/graph.html" target="_blank" class="modern-btn btn-purple btn-sm" id="btnOpenGraphExternal">
+                  ↗️ Tab Baru
+                </a>
+              </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="graph-stats-bar" style="display: flex; gap: 14px; margin-bottom: 16px; flex-wrap: wrap;">
+              <div class="stat-pill" style="padding: 6px 14px; text-align: left; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">TOTAL NODES:</span>
+                <strong class="font-mono text-purple" id="graphStatNodes">242</strong>
+              </div>
+              <div class="stat-pill" style="padding: 6px 14px; text-align: left; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">EDGES / RELASI:</span>
+                <strong class="font-mono text-emerald" id="graphStatEdges">286</strong>
+              </div>
+              <div class="stat-pill" style="padding: 6px 14px; text-align: left; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">KOMUNITAS:</span>
+                <strong class="font-mono text-purple" id="graphStatCommunities">9</strong>
+              </div>
+            </div>
+
+            <!-- Graph Iframe Container -->
+            <div class="graph-frame-container" style="border: 1px solid var(--border-glass); border-radius: var(--radius-md); overflow: hidden; background: #0b0c11; height: 680px; position: relative;">
+              <iframe id="graphIframe" src="/graphify-out/graph.html" style="width: 100%; height: 100%; border: none; display: block;" loading="lazy"></iframe>
+            </div>
+
           </div>
         </div>
 
@@ -756,6 +822,117 @@
           <button type="submit" class="modern-btn btn-purple btn-sm">Simpan Perubahan</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal Detail Log Aktivitas & Pesan WhatsApp -->
+  <div class="modal-overlay" id="logDetailModal">
+    <div class="modal-dialog modal-dialog-sm" style="max-width: 520px;">
+      <div class="modal-top">
+        <div>
+          <span class="modal-badge font-mono" id="logModalBadge">DETAIL LOG AKTIVITAS</span>
+          <h3 class="modal-title" style="font-size: 1.18rem;" id="logModalTitle">Pesan WhatsApp Terkirim</h3>
+          <p class="modal-subtitle font-mono" id="logModalTime">-</p>
+        </div>
+        <button class="modal-close-btn" id="btnCloseLogModal">&times;</button>
+      </div>
+
+      <!-- Recipient & Meta Info Card -->
+      <div class="log-meta-card" id="logModalMetaCard" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span class="text-xs text-muted font-mono">PENERIMA:</span>
+          <strong class="text-sm font-mono text-purple" id="logModalRecipient">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="text-xs text-muted font-mono">NOMOR WHATSAPP:</span>
+          <span class="text-sm font-mono" id="logModalPhone">-</span>
+        </div>
+      </div>
+
+      <!-- WhatsApp Preview Bubble Box -->
+      <div class="form-item mb-3" id="logModalMessageBox">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="form-label" style="margin-bottom: 0;">💬 Isi Pesan yang Dikirim:</span>
+          <button type="button" class="modern-btn btn-ghost btn-xs" id="btnCopyLogMessage" title="Salin teks pesan">📋 Salin Pesan</button>
+        </div>
+        <div class="whatsapp-card" id="logModalMessageBody" style="min-height: 80px; max-height: 280px; overflow-y: auto; line-height: 1.55; word-break: break-word;">
+          -
+        </div>
+      </div>
+
+      <!-- Targets list for multi-recipient logs -->
+      <div id="logModalMultiTargets" style="display: none; margin-top: 14px;">
+        <div class="form-label text-xs mb-2">👥 Daftar Rekan Penerima:</div>
+        <div id="logModalTargetsList" style="max-height: 150px; overflow-y: auto; font-size: 0.8rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px;">
+        </div>
+      </div>
+
+      <div class="modal-footer mt-4">
+        <button type="button" class="modern-btn btn-glass btn-sm btn-block" id="btnCloseLogModalBtn">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Switch Profil Sekolah / Multi-Akun Login -->
+  <div class="modal-overlay" id="schoolAccountModal">
+    <div class="modal-dialog modal-dialog-md" style="max-width: 580px;">
+      <div class="modal-top">
+        <div>
+          <span class="modal-badge font-mono">MULTI-SEKOLAH</span>
+          <h3 class="modal-title">Pilih / Masuk Akun Sekolah</h3>
+          <p class="modal-subtitle">Beralih antar sekolah (SMA / SMK) atau login dengan akun ePresensi baru.</p>
+        </div>
+        <button class="modal-close-btn" id="btnCloseSchoolModal">&times;</button>
+      </div>
+
+      <!-- Section 1: Saved School Accounts -->
+      <div class="school-accounts-section mb-4">
+        <div class="form-label mb-2" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>🏫 Akun Sekolah Tersimpan:</span>
+          <span class="text-xs font-mono text-muted" id="savedAccountsCount">1 Akun</span>
+        </div>
+        <div class="saved-accounts-list" id="savedAccountsList">
+          <!-- Rendered via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Section 2: Form Login / Tambah Akun Baru (Modern Card Look) -->
+      <div class="glass-card" style="padding: 16px 18px; border-radius: var(--radius-md); background: rgba(0,0,0,0.25); border: 1px dashed rgba(168,85,247,0.35);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="font-size: 1.15rem;">➕</span>
+          <strong style="font-size: 0.95rem; color: var(--purple-300);">Tambah / Masuk Akun Sekolah Lain</strong>
+        </div>
+
+        <form id="formAddSchoolAccount" class="modern-form">
+          <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-item">
+              <label class="form-label text-xs">Username / NIP Guru</label>
+              <input type="text" id="newAccUsername" class="custom-input" placeholder="Contoh: 198501..." required>
+            </div>
+            <div class="form-item">
+              <label class="form-label text-xs">Password ePresensi</label>
+              <input type="password" id="newAccPassword" class="custom-input" placeholder="Password BKD" required>
+            </div>
+          </div>
+
+          <div class="form-item mt-2">
+            <label class="form-label text-xs">Nama / Label Sekolah <span class="text-muted">(Opsional, otomatis terdeteksi jika kosong)</span></label>
+            <input type="text" id="newAccSchoolName" class="custom-input" placeholder="Contoh: SMKN 1 MAGELANG">
+          </div>
+
+          <div id="addAccountFeedback" style="display: none; font-size: 0.8rem; margin-top: 8px; font-weight: 500;"></div>
+
+          <div class="modal-footer mt-3" style="padding: 0; border: none; justify-content: flex-end;">
+            <button type="submit" class="modern-btn btn-purple btn-sm" id="btnSubmitAddAccount">
+              🚀 Masuk & Simpan Profil Sekolah
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer mt-4">
+        <button type="button" class="modern-btn btn-glass btn-sm btn-block" id="btnCloseSchoolModalBtn">Tutup</button>
+      </div>
     </div>
   </div>
 

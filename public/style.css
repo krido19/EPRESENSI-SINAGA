@@ -1620,11 +1620,11 @@ html, body {
 
 /* Logs Feed */
 .logs-feed {
-  max-height: 420px;
+  max-height: 480px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .log-row {
@@ -1636,7 +1636,78 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 14px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.log-row-clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.log-row-clickable:hover {
+  background: rgba(168, 85, 247, 0.09);
+  border-color: rgba(168, 85, 247, 0.35);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .log-row {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .log-row-clickable:hover {
+  background: rgba(147, 51, 234, 0.08);
+  border-color: rgba(147, 51, 234, 0.3);
+}
+
+.log-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.log-msg-text {
+  word-break: break-word;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.log-row-right {
+  display: flex;
+  align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+}
+
+.log-view-btn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--purple-400);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+}
+
+.log-view-btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  border-color: var(--border-glass);
+}
+
+.log-row-clickable:hover .log-view-btn {
+  background: var(--purple-600);
+  color: #ffffff;
+  border-color: var(--purple-500);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
 }
 
 .log-time {
@@ -2009,3 +2080,162 @@ html, body {
     bottom: 16px;
   }
 }
+
+/* ─── Graphify Knowledge Graph UI Styles ─────────────────────────────────── */
+.graph-view-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.graph-view-btn:hover {
+  color: var(--text-primary);
+}
+
+.graph-view-btn.active {
+  background: var(--purple-600);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(168, 85, 247, 0.4);
+}
+
+[data-theme="light"] .graph-frame-container {
+  background: #ffffff !important;
+}
+
+[data-theme="light"] .graph-view-switcher {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ─── Multi-School Switcher & Accounts UI ────────────────────────────────── */
+.school-switcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(8px);
+}
+
+.school-switcher-btn:hover {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: var(--purple-500);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.35);
+  transform: translateY(-1px);
+}
+
+.school-btn-icon {
+  font-size: 0.95rem;
+}
+
+.school-btn-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--purple-300);
+  letter-spacing: 0.3px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.school-btn-badge {
+  font-size: 0.68rem;
+  background: var(--purple-600);
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.saved-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.school-account-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  transition: all 0.2s ease;
+}
+
+.school-account-card:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.school-account-card.active-card {
+  border-color: var(--emerald-500);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.school-acc-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.school-acc-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.school-acc-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.school-acc-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.school-acc-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-theme="light"] .school-account-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .school-account-card.active-card {
+  background: #ecfdf5;
+  border-color: #10b981;
+}
+
+[data-theme="light"] .school-btn-label {
+  color: var(--purple-700);
+}
+
+

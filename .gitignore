@@ -4,11 +4,19 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment / Logs / WhatsApp Sessions
+# Environment / Logs / WhatsApp Sessions / Sensitive Credentials
 .env
 *.log
 baileys_auth_info/
+config.json
+logs.json
+recipients.json
+scratch/
+*.tmp
 
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+# Graphify Clone
+graphify-repo/

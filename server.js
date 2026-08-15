@@ -8,15 +8,120 @@ const multer  = require('multer');
 const XLSX    = require('xlsx');
 const QRCode  = require('qrcode');
 const pino    = require('pino');
+const crypto  = require('crypto');
+const { exec } = require('child_process');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 
 const app  = express();
 const PORT = 3000;
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors());
+// ─── Security Configuration & Middleware ──────────────────────────────────────
+const AUTH_SECRET = process.env.APP_SECRET || 'epresensi_sec_salt_key_2026';
+
+// 1. CORS Boundary Hardening
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost',
+  'http://127.0.0.1'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS Policy: Akses dari domain luar tidak diizinkan.'));
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/graphify-out', express.static(path.join(__dirname, 'graphify-out')));
+
+// 2. In-Memory Rate Limiter
+const rateLimitRecords = new Map();
+function createRateLimiter({ windowMs = 60000, max = 20, message = 'Terlalu banyak permintaan. Silakan tunggu sebentar.' }) {
+  return function (req, res, next) {
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const now = Date.now();
+    const record = rateLimitRecords.get(ip) || { count: 0, resetAt: now + windowMs };
+
+    if (now > record.resetAt) {
+      record.count = 0;
+      record.resetAt = now + windowMs;
+    }
+
+    record.count++;
+    rateLimitRecords.set(ip, record);
+
+    if (record.count > max) {
+      return res.status(429).json({ success: false, error: message });
+    }
+    next();
+  };
+}
+
+const authLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10, message: 'Terlalu banyak percobaan login. Silakan tunggu 15 menit.' });
+const actionLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 30, message: 'Permintaan terlalu cepat. Harap tunggu.' });
+
+// 3. Cryptographic Token Generator & Verifier
+function generateAuthToken(password) {
+  const timestamp = Date.now();
+  const payload = `${password}:${timestamp}`;
+  const hmac = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
+  return Buffer.from(`${payload}:${hmac}`).toString('base64');
+}
+
+function verifyAuthToken(token, currentPassword) {
+  if (!token) return false;
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf8');
+    const parts = decoded.split(':');
+    if (parts.length < 3) return false;
+    const [tokenPass, tokenTime, tokenHmac] = parts;
+
+    if (tokenPass !== currentPassword) return false;
+
+    const timestamp = parseInt(tokenTime);
+    if (Date.now() - timestamp > 7 * 24 * 60 * 60 * 1000) return false; // 7 days validity
+
+    const expectedHmac = crypto.createHmac('sha256', AUTH_SECRET).update(`${tokenPass}:${tokenTime}`).digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(tokenHmac), Buffer.from(expectedHmac));
+  } catch (e) {
+    return false;
+  }
+}
+
+// 4. API Authentication Guard Middleware
+function requireAppAuth(req, res, next) {
+  const cfg = loadConfig();
+  const validPass = cfg.appPassword || process.env.APP_PASSWORD || 'SMK3magelang';
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+
+  if (!token || !verifyAuthToken(token, validPass)) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized: Akses ditolak. Harap masukkan password login aplikasi terlebih dahulu.'
+    });
+  }
+  next();
+}
+
+// 5. Global API Gateway Protection
+app.use('/api', (req, res, next) => {
+  // Whitelist public endpoints (login, status health check, graph stats)
+  if (
+    req.path === '/auth/app-login' ||
+    req.path === '/status' ||
+    req.path === '/graph/stats'
+  ) {
+    return next();
+  }
+  return requireAppAuth(req, res, next);
+});
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -24,6 +129,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 const CONFIG_FILE      = path.join(__dirname, 'config.json');
 const LOG_FILE         = path.join(__dirname, 'logs.json');
 const RECIPIENTS_FILE  = path.join(__dirname, 'recipients.json');
+const GRAPH_FILE       = path.join(__dirname, 'graphify-out', 'graph.json');
 const BAILEYS_AUTH_DIR = path.join(__dirname, 'baileys_auth_info');
 
 // ─── Baileys WhatsApp State ───────────────────────────────────────────────────
@@ -145,12 +251,73 @@ async function fetchLoginPage() {
   return { html, cookies, satu: satuMatch ? parseInt(satuMatch[1]) : 2, dua: duaMatch ? parseInt(duaMatch[1]) : 3 };
 }
 
+async function detectSchoolProfile(cookie) {
+  try {
+    const res = await fetch(`${BASE_URL}/v3/data_v4`, {
+      headers: { ...HEADERS_BASE, Cookie: cookie }
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    
+    // Extract Nama, NIP, Unit Kerja
+    const namaMatch = html.match(/Nama Lengkap<\/td><td>:<\/td><td>\s*([^<]+)<\/td>/i);
+    const nipMatch  = html.match(/NIP<\/td><td>:<\/td><td>\s*(\d+)<\/td>/i);
+    const unitMatch = html.match(/Unit Kerja<\/td><td>:<\/td><td>\s*([^<]+)<\/td>/i);
+    
+    const opdInputMatch  = html.match(/name=["']opd["']\s+value=["']([^"']+)["']/i);
+    const unitInputMatch = html.match(/name=["']unit["']\s+value=["']([^"']+)["']/i);
+    
+    return {
+      nama: namaMatch ? namaMatch[1].trim() : '',
+      nip: nipMatch ? nipMatch[1].trim() : '',
+      namaSekolah: unitMatch ? unitMatch[1].trim() : 'SMKN 3 MAGELANG',
+      opdCode: opdInputMatch ? opdInputMatch[1].trim() : 'F200000000',
+      unitCode: unitInputMatch ? unitInputMatch[1].trim() : 'F208007700'
+    };
+  } catch (e) {
+    console.error('Error detectSchoolProfile:', e);
+    return null;
+  }
+}
+
 async function saveSessionAndReturn(username, cookies) {
   const expiry = new Date(); expiry.setHours(expiry.getHours() + 8);
-  const cfg = loadConfig(); cfg.cookie = cookies; cfg.cookieExpiry = expiry.toISOString(); saveConfig(cfg);
-  addLog({ type: 'info', message: `✅ Auto-login berhasil sebagai ${username}` });
-  console.log(`[Auth] ✅ Login berhasil! Cookie tersimpan.`);
-  return { success: true, cookie: cookies, expiry: expiry.toISOString() };
+  const cfg = loadConfig(); 
+  cfg.cookie = cookies; 
+  cfg.cookieExpiry = expiry.toISOString();
+
+  const profile = await detectSchoolProfile(cookies);
+  if (profile) {
+    cfg.namaSekolah = profile.namaSekolah || cfg.namaSekolah || 'SMKN 3 MAGELANG';
+    cfg.unitCode = profile.unitCode || cfg.unitCode || 'F208007700';
+    cfg.opdCode = profile.opdCode || cfg.opdCode || 'F200000000';
+    cfg.namaUser = profile.nama || cfg.namaUser || '';
+
+    // Manage accounts array
+    if (!cfg.accounts) cfg.accounts = [];
+    const accIdx = cfg.accounts.findIndex(a => a.username === username);
+    const accData = {
+      id: username,
+      username,
+      password: cfg.password || '',
+      namaUser: profile.nama || username,
+      namaSekolah: profile.namaSekolah || 'Unit Sekolah',
+      unitCode: profile.unitCode || 'F208007700',
+      opdCode: profile.opdCode || 'F200000000',
+      lastLogin: new Date().toISOString()
+    };
+    if (accIdx >= 0) {
+      cfg.accounts[accIdx] = { ...cfg.accounts[accIdx], ...accData };
+    } else {
+      cfg.accounts.push(accData);
+    }
+  }
+
+  saveConfig(cfg);
+  colleagueCache = {}; // Reset colleague cache on switch
+  addLog({ type: 'info', message: `✅ Login berhasil sebagai ${username} (${cfg.namaSekolah || 'Sekolah'})` });
+  console.log(`[Auth] ✅ Login berhasil! Sekolah: ${cfg.namaSekolah || '-'}`);
+  return { success: true, cookie: cookies, expiry: expiry.toISOString(), profile };
 }
 
 async function doLogin(username, password) {
@@ -316,14 +483,17 @@ function parseAttendanceHTML(html) {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let colleagueCache = {};
 
-// ─── Fetch All Colleagues in Unit (SMKN 3 Magelang) ───────────────────────────
 async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth = null, targetYear = null, forceRefresh = false) {
+  const cfg   = loadConfig();
   const now   = new Date();
   const day   = targetDay   ? parseInt(targetDay)   : now.getDate();
   const month = targetMonth ? String(targetMonth).padStart(2,'0') : String(now.getMonth() + 1).padStart(2,'0');
   const year  = targetYear  ? String(targetYear)  : String(now.getFullYear());
   const dayISO = `${year}-${month}-${String(day).padStart(2,'0')}`;
-  const cacheKey = `${year}-${month}-${day}`;
+  
+  const opdCode = cfg.opdCode || 'F200000000';
+  const unitCode = cfg.unitCode || 'F208007700';
+  const cacheKey = `${unitCode}_${year}-${month}-${day}`;
 
   // Cek cache memory jika tidak force refresh
   if (!forceRefresh && colleagueCache[cacheKey]) {
@@ -338,8 +508,8 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   }
 
   const formData = new URLSearchParams();
-  formData.append('opd', 'F200000000');
-  formData.append('unit', 'F208007700');
+  formData.append('opd', opdCode);
+  formData.append('unit', unitCode);
   formData.append('rl', '88');
   formData.append('bulan', month);
   formData.append('tahun', year);
@@ -566,7 +736,20 @@ app.get('/api/colleagues/:nip/history', async (req, res) => {
 });
 
 // ─── WhatsApp Sending Gateway (Dual: Baileys Scan QR & Fonnte API) ───────────
-async function sendWhatsApp(target, message, tokenOverride = null) {
+async function sendWhatsApp(targetOrToken, messageOrTarget, tokenOrMessage = null) {
+  // Support both (target, message, tokenOverride) and (token, target, message)
+  let target, message, tokenOverride;
+  if (tokenOrMessage && typeof tokenOrMessage === 'string' && (messageOrTarget.match(/^[0-9+]+$/) || messageOrTarget.includes('@'))) {
+    // Called as (token, target, message)
+    tokenOverride = targetOrToken;
+    target = messageOrTarget;
+    message = tokenOrMessage;
+  } else {
+    target = targetOrToken;
+    message = messageOrTarget;
+    tokenOverride = tokenOrMessage;
+  }
+
   const cfg = loadConfig();
   // Default to Baileys if connected, or if waGateway is explicitly set to 'baileys' or not 'fonnte'
   const isBaileysActive = waSock && waConnectionStatus === 'connected';
@@ -698,7 +881,9 @@ function setupScheduler() {
 
         addLog({
           type: sentCount > 0 ? 'sent' : 'error',
-          message: `🌅 Auto Pagi (07:30 WIB): Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru yang belum absen masuk.`
+          message: `🌅 Auto Pagi (07:30 WIB): Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru yang belum absen masuk.`,
+          detailMessage: template,
+          targets: targets.map(t => ({ nama: t.nama, nomor: t.nomor, text: template.replace(/\{nama\}/gi, t.nama) }))
         });
       } catch (err) {
         addLog({ type: 'error', message: `🌅 Error scheduler pagi: ${err.message}` });
@@ -758,7 +943,9 @@ function setupScheduler() {
 
         addLog({
           type: sentCount > 0 ? 'sent' : 'error',
-          message: `🌆 Auto Pulang (18:00 WIB): Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru yang belum absen pulang.`
+          message: `🌆 Auto Pulang (18:00 WIB): Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru yang belum absen pulang.`,
+          detailMessage: template,
+          targets: targets.map(t => ({ nama: t.nama, nomor: t.nomor, text: template.replace(/\{nama\}/gi, t.nama) }))
         });
       } catch (err) {
         addLog({ type: 'error', message: `🌆 Error scheduler pulang: ${err.message}` });
@@ -839,7 +1026,9 @@ app.post('/api/send-unabsent', async (req, res) => {
   addLog({
     type: successCount > 0 ? 'sent' : 'error',
     message: `⚡ Notif Cepat: Terkirim ke ${successCount}/${targets.length} rekan yang belum absen`,
-    detail: results
+    detailMessage: template,
+    detail: results,
+    targets: targets.map(t => ({ nama: t.nama, nomor: t.nomor, text: template.replace(/\{nama\}/gi, t.nama) }))
   });
 
   res.json({
@@ -864,22 +1053,34 @@ app.post('/api/send-direct', async (req, res) => {
 
   const result = await sendWhatsApp(nomor, finalMsg, cfg.fonnteToken);
   if (result.success) {
-    addLog({ type: 'sent', message: `💬 Kirim Langsung: Notifikasi terkirim ke ${nama || nomor} (${nomor})` });
+    addLog({
+      type: 'sent',
+      message: `💬 Kirim Langsung: Notifikasi terkirim ke ${nama || nomor} (${nomor})`,
+      detailMessage: finalMsg,
+      recipient: { nama: nama || nomor, nomor },
+      gateway: result.gateway
+    });
   } else {
-    addLog({ type: 'error', message: `❌ Gagal Kirim Langsung ke ${nama || nomor}: ${result.error}` });
+    addLog({
+      type: 'error',
+      message: `❌ Gagal Kirim Langsung ke ${nama || nomor}: ${result.error}`,
+      detailMessage: finalMsg,
+      recipient: { nama: nama || nomor, nomor },
+      gateway: result.gateway
+    });
   }
 
   res.json({ success: result.success, error: result.error, data: result.data });
 });
 
 // ─── App Gatekeeper Security (Password: SMK3magelang by default) ───────────────
-app.post('/api/auth/app-login', (req, res) => {
+app.post('/api/auth/app-login', authLimiter, (req, res) => {
   const { password } = req.body;
   const cfg = loadConfig();
   const validPass = cfg.appPassword || process.env.APP_PASSWORD || 'SMK3magelang';
 
   if (password === validPass) {
-    const token = Buffer.from(`auth_${validPass}_${Date.now()}`).toString('base64');
+    const token = generateAuthToken(validPass);
     addLog({ type: 'info', message: '🔓 Berhasil masuk ke dashboard aplikasi.' });
     return res.json({ success: true, token });
   }
@@ -887,7 +1088,7 @@ app.post('/api/auth/app-login', (req, res) => {
   res.json({ success: false, error: 'Password akses salah. Silakan coba lagi.' });
 });
 
-app.post('/api/auth/change-app-password', (req, res) => {
+app.post('/api/auth/change-app-password', requireAppAuth, (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const cfg = loadConfig();
   const validPass = cfg.appPassword || process.env.APP_PASSWORD || 'SMK3magelang';
@@ -903,7 +1104,135 @@ app.post('/api/auth/change-app-password', (req, res) => {
   cfg.appPassword = newPassword;
   saveConfig(cfg);
   addLog({ type: 'info', message: '🔑 Password akses aplikasi berhasil diperbarui.' });
-  res.json({ success: true, message: 'Password akses aplikasi berhasil diperbarui!' });
+  const newToken = generateAuthToken(newPassword);
+  res.json({ success: true, message: 'Password akses aplikasi berhasil diperbarui!', token: newToken });
+});
+
+// ─── Multi-School Account Management ──────────────────────────────────────────
+app.get('/api/accounts', (req, res) => {
+  const cfg = loadConfig();
+  const accounts = (cfg.accounts || []).map(a => ({
+    id: a.id || a.username,
+    username: a.username,
+    namaUser: a.namaUser || a.username,
+    namaSekolah: a.namaSekolah || 'Unit Sekolah',
+    unitCode: a.unitCode || 'F208007700',
+    opdCode: a.opdCode || 'F200000000',
+    lastLogin: a.lastLogin,
+    isActive: a.username === cfg.username
+  }));
+
+  res.json({
+    activeAccount: {
+      username: cfg.username || '',
+      namaUser: cfg.namaUser || '',
+      namaSekolah: cfg.namaSekolah || 'SMKN 3 MAGELANG',
+      unitCode: cfg.unitCode || 'F208007700'
+    },
+    accounts
+  });
+});
+
+app.post('/api/accounts/login', async (req, res) => {
+  const { username, password, customSchoolName } = req.body;
+  if (!username || !password) {
+    return res.json({ success: false, error: 'Username (NIP) dan Password diperlukan.' });
+  }
+
+  const loginRes = await doLogin(username.trim(), password.trim());
+  if (!loginRes.success) {
+    return res.json({ success: false, error: loginRes.error || 'Gagal login ke ePresensi Jateng.' });
+  }
+
+  const cfg = loadConfig();
+  cfg.username = username.trim();
+  cfg.password = password.trim();
+  if (customSchoolName && customSchoolName.trim()) {
+    cfg.namaSekolah = customSchoolName.trim();
+  }
+
+  if (!cfg.accounts) cfg.accounts = [];
+  const accIdx = cfg.accounts.findIndex(a => a.username === cfg.username);
+  const accData = {
+    id: cfg.username,
+    username: cfg.username,
+    password: cfg.password,
+    namaUser: cfg.namaUser || cfg.username,
+    namaSekolah: cfg.namaSekolah || customSchoolName || 'Unit Sekolah',
+    unitCode: cfg.unitCode || 'F208007700',
+    opdCode: cfg.opdCode || 'F200000000',
+    lastLogin: new Date().toISOString()
+  };
+
+  if (accIdx >= 0) {
+    cfg.accounts[accIdx] = { ...cfg.accounts[accIdx], ...accData };
+  } else {
+    cfg.accounts.push(accData);
+  }
+
+  saveConfig(cfg);
+  colleagueCache = {};
+
+  addLog({
+    type: 'info',
+    message: `🏫 Berhasil menambahkan & beralih ke profil: ${cfg.namaSekolah} (${cfg.username})`
+  });
+
+  res.json({
+    success: true,
+    message: `Berhasil login ke ${cfg.namaSekolah}!`,
+    account: accData
+  });
+});
+
+app.post('/api/accounts/switch', async (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.json({ success: false, error: 'Username akun diperlukan.' });
+
+  const cfg = loadConfig();
+  const acc = (cfg.accounts || []).find(a => a.username === username || a.id === username);
+  if (!acc) return res.json({ success: false, error: 'Akun sekolah tidak ditemukan di daftar tersimpan.' });
+
+  // Update current active credentials
+  cfg.username = acc.username;
+  cfg.password = acc.password;
+  cfg.namaSekolah = acc.namaSekolah;
+  cfg.unitCode = acc.unitCode;
+  cfg.opdCode = acc.opdCode;
+  cfg.namaUser = acc.namaUser;
+  saveConfig(cfg);
+  colleagueCache = {}; // Flush cache
+
+  // Re-login to get fresh session cookie
+  const loginRes = await doLogin(acc.username, acc.password);
+  if (!loginRes.success) {
+    return res.json({ success: false, error: `Gagal re-login: ${loginRes.error}` });
+  }
+
+  addLog({
+    type: 'info',
+    message: `🔄 Beralih ke profil sekolah: ${acc.namaSekolah} (${acc.username})`
+  });
+
+  res.json({
+    success: true,
+    message: `Berhasil beralih ke ${acc.namaSekolah}!`,
+    account: acc
+  });
+});
+
+app.delete('/api/accounts/:username', (req, res) => {
+  const targetUsername = req.params.username;
+  const cfg = loadConfig();
+  if (!cfg.accounts) cfg.accounts = [];
+
+  if (cfg.username === targetUsername && cfg.accounts.length <= 1) {
+    return res.json({ success: false, error: 'Tidak dapat menghapus satu-satunya akun aktif.' });
+  }
+
+  cfg.accounts = cfg.accounts.filter(a => a.username !== targetUsername && a.id !== targetUsername);
+  saveConfig(cfg);
+  res.json({ success: true, count: cfg.accounts.length });
 });
 
 // ─── WhatsApp Web (Baileys) Management Endpoints ─────────────────────────────
@@ -1013,6 +1342,7 @@ app.post('/api/send-now', async (req, res) => {
   addLog({
     type: result.success ? 'sent' : 'error',
     message: result.success ? `✅ WA terkirim ke ${result.successCount}/${result.totalCount} guru` : `❌ Gagal: ${result.error || ''}`,
+    detailMessage: template,
     detail: result.results,
   });
   res.json(result);
@@ -1033,10 +1363,67 @@ app.post('/api/check-and-send', async (req, res) => {
     addLog({
       type: sendResult.success ? 'sent' : 'error',
       message: sendResult.success ? `✅ WA terkirim ke ${sendResult.successCount}/${sendResult.totalCount} guru` : `❌ Gagal kirim WA`,
+      detailMessage: cfg.message,
       detail: sendResult.results,
     });
   }
   res.json({ success: true, attendance: data, waSent: !!sendResult?.success, sendResult, notAbsent: !data.hasAbsenPagi });
+});
+
+// ─── Graphify Knowledge Graph Endpoints ───────────────────────────────────────
+app.get('/api/graph/stats', (req, res) => {
+  try {
+    if (!fs.existsSync(GRAPH_FILE)) {
+      return res.json({ success: false, error: 'Knowledge graph belum dibuat.' });
+    }
+    const graphData = JSON.parse(fs.readFileSync(GRAPH_FILE, 'utf8'));
+    const nodesCount = graphData.nodes?.length || Object.keys(graphData.nodes || {}).length || 0;
+    const edgesCount = graphData.links?.length || graphData.edges?.length || 0;
+    
+    // Count communities if available
+    let communityCount = 0;
+    if (graphData.nodes) {
+      const comms = new Set();
+      const nodeArr = Array.isArray(graphData.nodes) ? graphData.nodes : Object.values(graphData.nodes);
+      nodeArr.forEach(n => { if (n.community !== undefined) comms.add(n.community); });
+      communityCount = comms.size;
+    }
+
+    res.json({
+      success: true,
+      nodesCount,
+      edgesCount,
+      communityCount,
+      hasGraphHtml: fs.existsSync(path.join(__dirname, 'graphify-out', 'graph.html')),
+      hasTreeHtml: fs.existsSync(path.join(__dirname, 'graphify-out', 'GRAPH_TREE.html')),
+      hasCallflowHtml: fs.existsSync(path.join(__dirname, 'graphify-out', 'epresensi-jateng-callflow.html')),
+    });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/graph/refresh', (req, res) => {
+  const isWindows = process.platform === 'win32';
+  const sep = isWindows ? ';' : '&&';
+  const cmd = `python -m graphify extract . --code-only ${sep} python -m graphify cluster-only . ${sep} python -m graphify tree ${sep} python -m graphify export callflow-html`;
+
+  exec(cmd, { cwd: __dirname }, (error, stdout, stderr) => {
+    if (error) {
+      addLog({ type: 'error', message: `❌ Gagal update Knowledge Graph: ${error.message}` });
+      return res.json({ success: false, error: error.message });
+    }
+
+    try {
+      const srcDir = path.join(__dirname, 'graphify-out');
+      const destDir = path.join(__dirname, 'public', 'graphify-out');
+      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+      fs.cpSync(srcDir, destDir, { recursive: true, force: true });
+    } catch (e) {}
+
+    addLog({ type: 'info', message: '🕸️ Knowledge Graph arsitektur berhasil diperbarui.' });
+    res.json({ success: true, message: 'Knowledge graph berhasil diperbarui!' });
+  });
 });
 
 // Dynamic Excel Template with all 98 Teachers from SMKN 3 Magelang

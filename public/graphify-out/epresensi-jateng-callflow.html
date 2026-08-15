@@ -1,0 +1,1993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>epresensi jateng — Complete Call Flow &amp; Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+  --warn: #fbbf24; --err: #f87171; --ok: #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: 2.4rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 1.7rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 1.25rem; margin: 32px 0 12px; color: var(--accent); }
+h4 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--warn); }
+p { margin: 8px 0; color: var(--muted); }
+.subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; }
+.mermaid { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; position: relative; }
+.mermaid.is-enhanced { padding: 0; overflow: hidden; min-height: 260px; }
+.mermaid-viewport { padding: 54px 24px 24px; overflow: hidden; cursor: grab; touch-action: none; min-height: 260px; }
+.mermaid-viewport.is-dragging { cursor: grabbing; }
+.mermaid-viewport svg { max-width: none !important; height: auto; transform-origin: 0 0; transition: transform 120ms ease; }
+.mermaid-toolbar { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(15,23,42,0.92); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.mermaid-toolbar button, .mermaid-toolbar .zoom-level { height: 28px; min-width: 32px; border: 1px solid var(--border); border-radius: 6px; background: #1e293b; color: var(--text); font: 600 0.78rem system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.mermaid-toolbar button { cursor: pointer; }
+.mermaid-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.mermaid-toolbar .zoom-level { min-width: 52px; color: var(--muted); background: transparent; }
+.call-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.92rem; }
+.call-table th { background: #1a2744; color: var(--accent); text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
+.call-table td { padding: 8px 14px; border: 1px solid var(--border); vertical-align: top; }
+.call-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.tag-async { background: #7c3aed33; color: #a78bfa; }
+.tag-class { background: #05966933; color: var(--ok); }
+.tag-func { background: #2563eb33; color: var(--accent); }
+.tag-cmd { background: #d9770633; color: var(--warn); }
+.tag-endpoint { background: #dc262633; color: var(--err); }
+.tag-hook { background: #db277733; color: #f472b6; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 16px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+.arrow-chain { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--accent); padding: 10px; background: rgba(56,189,248,0.06); border-radius: 6px; }
+code { font-family: 'Fira Code', 'Cascadia Code', monospace; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.88em; }
+ul, ol { margin: 8px 0 8px 24px; color: var(--muted); }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.nav { position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; }
+.nav a { text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .container { padding: 16px; } h1 { font-size: 1.8rem; } }
+
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>epresensi jateng — Complete Call Flow &amp; Architecture Documentation</h1>
+<p class="subtitle">Generated from graphify knowledge graph: 280 nodes, 332 edges, 9 communities. Commit: 7926035</p>
+
+<div class="nav">
+    <a href="#overview">Architecture Overview</a>
+    <a href="#build-graph">Graph Build</a>
+    <a href="#ingest-cache-update">Ingestion &amp; Updates</a>
+    <a href="#app-js">app.js</a>
+    <a href="#server-js">server.js</a>
+    <a href="#escapehtml">escapeHtml</a>
+    <a href="#loadconfig">loadConfig</a>
+    <a href="#applytheme">applyTheme</a>
+    <a href="#loadstatus">loadStatus</a>
+    <a href="#sw-js">sw.js</a>
+</div>
+
+<!-- ====== Architecture Overview ====== -->
+<h2 id="overview">1. Architecture Overview</h2>
+
+<div class="mermaid">
+
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    BUILD_GRAPH_321CBB04("Graph Build<br/><small>27 nodes</small>")
+    class BUILD_GRAPH_321CBB04 module;
+    INGEST_CACHE_UPDATE_FF457338("Ingestion &amp; Updates<br/><small>9 nodes</small>")
+    class INGEST_CACHE_UPDATE_FF457338 module;
+    APP_JS_CC08AAF7("app.js<br/><small>168 nodes</small>")
+    class APP_JS_CC08AAF7 module;
+    SERVER_JS_B7773C1D("server.js<br/><small>49 nodes</small>")
+    class SERVER_JS_B7773C1D module;
+    ESCAPEHTML_EA4401A2("escapeHtml<br/><small>16 nodes</small>")
+    class ESCAPEHTML_EA4401A2 module;
+    LOADCONFIG_0717B544("loadConfig<br/><small>5 nodes</small>")
+    class LOADCONFIG_0717B544 module;
+    APPLYTHEME_F61CBE02("applyTheme<br/><small>2 nodes</small>")
+    class APPLYTHEME_F61CBE02 module;
+    LOADSTATUS_A42A86A3("loadStatus<br/><small>2 nodes</small>")
+    class LOADSTATUS_A42A86A3 module;
+    SW_JS_36209973("sw.js<br/><small>2 nodes</small>")
+    class SW_JS_36209973 module;
+    APP_JS_CC08AAF7 -->|contains x13| ESCAPEHTML_EA4401A2
+    APP_JS_CC08AAF7 -->|contains x3| LOADCONFIG_0717B544
+    APP_JS_CC08AAF7 -->|contains x2| APPLYTHEME_F61CBE02
+    LOADCONFIG_0717B544 -->|calls| ESCAPEHTML_EA4401A2
+    APP_JS_CC08AAF7 -->|contains| LOADSTATUS_A42A86A3
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h4>Architecture Layers</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
+      <tr><td>Graph Build</td><td>27</td><td><code>2</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>9</td><td><code>4</code></td></tr><tr><td>app.js</td><td>168</td><td><code>0</code></td></tr><tr><td>server.js</td><td>49</td><td><code>1</code></td></tr><tr><td>escapeHtml</td><td>16</td><td><code>3</code></td></tr><tr><td>loadConfig</td><td>5</td><td><code>5</code></td></tr><tr><td>applyTheme</td><td>2</td><td><code>6</code></td></tr><tr><td>loadStatus</td><td>2</td><td><code>7</code></td></tr><tr><td>sw.js</td><td>2</td><td><code>8</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Core Flow</h4>
+    <div class="arrow-chain">Graph Build -&gt; Ingestion &amp; Updates -&gt; app.js -&gt; escapeHtml -&gt; server.js -&gt; loadConfig -&gt; applyTheme</div>
+  </div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h4>Graph Report Highlights</h4>
+    <ul>
+      <li>280 nodes · 332 edges · 9 communities (6 shown, 3 thin omitted)</li>
+      <li>Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.5)</li>
+      <li>Token cost: 0 input · 0 output</li>
+      <li>1. `fetch` - 8 edges</li>
+      <li>2. `loadConfig()` - 7 edges</li>
+      <li>3. `setupScheduler()` - 7 edges</li>
+    </ul>
+  </div>
+</div>
+<hr>
+<!-- ====== 2. Graph Build ====== -->
+<h2 id="build-graph">2. Graph Build</h2>
+<p>Graph Build groups implementation around packagejson, node, cors, express, mostly in package.json. This section covers 27 nodes and 26 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Graph Build (27 nodes, 26 edges)
+    package_dependencies_cors_480ae172("cors<br/><small>package.json</small>")
+    package_dependencies_express_ada56cce("express<br/><small>package.json</small>")
+    package_dependencies_multer_d6acf776("multer<br/><small>package.json</small>")
+    package_dependencies_node_cron_33374856("node-cron<br/><small>package.json</small>")
+    package_dependencies_node_fetch_e302fa0a("node-fetch<br/><small>package.json</small>")
+    package_dependencies_pino_29ca1f71("pino<br/><small>package.json</small>")
+    cors_3b1b74c9("cors<br/><small>package.json</small>")
+    express_f3c62de4("express<br/><small>package.json</small>")
+    multer_f75d3261("multer<br/><small>package.json</small>")
+    node_cron_06b70668("node-cron<br/><small>package.json</small>")
+    node_fetch_95db620e("node-fetch<br/><small>package.json</small>")
+    pino_beb13b0d("pino<br/><small>package.json</small>")
+    package_dependencies_qrcode_80437416("qrcode<br/><small>package.json</small>")
+    qrcode_73b35df1("qrcode<br/><small>package.json</small>")
+    package_dependencies_whiskeysockets_baileys_8b5216b9("@whiskeysockets/baileys<br/><small>package.json</small>")
+    whiskeysockets_baileys_18dc289b("@whiskeysockets/baileys<br/><small>package.json</small>")
+    package_dependencies_xlsx_266bcce9("xlsx<br/><small>package.json</small>")
+    xlsx_5531f97b("xlsx<br/><small>package.json</small>")
+    package_dependencies_cors_480ae172 -->|imports| cors_3b1b74c9
+    package_dependencies_express_ada56cce -->|imports| express_f3c62de4
+    package_dependencies_multer_d6acf776 -->|imports| multer_f75d3261
+    package_dependencies_node_cron_33374856 -->|imports| node_cron_06b70668
+    package_dependencies_node_fetch_e302fa0a -->|imports| node_fetch_95db620e
+    package_dependencies_pino_29ca1f71 -->|imports| pino_beb13b0d
+    package_dependencies_qrcode_80437416 -->|imports| qrcode_73b35df1
+    package_dependencies_whiskeysockets_baileys_8b5216b9 -->|imports| whiskeysockets_baileys_18dc289b
+    package_dependencies_xlsx_266bcce9 -->|imports| xlsx_5531f97b
+    %% Omitted for readability: 9 nodes, 0 edges
+    class package_dependencies_cors_480ae172 function;
+    class package_dependencies_express_ada56cce function;
+    class package_dependencies_multer_d6acf776 function;
+    class package_dependencies_node_cron_33374856 function;
+    class package_dependencies_node_fetch_e302fa0a function;
+    class package_dependencies_pino_29ca1f71 function;
+    class cors_3b1b74c9 function;
+    class express_f3c62de4 function;
+    class multer_f75d3261 function;
+    class node_cron_06b70668 function;
+    class node_fetch_95db620e function;
+    class pino_beb13b0d function;
+    class package_dependencies_qrcode_80437416 function;
+    class qrcode_73b35df1 function;
+    class package_dependencies_whiskeysockets_baileys_8b5216b9 function;
+    class whiskeysockets_baileys_18dc289b function;
+    class package_dependencies_xlsx_266bcce9 function;
+    class xlsx_5531f97b function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>package.json</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>package.json node in package.json.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>dependencies</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>dependencies node in package.json.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>cors</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>cors</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>cors node in package.json.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>express</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>express</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>express node in package.json.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>multer</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>multer</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>multer node in package.json.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>node-cron</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>node-cron</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>node-cron node in package.json.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>node-fetch</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>node-fetch</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>node-fetch node in package.json.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>pino</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>pino</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>pino node in package.json.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>qrcode</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>qrcode</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>qrcode node in package.json.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>@whiskeysockets/baileys</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>@whiskeysockets/baileys</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>@whiskeysockets/baileys node in package.json.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>xlsx</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>xlsx</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>xlsx node in package.json.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>description</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>description node in package.json.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>main</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main node in package.json.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>name</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>name node in package.json.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>scripts</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>scripts node in package.json.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>dev</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>dev node in package.json.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>start</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>start node in package.json.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>version</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>version node in package.json.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>cors</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>cors</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>cors node in package.json.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>express</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>express</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>express node in package.json.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>multer</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>multer</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>multer node in package.json.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>node-cron</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>node-cron</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>node-cron node in package.json.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>node-fetch</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>node-fetch</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>node-fetch node in package.json.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>pino</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>pino</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>pino node in package.json.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>qrcode</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>qrcode</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>qrcode node in package.json.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>@whiskeysockets/baileys</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>@whiskeysockets/baileys</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>@whiskeysockets/baileys node in package.json.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>xlsx</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>xlsx</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>xlsx node in package.json.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>package.json</code></td><td>27 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x17, imports x9. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 3. Ingestion & Updates ====== -->
+<h2 id="ingest-cache-update">3. Ingestion &amp; Updates</h2>
+<p>Ingestion &amp; Updates groups implementation around manifestjson, public, color, name, mostly in public/manifest.json. This section covers 9 nodes and 8 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Ingestion &amp; Updates (9 nodes, 8 edges)
+    public_manifest_388917a5("manifest.json")
+    public_manifest_name_15b4c29b("name<br/><small>public/manifest.json</small>")
+    public_manifest_short_name_78e974be("short_name<br/><small>public/manifest.json</small>")
+    public_manifest_description_25b602b8("description<br/><small>public/manifest.json</small>")
+    public_manifest_start_url_8e1f7f7a("start_url<br/><small>public/manifest.json</small>")
+    public_manifest_display_36ace0b3("display<br/><small>public/manifest.json</small>")
+    public_manifest_background_color_5a35b652("background_color<br/><small>public/manifest.json</small>")
+    public_manifest_theme_color_be80c7b7("theme_color<br/><small>public/manifest.json</small>")
+    public_manifest_icons_8f77cdcc("icons<br/><small>public/manifest.json</small>")
+    public_manifest_388917a5 -->|contains| public_manifest_name_15b4c29b
+    public_manifest_388917a5 -->|contains| public_manifest_short_name_78e974be
+    public_manifest_388917a5 -->|contains| public_manifest_description_25b602b8
+    public_manifest_388917a5 -->|contains| public_manifest_start_url_8e1f7f7a
+    public_manifest_388917a5 -->|contains| public_manifest_display_36ace0b3
+    public_manifest_388917a5 -->|contains| public_manifest_background_color_5a35b652
+    public_manifest_388917a5 -->|contains| public_manifest_theme_color_be80c7b7
+    public_manifest_388917a5 -->|contains| public_manifest_icons_8f77cdcc
+    class public_manifest_388917a5 function;
+    class public_manifest_name_15b4c29b function;
+    class public_manifest_short_name_78e974be function;
+    class public_manifest_description_25b602b8 function;
+    class public_manifest_start_url_8e1f7f7a function;
+    class public_manifest_display_36ace0b3 function;
+    class public_manifest_background_color_5a35b652 function;
+    class public_manifest_theme_color_be80c7b7 function;
+    class public_manifest_icons_8f77cdcc function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>manifest.json</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>manifest.json node in public/manifest.json.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>background_color</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>background_color node in public/manifest.json.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>description</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>description node in public/manifest.json.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>display</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>display node in public/manifest.json.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>icons</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>icons node in public/manifest.json.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>name</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>name node in public/manifest.json.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>short_name</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>short_name node in public/manifest.json.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>start_url</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>start_url node in public/manifest.json.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>theme_color</code><br><small style="color:var(--muted)">public/manifest.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>theme_color node in public/manifest.json.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>public/manifest.json</code></td><td>9 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x8. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 4. app.js ====== -->
+<h2 id="app-js">4. app.js</h2>
+<p>app.js groups implementation around appjs, public, checkappauth, initselectoptions, mostly in public/app.js. This section covers 168 nodes and 167 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: app.js (168 nodes, 167 edges)
+    public_app_fd8505ea("app.js")
+    public_app_editrecipientmodal_c9ca1beb("editRecipientModal<br/><small>public/app.js</small>")
+    public_app_btncloseeditmodal_21ecc653("btnCloseEditModal<br/><small>public/app.js</small>")
+    public_app_btncanceleditmodal_66e868f5("btnCancelEditModal<br/><small>public/app.js</small>")
+    public_app_editrecipientform_ea01acf6("editRecipientForm<br/><small>public/app.js</small>")
+    public_app_editrecipientid_5362eff1("editRecipientId<br/><small>public/app.js</small>")
+    public_app_editnama_65c3d74e("editNama<br/><small>public/app.js</small>")
+    public_app_editnomor_b417a105("editNomor<br/><small>public/app.js</small>")
+    public_app_config_a939dce4("config<br/><small>public/app.js</small>")
+    public_app_recipients_827e97e3("recipients<br/><small>public/app.js</small>")
+    public_app_colleagues_37c8c1f7("colleagues<br/><small>public/app.js</small>")
+    public_app_logs_5986b819("logs<br/><small>public/app.js</small>")
+    public_app_todaydatebadge_d2ba028e("todayDateBadge<br/><small>public/app.js</small>")
+    public_app_statusvalue_3548be89("statusValue<br/><small>public/app.js</small>")
+    public_app_jammasukval_e5bdf226("jamMasukVal<br/><small>public/app.js</small>")
+    public_app_jampulangval_a2e65b06("jamPulangVal<br/><small>public/app.js</small>")
+    public_app_headerstatusbadge_4e6410f4("headerStatusBadge<br/><small>public/app.js</small>")
+    public_app_logdetailmodal_ffdd37aa("logDetailModal<br/><small>public/app.js</small>")
+    public_app_fd8505ea -->|contains| public_app_editrecipientmodal_c9ca1beb
+    public_app_fd8505ea -->|contains| public_app_btncloseeditmodal_21ecc653
+    public_app_fd8505ea -->|contains| public_app_btncanceleditmodal_66e868f5
+    public_app_fd8505ea -->|contains| public_app_editrecipientform_ea01acf6
+    public_app_fd8505ea -->|contains| public_app_editrecipientid_5362eff1
+    public_app_fd8505ea -->|contains| public_app_editnama_65c3d74e
+    public_app_fd8505ea -->|contains| public_app_editnomor_b417a105
+    public_app_fd8505ea -->|contains| public_app_config_a939dce4
+    public_app_fd8505ea -->|contains| public_app_recipients_827e97e3
+    public_app_fd8505ea -->|contains| public_app_colleagues_37c8c1f7
+    public_app_fd8505ea -->|contains| public_app_logs_5986b819
+    public_app_fd8505ea -->|contains| public_app_todaydatebadge_d2ba028e
+    public_app_fd8505ea -->|contains| public_app_statusvalue_3548be89
+    public_app_fd8505ea -->|contains| public_app_jammasukval_e5bdf226
+    public_app_fd8505ea -->|contains| public_app_jampulangval_a2e65b06
+    public_app_fd8505ea -->|contains| public_app_headerstatusbadge_4e6410f4
+    public_app_fd8505ea -->|contains| public_app_logdetailmodal_ffdd37aa
+    %% Omitted for readability: 150 nodes, 0 edges
+    class public_app_fd8505ea module;
+    class public_app_editrecipientmodal_c9ca1beb function;
+    class public_app_btncloseeditmodal_21ecc653 function;
+    class public_app_btncanceleditmodal_66e868f5 function;
+    class public_app_editrecipientform_ea01acf6 function;
+    class public_app_editrecipientid_5362eff1 function;
+    class public_app_editnama_65c3d74e function;
+    class public_app_editnomor_b417a105 function;
+    class public_app_config_a939dce4 function;
+    class public_app_recipients_827e97e3 function;
+    class public_app_colleagues_37c8c1f7 function;
+    class public_app_logs_5986b819 function;
+    class public_app_todaydatebadge_d2ba028e function;
+    class public_app_statusvalue_3548be89 function;
+    class public_app_jammasukval_e5bdf226 function;
+    class public_app_jampulangval_a2e65b06 function;
+    class public_app_headerstatusbadge_4e6410f4 function;
+    class public_app_logdetailmodal_ffdd37aa function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>checkAppAuth()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>checkAppAuth() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>initSelectOptions()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>initSelectOptions() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>initSidebarState()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Organizes documentation pages, navigation, or content lookup.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>loadGraphStats()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Builds dependency relationships and graph data.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>updateBatchBar()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>updateBatchBar() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>app.js</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>loadColleagues()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadWaStatus()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderColleaguesTable()</code><br><small style="color:var(--muted)">public/app.js</small><br>+3 more</td>
+  <td>app.js node in public/app.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>addAccountFeedback</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>addAccountFeedback node in public/app.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>addRecipientForm</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>addRecipientForm node in public/app.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>addRecipientModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>addRecipientModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>appGatekeeperScreen</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>appGatekeeperScreen node in public/app.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>AVATAR_GRADIENTS</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>AVATAR_GRADIENTS node in public/app.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>batchCountBtn</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>batchCountBtn node in public/app.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>batchCountTag</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>batchCountTag node in public/app.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>btnAddRecipientModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnAddRecipientModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>btnCancelBatch</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCancelBatch node in public/app.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>btnCancelEditModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCancelEditModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>btnCancelModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCancelModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>btnCheckAndSend</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCheckAndSend node in public/app.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>btnCheckOnly</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCheckOnly node in public/app.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>btnClearAllRecipients</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnClearAllRecipients node in public/app.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>btnClearLogs</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnClearLogs node in public/app.js.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>btnCloseEditModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCloseEditModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>btnCloseHistoryModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCloseHistoryModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>btnCloseHistoryModalBtn</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCloseHistoryModalBtn node in public/app.js.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>btnCloseLogModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCloseLogModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>btnCloseLogModalBtn</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCloseLogModalBtn node in public/app.js.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>btnCloseModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCloseModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>btnCloseSchoolModal</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCloseSchoolModal node in public/app.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>btnCloseSchoolModalBtn</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCloseSchoolModalBtn node in public/app.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>btnCopyBelumAbsenToWA</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>btnCopyBelumAbsenToWA node in public/app.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>public/app.js</code></td><td>168 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x167. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 5. server.js ====== -->
+<h2 id="server-js">5. server.js</h2>
+<p>server.js groups implementation around serverjs, addlog, checkattendance, createratelimiter, mostly in server.js. This section covers 49 nodes and 80 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: server.js (49 nodes, 80 edges)
+    server_setupscheduler_61e69052("setupScheduler()<br/><small>server.js</small>")
+    server_ensurevalidsession_3859f835("ensureValidSession()<br/><small>server.js</small>")
+    server_savesessionandreturn_9db6b603("saveSessionAndReturn()<br/><small>server.js</small>")
+    server_dologin_265fa0b5("doLogin()<br/><small>server.js</small>")
+    server_checkattendance_dc25efaa("checkAttendance()<br/><small>server.js</small>")
+    server_initbaileys_56c63682("initBaileys()<br/><small>server.js</small>")
+    server_addlog_f5cd7c10("addLog()<br/><small>server.js</small>")
+    server_loadlogs_93817299("loadLogs()<br/><small>server.js</small>")
+    server_fetch_c1126262("fetch<br/><small>server.js</small>")
+    server_parseattendancehtml_c0fd3bdb("parseAttendanceHTML()<br/><small>server.js</small>")
+    server_detectschoolprofile_a9476665("detectSchoolProfile()<br/><small>server.js</small>")
+    server_fetchloginpage_0adf9eef("fetchLoginPage()<br/><small>server.js</small>")
+    server_loadconfig_d8e28130("loadConfig()<br/><small>server.js</small>")
+    server_fetchcolleaguesattendance_c30bb8b9("fetchColleaguesAttendance()<br/><small>server.js</small>")
+    server_pino_71cd0ffd("pino<br/><small>server.js</small>")
+    server_requireappauth_28117415("requireAppAuth()<br/><small>server.js</small>")
+    server_verifyauthtoken_dcb53c23("verifyAuthToken()<br/><small>server.js</small>")
+    server_saveconfig_b1243851("saveConfig()<br/><small>server.js</small>")
+    server_addlog_f5cd7c10 -->|calls| server_loadlogs_93817299
+    server_checkattendance_dc25efaa -->|calls| server_fetch_c1126262
+    server_checkattendance_dc25efaa -->|calls| server_parseattendancehtml_c0fd3bdb
+    server_detectschoolprofile_a9476665 -->|calls| server_fetch_c1126262
+    server_dologin_265fa0b5 -->|calls| server_fetchloginpage_0adf9eef
+    server_dologin_265fa0b5 -->|calls| server_fetch_c1126262
+    server_dologin_265fa0b5 -->|calls| server_savesessionandreturn_9db6b603
+    server_ensurevalidsession_3859f835 -->|calls| server_loadconfig_d8e28130
+    server_ensurevalidsession_3859f835 -->|calls| server_fetch_c1126262
+    server_ensurevalidsession_3859f835 -->|calls| server_addlog_f5cd7c10
+    server_ensurevalidsession_3859f835 -->|calls| server_dologin_265fa0b5
+    server_fetchcolleaguesattendance_c30bb8b9 -->|calls| server_loadconfig_d8e28130
+    server_fetchcolleaguesattendance_c30bb8b9 -->|calls| server_fetch_c1126262
+    server_fetchloginpage_0adf9eef -->|calls| server_fetch_c1126262
+    server_initbaileys_56c63682 -->|calls| server_pino_71cd0ffd
+    server_initbaileys_56c63682 -->|calls| server_addlog_f5cd7c10
+    server_requireappauth_28117415 -->|calls| server_verifyauthtoken_dcb53c23
+    server_requireappauth_28117415 -->|calls| server_loadconfig_d8e28130
+    server_savesessionandreturn_9db6b603 -->|calls| server_loadconfig_d8e28130
+    server_savesessionandreturn_9db6b603 -->|calls| server_detectschoolprofile_a9476665
+    server_savesessionandreturn_9db6b603 -->|calls| server_saveconfig_b1243851
+    server_savesessionandreturn_9db6b603 -->|calls| server_addlog_f5cd7c10
+    server_setupscheduler_61e69052 -->|calls| server_loadconfig_d8e28130
+    server_setupscheduler_61e69052 -->|calls| server_ensurevalidsession_3859f835
+    %% Omitted for readability: 31 nodes, 2 edges
+    class server_setupscheduler_61e69052 function;
+    class server_ensurevalidsession_3859f835 function;
+    class server_savesessionandreturn_9db6b603 function;
+    class server_dologin_265fa0b5 function;
+    class server_checkattendance_dc25efaa function;
+    class server_initbaileys_56c63682 function;
+    class server_addlog_f5cd7c10 function;
+    class server_loadlogs_93817299 function;
+    class server_fetch_c1126262 function;
+    class server_parseattendancehtml_c0fd3bdb function;
+    class server_detectschoolprofile_a9476665 function;
+    class server_fetchloginpage_0adf9eef function;
+    class server_loadconfig_d8e28130 function;
+    class server_fetchcolleaguesattendance_c30bb8b9 function;
+    class server_pino_71cd0ffd function;
+    class server_requireappauth_28117415 function;
+    class server_verifyauthtoken_dcb53c23 function;
+    class server_saveconfig_b1243851 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>addLog()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ensureValidSession()</code><br><small style="color:var(--muted)">server.js</small><br><code>initBaileys()</code><br><small style="color:var(--muted)">server.js</small><br><code>saveSessionAndReturn()</code><br><small style="color:var(--muted)">server.js</small><br>+1 more</td>
+  <td><code>loadLogs()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>addLog() node in server.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>checkAttendance()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>fetch</code><br><small style="color:var(--muted)">server.js</small><br><code>parseAttendanceHTML()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>checkAttendance() node in server.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>createRateLimiter()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>createRateLimiter() node in server.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>detectSchoolProfile()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>saveSessionAndReturn()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><code>fetch</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>detectSchoolProfile() node in server.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>doLogin()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ensureValidSession()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><code>fetch</code><br><small style="color:var(--muted)">server.js</small><br><code>fetchLoginPage()</code><br><small style="color:var(--muted)">server.js</small><br><code>saveSessionAndReturn()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>doLogin() node in server.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>ensureValidSession()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>setupScheduler()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><code>addLog()</code><br><small style="color:var(--muted)">server.js</small><br><code>doLogin()</code><br><small style="color:var(--muted)">server.js</small><br><code>fetch</code><br><small style="color:var(--muted)">server.js</small><br>+1 more</td>
+  <td>ensureValidSession() node in server.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>fetchColleaguesAttendance()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>setupScheduler()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><code>fetch</code><br><small style="color:var(--muted)">server.js</small><br><code>loadConfig()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>fetchColleaguesAttendance() node in server.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>fetchLoginPage()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>doLogin()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><code>fetch</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>Organizes documentation pages, navigation, or content lookup.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>generateAuthToken()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>generateAuthToken() node in server.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>initBaileys()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>addLog()</code><br><small style="color:var(--muted)">server.js</small><br><code>pino</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>initBaileys() node in server.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>loadConfig()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ensureValidSession()</code><br><small style="color:var(--muted)">server.js</small><br><code>fetchColleaguesAttendance()</code><br><small style="color:var(--muted)">server.js</small><br><code>requireAppAuth()</code><br><small style="color:var(--muted)">server.js</small><br>+3 more</td>
+  <td>No direct outbound edge</td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>loadLogs()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>addLog()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>loadLogs() node in server.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>loadRecipients()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>sendToAllRecipients()</code><br><small style="color:var(--muted)">server.js</small><br><code>setupScheduler()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>loadRecipients() node in server.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>parseAttendanceHTML()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>checkAttendance()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>Exports documentation data to a target format.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>requireAppAuth()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>server.js</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><code>loadConfig()</code><br><small style="color:var(--muted)">server.js</small><br><code>verifyAuthToken()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>requireAppAuth() node in server.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>saveConfig()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>saveSessionAndReturn()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>saveRecipients()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>saveRecipients() node in server.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>saveSessionAndReturn()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>doLogin()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><code>addLog()</code><br><small style="color:var(--muted)">server.js</small><br><code>detectSchoolProfile()</code><br><small style="color:var(--muted)">server.js</small><br><code>loadConfig()</code><br><small style="color:var(--muted)">server.js</small><br>+1 more</td>
+  <td>saveSessionAndReturn() node in server.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>sendToAllRecipients()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>loadRecipients()</code><br><small style="color:var(--muted)">server.js</small><br><code>sendWhatsApp()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>sendToAllRecipients() node in server.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>sendWhatsApp()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>sendToAllRecipients()</code><br><small style="color:var(--muted)">server.js</small><br><code>setupScheduler()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><code>fetch</code><br><small style="color:var(--muted)">server.js</small><br><code>loadConfig()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>sendWhatsApp() node in server.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>setupScheduler()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>addLog()</code><br><small style="color:var(--muted)">server.js</small><br><code>ensureValidSession()</code><br><small style="color:var(--muted)">server.js</small><br><code>fetchColleaguesAttendance()</code><br><small style="color:var(--muted)">server.js</small><br>+3 more</td>
+  <td>setupScheduler() node in server.js.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>verifyAuthToken()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>requireAppAuth()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>verifyAuthToken() node in server.js.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>server.js</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>requireAppAuth()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>server.js node in server.js.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>actionLimiter</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>actionLimiter node in server.js.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>allowedOrigins</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>allowedOrigins node in server.js.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>app</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>app node in server.js.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>authLimiter</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>authLimiter node in server.js.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>BAILEYS_AUTH_DIR</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>BAILEYS_AUTH_DIR node in server.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>colleagueCache</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Caches analysis results or computes cache keys.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>CONFIG_FILE</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>server.js</code></td><td>49 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x47, calls x32. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. escapeHtml ====== -->
+<h2 id="escapehtml">6. escapeHtml</h2>
+<p>escapeHtml groups implementation around public, appjs, applycolleaguesdata, escapehtml, mostly in public/app.js. This section covers 16 nodes and 18 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: escapeHtml (16 nodes, 18 edges)
+    public_app_loadcolleagues_436c6df4("loadColleagues()<br/><small>public/app.js</small>")
+    public_app_performcheck_9cbbe3be("performCheck()<br/><small>public/app.js</small>")
+    public_app_triggersendunabsent_d9defe86("triggerSendUnabsent()<br/><small>public/app.js</small>")
+    public_app_applycolleaguesdata_a0fd5f4e("applyColleaguesData()<br/><small>public/app.js</small>")
+    public_app_rendercolleaguestable_593227d6("renderColleaguesTable()<br/><small>public/app.js</small>")
+    public_app_renderrecipientstable_e3a8c96f("renderRecipientsTable()<br/><small>public/app.js</small>")
+    public_app_updatedonutchart_567cdb1d("updateDonutChart()<br/><small>public/app.js</small>")
+    public_app_rendertableskeleton_f25d5e1d("renderTableSkeleton()<br/><small>public/app.js</small>")
+    public_app_showtoast_1fb58cb9("showToast()<br/><small>public/app.js</small>")
+    public_app_loadlogs_f48df609("loadLogs()<br/><small>public/app.js</small>")
+    public_app_renderlogs_07982b95("renderLogs()<br/><small>public/app.js</small>")
+    public_app_loadrecipients_e272e01c("loadRecipients()<br/><small>public/app.js</small>")
+    public_app_loadschoolaccounts_1ab2d147("loadSchoolAccounts()<br/><small>public/app.js</small>")
+    public_app_rendersavedaccounts_2866b233("renderSavedAccounts()<br/><small>public/app.js</small>")
+    public_app_escapehtml_fb93a3ef("escapeHtml()<br/><small>public/app.js</small>")
+    public_app_getteacheravatar_40590ba3("getTeacherAvatar()<br/><small>public/app.js</small>")
+    public_app_applycolleaguesdata_a0fd5f4e -->|calls| public_app_updatedonutchart_567cdb1d
+    public_app_applycolleaguesdata_a0fd5f4e -->|calls| public_app_rendercolleaguestable_593227d6
+    public_app_loadcolleagues_436c6df4 -->|calls| public_app_applycolleaguesdata_a0fd5f4e
+    public_app_loadcolleagues_436c6df4 -->|calls| public_app_rendertableskeleton_f25d5e1d
+    public_app_loadcolleagues_436c6df4 -->|calls| public_app_showtoast_1fb58cb9
+    public_app_loadlogs_f48df609 -->|calls| public_app_renderlogs_07982b95
+    public_app_loadrecipients_e272e01c -->|calls| public_app_renderrecipientstable_e3a8c96f
+    public_app_loadschoolaccounts_1ab2d147 -->|calls| public_app_rendersavedaccounts_2866b233
+    public_app_performcheck_9cbbe3be -->|calls| public_app_showtoast_1fb58cb9
+    public_app_performcheck_9cbbe3be -->|calls| public_app_loadlogs_f48df609
+    public_app_rendercolleaguestable_593227d6 -->|calls| public_app_escapehtml_fb93a3ef
+    public_app_rendercolleaguestable_593227d6 -->|calls| public_app_getteacheravatar_40590ba3
+    public_app_renderlogs_07982b95 -->|calls| public_app_escapehtml_fb93a3ef
+    public_app_renderrecipientstable_e3a8c96f -->|calls| public_app_escapehtml_fb93a3ef
+    public_app_renderrecipientstable_e3a8c96f -->|calls| public_app_getteacheravatar_40590ba3
+    public_app_rendersavedaccounts_2866b233 -->|calls| public_app_escapehtml_fb93a3ef
+    public_app_triggersendunabsent_d9defe86 -->|calls| public_app_loadlogs_f48df609
+    public_app_triggersendunabsent_d9defe86 -->|calls| public_app_showtoast_1fb58cb9
+    class public_app_loadcolleagues_436c6df4 function;
+    class public_app_performcheck_9cbbe3be function;
+    class public_app_triggersendunabsent_d9defe86 function;
+    class public_app_applycolleaguesdata_a0fd5f4e function;
+    class public_app_rendercolleaguestable_593227d6 function;
+    class public_app_renderrecipientstable_e3a8c96f function;
+    class public_app_updatedonutchart_567cdb1d function;
+    class public_app_rendertableskeleton_f25d5e1d function;
+    class public_app_showtoast_1fb58cb9 function;
+    class public_app_loadlogs_f48df609 function;
+    class public_app_renderlogs_07982b95 function;
+    class public_app_loadrecipients_e272e01c function;
+    class public_app_loadschoolaccounts_1ab2d147 function;
+    class public_app_rendersavedaccounts_2866b233 function;
+    class public_app_escapehtml_fb93a3ef function;
+    class public_app_getteacheravatar_40590ba3 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>applyColleaguesData()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>loadColleagues()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>renderColleaguesTable()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>updateDonutChart()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>applyColleaguesData() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>formatWaHtml()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderColleaguesTable()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderLogs()</code><br><small style="color:var(--muted)">public/app.js</small><br>+2 more</td>
+  <td>No direct outbound edge</td>
+  <td>Exports documentation data to a target format.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>getTeacherAvatar()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>renderColleaguesTable()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderRecipientsTable()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>getTeacherAvatar() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>loadColleagues()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>app.js</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>applyColleaguesData()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderTableSkeleton()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>showToast()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>loadColleagues() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>loadLogs()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>performCheck()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>triggerSendUnabsent()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>renderLogs()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>loadLogs() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>loadRecipients()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>renderRecipientsTable()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>loadRecipients() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>loadSchoolAccounts()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>renderSavedAccounts()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>loadSchoolAccounts() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>performCheck()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>loadLogs()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>showToast()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>performCheck() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>renderColleaguesTable()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>app.js</code><br><small style="color:var(--muted)">public/app.js</small><br><code>applyColleaguesData()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>getTeacherAvatar()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>renderColleaguesTable() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>renderLogs()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>loadLogs()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>renderLogs() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>renderRecipientsTable()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>loadRecipients()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>getTeacherAvatar()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>renderRecipientsTable() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>renderSavedAccounts()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>loadSchoolAccounts()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>renderSavedAccounts() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>renderTableSkeleton()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>loadColleagues()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>renderTableSkeleton() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>showToast()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>loadColleagues()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>performCheck()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>triggerSendUnabsent()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>showToast() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>triggerSendUnabsent()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>app.js</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>loadLogs()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>showToast()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>triggerSendUnabsent() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>updateDonutChart()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>applyColleaguesData()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>updateDonutChart() node in public/app.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>public/app.js</code></td><td>16 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x18. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 7. loadConfig ====== -->
+<h2 id="loadconfig">7. loadConfig</h2>
+<p>loadConfig groups implementation around public, appjs, formatwahtml, loadconfig, mostly in public/app.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: loadConfig (5 nodes, 4 edges)
+    public_app_loadconfig_e212bdf6("loadConfig()<br/><small>public/app.js</small>")
+    public_app_switchwagatewayui_f5787664("switchWaGatewayUI()<br/><small>public/app.js</small>")
+    public_app_updatemessagepreviews_b39d61cb("updateMessagePreviews()<br/><small>public/app.js</small>")
+    public_app_loadwastatus_d1113a74("loadWaStatus()<br/><small>public/app.js</small>")
+    public_app_formatwahtml_a0001166("formatWaHtml()<br/><small>public/app.js</small>")
+    public_app_loadconfig_e212bdf6 -->|calls| public_app_switchwagatewayui_f5787664
+    public_app_loadconfig_e212bdf6 -->|calls| public_app_updatemessagepreviews_b39d61cb
+    public_app_switchwagatewayui_f5787664 -->|calls| public_app_loadwastatus_d1113a74
+    public_app_updatemessagepreviews_b39d61cb -->|calls| public_app_formatwahtml_a0001166
+    class public_app_loadconfig_e212bdf6 function;
+    class public_app_switchwagatewayui_f5787664 function;
+    class public_app_updatemessagepreviews_b39d61cb function;
+    class public_app_loadwastatus_d1113a74 function;
+    class public_app_formatwahtml_a0001166 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>formatWaHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>Exports documentation data to a target format.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>loadWaStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>app.js</code><br><small style="color:var(--muted)">public/app.js</small><br><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>loadWaStatus() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>loadWaStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>switchWaGatewayUI() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>app.js</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>formatWaHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>updateMessagePreviews() node in public/app.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>public/app.js</code></td><td>5 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 8. applyTheme ====== -->
+<h2 id="applytheme">8. applyTheme</h2>
+<p>applyTheme groups implementation around public, appjs, applytheme, inittheme, mostly in public/app.js. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: applyTheme (2 nodes, 1 edges)
+    public_app_inittheme_293193f4("initTheme()<br/><small>public/app.js</small>")
+    public_app_applytheme_e781aafb("applyTheme()<br/><small>public/app.js</small>")
+    public_app_inittheme_293193f4 -->|calls| public_app_applytheme_e781aafb
+    class public_app_inittheme_293193f4 function;
+    class public_app_applytheme_e781aafb function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>applyTheme()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>initTheme()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>applyTheme() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>initTheme()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>applyTheme()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>initTheme() node in public/app.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>public/app.js</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 9. loadStatus ====== -->
+<h2 id="loadstatus">9. loadStatus</h2>
+<p>loadStatus groups implementation around public, appjs, loadstatus, updatecountdown, mostly in public/app.js. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: loadStatus (2 nodes, 1 edges)
+    public_app_loadstatus_429e05d2("loadStatus()<br/><small>public/app.js</small>")
+    public_app_updatecountdown_8997ccc2("updateCountdown()<br/><small>public/app.js</small>")
+    public_app_loadstatus_429e05d2 -->|calls| public_app_updatecountdown_8997ccc2
+    class public_app_loadstatus_429e05d2 function;
+    class public_app_updatecountdown_8997ccc2 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>loadStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>updateCountdown()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>loadStatus() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>updateCountdown()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>app.js</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>updateCountdown() node in public/app.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>public/app.js</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 10. sw.js ====== -->
+<h2 id="sw-js">10. sw.js</h2>
+<p>sw.js groups implementation around swjs, public, urls, cache, mostly in public/sw.js. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: sw.js (2 nodes, 1 edges)
+    public_sw_be7f98ee("sw.js")
+    public_sw_urls_to_cache_82752dcd("URLS_TO_CACHE<br/><small>public/sw.js</small>")
+    public_sw_be7f98ee -->|contains| public_sw_urls_to_cache_82752dcd
+    class public_sw_be7f98ee module;
+    class public_sw_urls_to_cache_82752dcd klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>sw.js</code><br><small style="color:var(--muted)">public/sw.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>sw.js node in public/sw.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>URLS_TO_CACHE</code><br><small style="color:var(--muted)">public/sw.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Caches analysis results or computes cache keys.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>public/sw.js</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<h2 id="stats">Project Statistics</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Graph</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>Nodes</td><td>280</td></tr>
+      <tr><td>Edges</td><td>332</td></tr>
+      <tr><td>Hyperedges</td><td>0</td></tr>
+      <tr><td>Communities</td><td>9</td></tr>
+      <tr><td>Documented Sections</td><td>9</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Edge Confidence</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>EXTRACTED</td><td>325</td></tr>
+      <tr><td>INFERRED</td><td>7</td></tr>
+      <tr><td>AMBIGUOUS</td><td>0</td></tr>
+    </table>
+  </div>
+</div>
+
+<div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
+  <p>epresensi jateng — Architecture Documentation</p>
+  <p>Generated: 2026-08-15 05:59 UTC · graphify callflow-html</p>
+</div>
+
+</div><!-- .container -->
+
+<script>
+(function () {
+  const mermaidConfig = {
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, useMaxWidth: true },
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#38bdf8',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#334155',
+      lineColor: '#64748b',
+      textColor: '#e2e8f0',
+    }
+  };
+
+  mermaid.initialize(mermaidConfig);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function enhanceMermaidDiagrams() {
+    document.querySelectorAll('.mermaid').forEach((container) => {
+      if (container.dataset.zoomReady === 'true') return;
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+
+      container.dataset.zoomReady = 'true';
+      container.classList.add('is-enhanced');
+
+      const viewport = document.createElement('div');
+      viewport.className = 'mermaid-viewport';
+      svg.parentNode.insertBefore(viewport, svg);
+      viewport.appendChild(svg);
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'mermaid-toolbar';
+      toolbar.innerHTML = [
+        '<button type="button" data-action="zoom-out" title="Zoom out">-</button>',
+        '<span class="zoom-level" data-role="level">100%</span>',
+        '<button type="button" data-action="zoom-in" title="Zoom in">+</button>',
+        '<button type="button" data-action="fit" title="Fit width">Fit</button>',
+        '<button type="button" data-action="reset" title="Reset view">Reset</button>'
+      ].join('');
+      container.insertBefore(toolbar, viewport);
+
+      const state = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
+      const level = toolbar.querySelector('[data-role="level"]');
+
+      function applyTransform() {
+        svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        level.textContent = `${Math.round(state.scale * 100)}%`;
+      }
+
+      function zoomBy(delta) {
+        state.scale = clamp(state.scale + delta, 0.25, 3);
+        applyTransform();
+      }
+
+      function reset() {
+        state.scale = 1;
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      function fitWidth() {
+        const rawWidth = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width
+          ? svg.viewBox.baseVal.width
+          : svg.getBoundingClientRect().width / state.scale;
+        if (!rawWidth) {
+          reset();
+          return;
+        }
+        state.scale = clamp((viewport.clientWidth - 48) / rawWidth, 0.25, 1.4);
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      toolbar.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === 'zoom-in') zoomBy(0.15);
+        if (action === 'zoom-out') zoomBy(-0.15);
+        if (action === 'fit') fitWidth();
+        if (action === 'reset') reset();
+      });
+
+      viewport.addEventListener('wheel', (event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        zoomBy(event.deltaY < 0 ? 0.1 : -0.1);
+      }, { passive: false });
+
+      viewport.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        state.dragging = true;
+        state.startX = event.clientX;
+        state.startY = event.clientY;
+        state.originX = state.x;
+        state.originY = state.y;
+        viewport.classList.add('is-dragging');
+        viewport.setPointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener('pointermove', (event) => {
+        if (!state.dragging) return;
+        state.x = state.originX + event.clientX - state.startX;
+        state.y = state.originY + event.clientY - state.startY;
+        applyTransform();
+      });
+
+      function endDrag(event) {
+        if (!state.dragging) return;
+        state.dragging = false;
+        viewport.classList.remove('is-dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      viewport.addEventListener('pointerup', endDrag);
+      viewport.addEventListener('pointercancel', endDrag);
+      applyTransform();
+    });
+  }
+
+  function renderMermaid() {
+    const result = mermaid.run
+      ? mermaid.run({ querySelector: '.mermaid' })
+      : Promise.resolve();
+    Promise.resolve(result)
+      .then(enhanceMermaidDiagrams)
+      .catch((error) => {
+        console.error('Mermaid render failed:', error);
+        enhanceMermaidDiagrams();
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMermaid);
+  } else {
+    renderMermaid();
+  }
+})();
+</script>
+
+</body>
+</html>

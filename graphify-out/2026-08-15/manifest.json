@@ -1,0 +1,32 @@
+{
+  "package.json": {
+    "mtime": 1786760447.9206781,
+    "seen": 1786773542.9275815,
+    "ast_hash": "7f990773c859ec68caa680f2c25f0095",
+    "semantic_hash": "7f990773c859ec68caa680f2c25f0095"
+  },
+  "public/app.js": {
+    "mtime": 1786773475.3284097,
+    "seen": 1786773542.9275815,
+    "ast_hash": "e725e5329218673699fcef6093361202",
+    "semantic_hash": "e725e5329218673699fcef6093361202"
+  },
+  "public/manifest.json": {
+    "mtime": 1786758955.321969,
+    "seen": 1786773542.9275815,
+    "ast_hash": "b01106d60e9fde2e95608bd9f53a0941",
+    "semantic_hash": "b01106d60e9fde2e95608bd9f53a0941"
+  },
+  "public/sw.js": {
+    "mtime": 1786758961.6516638,
+    "seen": 1786773542.9275815,
+    "ast_hash": "be8756ac2df8cf897bcc25cc0904b0c9",
+    "semantic_hash": "be8756ac2df8cf897bcc25cc0904b0c9"
+  },
+  "server.js": {
+    "mtime": 1786773447.8401299,
+    "seen": 1786773542.9275815,
+    "ast_hash": "83bae3422a3285b46b3f43b29d069743",
+    "semantic_hash": "83bae3422a3285b46b3f43b29d069743"
+  }
+}
