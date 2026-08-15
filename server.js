@@ -1118,27 +1118,76 @@ app.post('/api/recipients/import', upload.single('file'), (req, res) => {
 
     const firstRow = rows[0];
     const keys     = Object.keys(firstRow);
-    const namaKey  = keys.find(k => /nama/i.test(k)) || keys[0];
-    const nomorKey = keys.find(k => /no|nomor|hp|wa|telp|phone/i.test(k)) || keys[1];
+
+    // 1. Precise Column Matching
+    const noIndexRegex = /^(no|no\.|no_urut|nomor urut)$/i;
+
+    // Detect Nama Column
+    let namaKey = keys.find(k => /nama/i.test(k));
+    if (!namaKey) namaKey = keys.find(k => !noIndexRegex.test(k.trim()) && !/nip/i.test(k)) || keys[0];
+
+    // Detect WA / Phone Number Column (Must NOT be the 'No' index column!)
+    let nomorKey = keys.find(k => /whatsapp|wa|hp|handphone|ponsel|telepon|telp|phone/i.test(k));
+    if (!nomorKey) {
+      nomorKey = keys.find(k => /nomor|kontak/i.test(k) && !noIndexRegex.test(k.trim()));
+    }
+    if (!nomorKey) {
+      nomorKey = keys[keys.length - 1]; // Fallback to last column
+    }
 
     const existing = loadRecipients();
-    const existingNomors = new Set(existing.map(r => r.nomor));
-    const added = []; const skipped = [];
+    const added = [];
+    const updated = [];
+    const skipped = [];
 
     for (const row of rows) {
-      const nama  = String(row[namaKey]  || '').trim();
-      const nomor = String(row[nomorKey] || '').replace(/[^0-9]/g, '');
-      if (!nama || !nomor || nomor.length < 8) { skipped.push({ nama, nomor, reason: 'Data tidak lengkap / nomor kosong' }); continue; }
-      if (existingNomors.has(nomor)) { skipped.push({ nama, nomor, reason: 'Nomor sudah ada' }); continue; }
-      const entry = { id: String(Date.now() + Math.floor(Math.random() * 10000)), nama, nomor, aktif: true };
-      existing.push(entry);
-      existingNomors.add(nomor);
-      added.push(entry);
+      const rawNama  = String(row[namaKey]  || '').trim();
+      let rawNomor   = String(row[nomorKey] || '').replace(/[^0-9]/g, '');
+
+      // Normalize phone number (e.g. 85868733378 -> 085868733378)
+      if (rawNomor.startsWith('8')) {
+        rawNomor = '0' + rawNomor;
+      } else if (rawNomor.startsWith('628')) {
+        rawNomor = '08' + rawNomor.slice(3);
+      }
+
+      if (!rawNama || !rawNomor || rawNomor.length < 9) {
+        skipped.push({ nama: rawNama, nomor: rawNomor, reason: 'Nomor WA kosong atau kurang dari 9 digit' });
+        continue;
+      }
+
+      // Check if existing by name or phone
+      const cleanRawName = rawNama.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const existingIdx = existing.findIndex(r => {
+        const cleanExName = (r.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return r.nomor === rawNomor || cleanExName === cleanRawName;
+      });
+
+      if (existingIdx !== -1) {
+        // Update existing contact
+        existing[existingIdx].nama = rawNama;
+        existing[existingIdx].nomor = rawNomor;
+        existing[existingIdx].aktif = true;
+        updated.push(existing[existingIdx]);
+      } else {
+        // Add new contact
+        const entry = { id: String(Date.now() + Math.floor(Math.random() * 10000)), nama: rawNama, nomor: rawNomor, aktif: true };
+        existing.push(entry);
+        added.push(entry);
+      }
     }
 
     saveRecipients(existing);
-    addLog({ type: 'info', message: `📥 Import Excel: ${added.length} ditambahkan (${skipped.length} dilewati)` });
-    res.json({ success: true, added: added.length, skipped: skipped.length, totalNow: existing.length });
+    const totalProcessed = added.length + updated.length;
+    addLog({ type: 'info', message: `📥 Import Excel: ${added.length} baru, ${updated.length} diperbarui (${skipped.length} dilewati)` });
+    res.json({
+      success: true,
+      added: totalProcessed,
+      newAdded: added.length,
+      updated: updated.length,
+      skipped: skipped.length,
+      totalNow: existing.length
+    });
   } catch (err) {
     res.json({ success: false, error: `Gagal baca Excel: ${err.message}` });
   }

@@ -1,6 +1,31 @@
 [
   {
     "type": "info",
+    "message": "📱 WhatsApp Web (Baileys) Terhubung: +6285156422671",
+    "timestamp": "2026-08-15T02:29:08.319Z"
+  },
+  {
+    "type": "info",
+    "message": "📥 Import Excel: 0 ditambahkan (1 dilewati)",
+    "timestamp": "2026-08-15T02:28:12.941Z"
+  },
+  {
+    "type": "info",
+    "message": "📥 Import Excel: 0 ditambahkan (1 dilewati)",
+    "timestamp": "2026-08-15T02:27:51.611Z"
+  },
+  {
+    "type": "info",
+    "message": "📥 Import Excel: 0 ditambahkan (1 dilewati)",
+    "timestamp": "2026-08-15T02:27:26.946Z"
+  },
+  {
+    "type": "info",
+    "message": "📱 WhatsApp Web (Baileys) Terhubung: +6285156422671",
+    "timestamp": "2026-08-15T02:26:14.466Z"
+  },
+  {
+    "type": "info",
     "message": "🔓 Berhasil masuk ke dashboard aplikasi.",
     "timestamp": "2026-08-15T02:09:31.243Z"
   },
