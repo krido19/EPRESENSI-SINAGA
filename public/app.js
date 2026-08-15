@@ -680,6 +680,18 @@ function renderColleaguesTable() {
       badgeClass = 'badge-status badge-status-belum';
     }
 
+    const cleanC = c.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const matchedRecipient = recipients.find(r => {
+      const cleanR = (r.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanR.includes(cleanC) || cleanC.includes(cleanR);
+    });
+
+    const waBtnHtml = matchedRecipient
+      ? `<button class="modern-btn btn-purple btn-xs mr-1" onclick="sendDirectWa('${matchedRecipient.nomor}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}')" title="Kirim WA ke ${escapeHtml(c.nama)}">
+          💬 WA
+        </button>`
+      : '';
+
     return `
       <tr>
         <td class="text-muted font-mono">${c.no}</td>
@@ -693,7 +705,8 @@ function renderColleaguesTable() {
         <td class="font-mono">${c.jamMasuk ? `<strong>${c.jamMasuk}</strong>` : '-'}</td>
         <td class="font-mono">${c.jamPulang ? `<strong>${c.jamPulang}</strong>` : '-'}</td>
         <td><span class="${badgeClass}">${c.status}</span></td>
-        <td class="text-center">
+        <td class="text-center" style="white-space: nowrap;">
+          ${waBtnHtml}
           <button class="modern-btn btn-glass btn-xs" onclick="openTeacherHistory('${c.nip}', '${escapeHtml(c.nama)}')">
             Detail
           </button>
@@ -888,6 +901,9 @@ function renderRecipientsTable() {
         </label>
       </td>
       <td class="text-center" style="white-space: nowrap;">
+        <button class="modern-btn btn-purple btn-xs mr-1" onclick="sendDirectWa('${r.nomor}', '${escapeHtml(r.nama).replace(/'/g, "\\'")}')" title="Kirim Pesan WhatsApp Langsung">
+          💬 Kirim WA
+        </button>
         <button class="modern-btn btn-glass btn-xs mr-1" onclick="openEditRecipient('${r.id}', '${escapeHtml(r.nama).replace(/'/g, "\\'")}', '${r.nomor}')">
           ✏️ Edit
         </button>
@@ -898,6 +914,34 @@ function renderRecipientsTable() {
     </tr>
   `).join('');
 }
+
+window.sendDirectWa = async function(nomor, nama) {
+  if (!nomor) {
+    showToast('Nomor WhatsApp tidak valid.', 'error');
+    return;
+  }
+
+  const confirmSend = confirm(`Kirim pesan WhatsApp pengingat presensi sekarang ke ${nama} (${nomor})?`);
+  if (!confirmSend) return;
+
+  showToast(`Mengirim WhatsApp ke ${nama}...`, 'info');
+  try {
+    const res = await fetch('/api/send-direct', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nomor, nama })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`✅ Pesan WhatsApp berhasil dikirim ke ${nama}!`, 'success');
+      loadLogs();
+    } else {
+      showToast(`Gagal kirim: ${data.error || 'Terjadi kesalahan'}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+};
 
 window.toggleRecipientActive = async function(id, aktif) {
   try {

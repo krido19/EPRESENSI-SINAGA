@@ -2,6 +2,46 @@
   {
     "type": "info",
     "message": "🔓 Berhasil masuk ke dashboard aplikasi.",
+    "timestamp": "2026-08-15T02:35:51.313Z"
+  },
+  {
+    "type": "sent",
+    "message": "💬 Kirim Langsung: Notifikasi terkirim ke KRIDO BAHTIAR, S.Kom (085868733378)",
+    "timestamp": "2026-08-15T02:35:12.547Z"
+  },
+  {
+    "type": "info",
+    "message": "📱 WhatsApp Web (Baileys) Terhubung: +6285156422671",
+    "timestamp": "2026-08-15T02:35:01.140Z"
+  },
+  {
+    "type": "error",
+    "message": "❌ Gagal Kirim Langsung ke KRIDO BAHTIAR, S.Kom: undefined",
+    "timestamp": "2026-08-15T02:34:08.505Z"
+  },
+  {
+    "type": "info",
+    "message": "📥 Import Excel: 0 baru, 1 diperbarui (0 dilewati)",
+    "timestamp": "2026-08-15T02:34:04.360Z"
+  },
+  {
+    "type": "info",
+    "message": "🔓 Berhasil masuk ke dashboard aplikasi.",
+    "timestamp": "2026-08-15T02:33:43.270Z"
+  },
+  {
+    "type": "info",
+    "message": "📱 WhatsApp Web (Baileys) Terhubung: +6285156422671",
+    "timestamp": "2026-08-15T02:33:20.704Z"
+  },
+  {
+    "type": "info",
+    "message": "📥 Import Excel: 0 baru, 1 diperbarui (0 dilewati)",
+    "timestamp": "2026-08-15T02:31:38.921Z"
+  },
+  {
+    "type": "info",
+    "message": "🔓 Berhasil masuk ke dashboard aplikasi.",
     "timestamp": "2026-08-15T02:31:03.261Z"
   },
   {

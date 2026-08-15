@@ -568,9 +568,11 @@ app.get('/api/colleagues/:nip/history', async (req, res) => {
 // ─── WhatsApp Sending Gateway (Dual: Baileys Scan QR & Fonnte API) ───────────
 async function sendWhatsApp(target, message, tokenOverride = null) {
   const cfg = loadConfig();
-  const gateway = cfg.waGateway || (cfg.fonnteToken ? 'fonnte' : 'baileys');
+  // Default to Baileys if connected, or if waGateway is explicitly set to 'baileys' or not 'fonnte'
+  const isBaileysActive = waSock && waConnectionStatus === 'connected';
+  const gateway = cfg.waGateway || (isBaileysActive ? 'baileys' : (cfg.fonnteToken ? 'fonnte' : 'baileys'));
 
-  if (gateway === 'fonnte' && (tokenOverride || cfg.fonnteToken)) {
+  if (gateway === 'fonnte' && !isBaileysActive && (tokenOverride || cfg.fonnteToken)) {
     try {
       const token = tokenOverride || cfg.fonnteToken;
       const formData = new URLSearchParams();
@@ -579,16 +581,22 @@ async function sendWhatsApp(target, message, tokenOverride = null) {
       formData.append('countryCode', '62');
       const res = await fetch('https://api.fonnte.com/send', { method: 'POST', headers: { Authorization: token }, body: formData });
       const result = await res.json();
-      return { success: result.status === true || result.status === 'true', data: result, gateway: 'fonnte' };
+      const isSuccess = result.status === true || result.status === 'true';
+      return {
+        success: isSuccess,
+        data: result,
+        error: isSuccess ? null : (result.reason || result.message || 'Fonnte gagal mengirim pesan'),
+        gateway: 'fonnte'
+      };
     } catch (err) {
-      return { success: false, error: err.message, gateway: 'fonnte' };
+      return { success: false, error: `Fonnte Error: ${err.message}`, gateway: 'fonnte' };
     }
   } else {
     // Mode Baileys (Scan QR Langsung - Gratis Unlimited)
     if (!waSock || waConnectionStatus !== 'connected') {
       return {
         success: false,
-        error: 'WhatsApp Web belum terhubung. Silakan buka menu Pengaturan dan scan QR Code WhatsApp.',
+        error: 'WhatsApp Web belum terhubung. Silakan buka menu Pengaturan & scan QR Code WhatsApp.',
         gateway: 'baileys'
       };
     }
@@ -601,7 +609,7 @@ async function sendWhatsApp(target, message, tokenOverride = null) {
       const sent = await waSock.sendMessage(clean, { text: message });
       return { success: !!sent, data: sent, gateway: 'baileys' };
     } catch (err) {
-      return { success: false, error: err.message, gateway: 'baileys' };
+      return { success: false, error: `WhatsApp Error: ${err.message}`, gateway: 'baileys' };
     }
   }
 }
@@ -843,6 +851,25 @@ app.post('/api/send-unabsent', async (req, res) => {
     results,
     unmatched
   });
+});
+
+// Send Direct WhatsApp to Individual Teacher
+app.post('/api/send-direct', async (req, res) => {
+  const { nomor, nama, message } = req.body;
+  if (!nomor) return res.json({ success: false, error: 'Nomor WhatsApp tidak valid.' });
+
+  const cfg = loadConfig();
+  const template = message || cfg.messagePagi || cfg.message || 'Halo *{nama}*! Jangan lupa lakukan presensi hari ini di ePresensi Jateng ya! ⏰';
+  const finalMsg = template.replace(/\{nama\}/gi, nama || 'Bapak/Ibu');
+
+  const result = await sendWhatsApp(nomor, finalMsg, cfg.fonnteToken);
+  if (result.success) {
+    addLog({ type: 'sent', message: `💬 Kirim Langsung: Notifikasi terkirim ke ${nama || nomor} (${nomor})` });
+  } else {
+    addLog({ type: 'error', message: `❌ Gagal Kirim Langsung ke ${nama || nomor}: ${result.error}` });
+  }
+
+  res.json({ success: result.success, error: result.error, data: result.data });
 });
 
 // ─── App Gatekeeper Security (Password: SMK3magelang by default) ───────────────
