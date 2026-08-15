@@ -1,3 +1,13 @@
+---
+title: ePresensi Sinaga
+emoji: 🏫
+colorFrom: purple
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🏢 ePresensi Jateng — Monitoring & WhatsApp Gateway Dashboard
 
 Aplikasi **Dashboard Monitoring Presensi & WhatsApp Multi-Device Gateway Otomatis** untuk Pegawai / Guru Pemerintah Provinsi Jawa Tengah (*Sinaga / ePresensi BKD Jateng*).
