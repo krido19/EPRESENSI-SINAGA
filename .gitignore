@@ -4,9 +4,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment / Logs
+# Environment / Logs / WhatsApp Sessions
 .env
 *.log
+baileys_auth_info/
 
 # Operating System Files
 .DS_Store

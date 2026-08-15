@@ -190,6 +190,21 @@ const cfgPassword                 = document.getElementById('cfgPassword');
 const cfgFonnteToken              = document.getElementById('cfgFonnteToken');
 const cfgSchedulerEnabled         = document.getElementById('cfgSchedulerEnabled');
 
+// WhatsApp Gateway Elements
+const radioGatewayBaileys         = document.getElementById('radioGatewayBaileys');
+const radioGatewayFonnte          = document.getElementById('radioGatewayFonnte');
+const panelGatewayBaileys         = document.getElementById('panelGatewayBaileys');
+const panelGatewayFonnte          = document.getElementById('panelGatewayFonnte');
+
+const waQrStateBox                = document.getElementById('waQrStateBox');
+const waConnectedStateBox         = document.getElementById('waConnectedStateBox');
+const waLoadingStateBox           = document.getElementById('waLoadingStateBox');
+const waQrImage                   = document.getElementById('waQrImage');
+const waConnectedInfo             = document.getElementById('waConnectedInfo');
+const waLoadingText               = document.getElementById('waLoadingText');
+const btnRefreshWaQr              = document.getElementById('btnRefreshWaQr');
+const btnLogoutWaWeb              = document.getElementById('btnLogoutWaWeb');
+
 const cfgSchedulerPagiEnabled     = document.getElementById('cfgSchedulerPagiEnabled');
 const cfgPagiHour                 = document.getElementById('cfgPagiHour');
 const cfgPagiMinute               = document.getElementById('cfgPagiMinute');
@@ -364,13 +379,99 @@ async function loadStatus() {
   }
 }
 
+// ─── WhatsApp Gateway Switcher & Status ──────────────────────────────────────
+function switchWaGatewayUI(gateway) {
+  if (gateway === 'fonnte') {
+    if (panelGatewayBaileys) panelGatewayBaileys.style.display = 'none';
+    if (panelGatewayFonnte) panelGatewayFonnte.style.display = 'block';
+    if (radioGatewayFonnte) radioGatewayFonnte.checked = true;
+  } else {
+    if (panelGatewayBaileys) panelGatewayBaileys.style.display = 'block';
+    if (panelGatewayFonnte) panelGatewayFonnte.style.display = 'none';
+    if (radioGatewayBaileys) radioGatewayBaileys.checked = true;
+    loadWaStatus();
+  }
+}
+
+if (radioGatewayBaileys) {
+  radioGatewayBaileys.addEventListener('change', () => switchWaGatewayUI('baileys'));
+}
+if (radioGatewayFonnte) {
+  radioGatewayFonnte.addEventListener('change', () => switchWaGatewayUI('fonnte'));
+}
+
+async function loadWaStatus() {
+  try {
+    const res = await fetch('/api/wa/status');
+    const data = await res.json();
+
+    if (data.status === 'connected') {
+      if (waQrStateBox) waQrStateBox.style.display = 'none';
+      if (waLoadingStateBox) waLoadingStateBox.style.display = 'none';
+      if (waConnectedStateBox) waConnectedStateBox.style.display = 'block';
+      if (waConnectedInfo && data.user) {
+        waConnectedInfo.textContent = `Nomor: +${data.user.number || '-'} (${data.user.name || 'Admin'})`;
+      }
+    } else if (data.status === 'qr_ready' && data.qr) {
+      if (waConnectedStateBox) waConnectedStateBox.style.display = 'none';
+      if (waLoadingStateBox) waLoadingStateBox.style.display = 'none';
+      if (waQrStateBox) waQrStateBox.style.display = 'block';
+      if (waQrImage) waQrImage.src = data.qr;
+    } else {
+      if (waConnectedStateBox) waConnectedStateBox.style.display = 'none';
+      if (waQrStateBox) waQrStateBox.style.display = 'none';
+      if (waLoadingStateBox) {
+        waLoadingStateBox.style.display = 'block';
+        if (waLoadingText) waLoadingText.textContent = 'Menyiapkan koneksi WhatsApp Web...';
+      }
+    }
+  } catch (err) {
+    console.error('Error loadWaStatus:', err);
+  }
+}
+setInterval(loadWaStatus, 3500);
+
+if (btnRefreshWaQr) {
+  btnRefreshWaQr.addEventListener('click', async () => {
+    showToast('Memperbarui QR Code WhatsApp...', 'info');
+    if (waLoadingStateBox) {
+      waLoadingStateBox.style.display = 'block';
+      if (waLoadingText) waLoadingText.textContent = 'Menghasilkan QR Code baru...';
+    }
+    if (waQrStateBox) waQrStateBox.style.display = 'none';
+    try {
+      await fetch('/api/wa/restart', { method: 'POST' });
+      setTimeout(loadWaStatus, 1500);
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+    }
+  });
+}
+
+if (btnLogoutWaWeb) {
+  btnLogoutWaWeb.addEventListener('click', async () => {
+    if (!confirm('Putuskan sesi WhatsApp Web ini? Anda perlu scan QR ulang untuk menghubungkannya kembali.')) return;
+    showToast('Memutuskan koneksi WhatsApp Web...', 'info');
+    try {
+      await fetch('/api/wa/logout', { method: 'POST' });
+      showToast('Koneksi WhatsApp Web diputuskan.', 'info');
+      setTimeout(loadWaStatus, 1500);
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+    }
+  });
+}
+
 async function loadConfig() {
   try {
     const res = await fetch('/api/config');
     config = await res.json();
 
     if (cfgUsername) cfgUsername.value = config.username || '';
+    if (cfgFonnteToken && config.fonnteToken) cfgFonnteToken.value = config.fonnteToken;
     if (cfgSchedulerEnabled) cfgSchedulerEnabled.checked = config.schedulerEnabled !== false;
+
+    switchWaGatewayUI(config.waGateway || 'baileys');
 
     if (cfgSchedulerPagiEnabled) cfgSchedulerPagiEnabled.checked = config.schedulerPagiEnabled !== false;
     if (cfgPagiHour) cfgPagiHour.value = config.pagiHour ?? 7;
@@ -1009,6 +1110,7 @@ if (configForm) {
     const payload = {
       username: cfgUsername?.value.trim() || '',
       password: cfgPassword?.value.trim() || '',
+      waGateway: radioGatewayFonnte?.checked ? 'fonnte' : 'baileys',
       fonnteToken: cfgFonnteToken?.value.trim() || '',
       schedulerEnabled: cfgSchedulerEnabled ? cfgSchedulerEnabled.checked : true,
       schedulerPagiEnabled: cfgSchedulerPagiEnabled ? cfgSchedulerPagiEnabled.checked : true,

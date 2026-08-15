@@ -6,6 +6,9 @@ const path    = require('path');
 const fs      = require('fs');
 const multer  = require('multer');
 const XLSX    = require('xlsx');
+const QRCode  = require('qrcode');
+const pino    = require('pino');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 
 const app  = express();
 const PORT = 3000;
@@ -17,10 +20,81 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ─── Storage Files ────────────────────────────────────────────────────────────
-const CONFIG_FILE     = path.join(__dirname, 'config.json');
-const LOG_FILE        = path.join(__dirname, 'logs.json');
-const RECIPIENTS_FILE = path.join(__dirname, 'recipients.json');
+// ─── Storage Files & Folders ──────────────────────────────────────────────────
+const CONFIG_FILE      = path.join(__dirname, 'config.json');
+const LOG_FILE         = path.join(__dirname, 'logs.json');
+const RECIPIENTS_FILE  = path.join(__dirname, 'recipients.json');
+const BAILEYS_AUTH_DIR = path.join(__dirname, 'baileys_auth_info');
+
+// ─── Baileys WhatsApp State ───────────────────────────────────────────────────
+let waSock = null;
+let waQrCodeDataUrl = null;
+let waConnectionStatus = 'disconnected'; // 'disconnected' | 'qr_ready' | 'connecting' | 'connected'
+let waConnectedUser = null;
+
+async function initBaileys() {
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState(BAILEYS_AUTH_DIR);
+    const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
+
+    waSock = makeWASocket({
+      version,
+      auth: state,
+      printQRInTerminal: false,
+      logger: pino({ level: 'silent' }),
+      browser: ['ePresensi Sinaga', 'Chrome', '1.0.0']
+    });
+
+    waSock.ev.on('creds.update', saveCreds);
+
+    waSock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        waConnectionStatus = 'qr_ready';
+        try {
+          waQrCodeDataUrl = await QRCode.toDataURL(qr, { scale: 7, margin: 2 });
+        } catch (e) {
+          console.error('Error generate QR:', e);
+        }
+      }
+
+      if (connection === 'close') {
+        const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        waConnectionStatus = 'disconnected';
+        waConnectedUser = null;
+        waQrCodeDataUrl = null;
+
+        console.log(`[WhatsApp Web] Terputus (Status: ${statusCode || 'unknown'}). Reconnect: ${shouldReconnect}`);
+
+        if (shouldReconnect) {
+          setTimeout(initBaileys, 4000);
+        } else {
+          try { fs.rmSync(BAILEYS_AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
+          setTimeout(initBaileys, 2000);
+        }
+      } else if (connection === 'open') {
+        waConnectionStatus = 'connected';
+        waQrCodeDataUrl = null;
+        const userJid = waSock.user?.id || '';
+        const cleanNumber = userJid.split(':')[0] || userJid.split('@')[0];
+        waConnectedUser = {
+          jid: userJid,
+          number: cleanNumber,
+          name: waSock.user?.name || 'Admin Presensi'
+        };
+        console.log(`[WhatsApp Web] ✅ Terhubung: +${cleanNumber}`);
+        addLog({ type: 'info', message: `📱 WhatsApp Web (Baileys) Terhubung: +${cleanNumber}` });
+      }
+    });
+  } catch (err) {
+    console.error('Error initBaileys:', err.message);
+  }
+}
+
+// Inisialisasi Baileys saat server start
+initBaileys();
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 function loadConfig() {
@@ -491,18 +565,44 @@ app.get('/api/colleagues/:nip/history', async (req, res) => {
   }
 });
 
-// ─── Fonnte WA ────────────────────────────────────────────────────────────────
-async function sendWhatsApp(token, target, message) {
-  try {
-    const formData = new URLSearchParams();
-    formData.append('target', target);
-    formData.append('message', message);
-    formData.append('countryCode', '62');
-    const res    = await fetch('https://api.fonnte.com/send', { method: 'POST', headers: { Authorization: token }, body: formData });
-    const result = await res.json();
-    return { success: result.status === true || result.status === 'true', data: result };
-  } catch (err) {
-    return { success: false, error: err.message };
+// ─── WhatsApp Sending Gateway (Dual: Baileys Scan QR & Fonnte API) ───────────
+async function sendWhatsApp(target, message, tokenOverride = null) {
+  const cfg = loadConfig();
+  const gateway = cfg.waGateway || (cfg.fonnteToken ? 'fonnte' : 'baileys');
+
+  if (gateway === 'fonnte' && (tokenOverride || cfg.fonnteToken)) {
+    try {
+      const token = tokenOverride || cfg.fonnteToken;
+      const formData = new URLSearchParams();
+      formData.append('target', target);
+      formData.append('message', message);
+      formData.append('countryCode', '62');
+      const res = await fetch('https://api.fonnte.com/send', { method: 'POST', headers: { Authorization: token }, body: formData });
+      const result = await res.json();
+      return { success: result.status === true || result.status === 'true', data: result, gateway: 'fonnte' };
+    } catch (err) {
+      return { success: false, error: err.message, gateway: 'fonnte' };
+    }
+  } else {
+    // Mode Baileys (Scan QR Langsung - Gratis Unlimited)
+    if (!waSock || waConnectionStatus !== 'connected') {
+      return {
+        success: false,
+        error: 'WhatsApp Web belum terhubung. Silakan buka menu Pengaturan dan scan QR Code WhatsApp.',
+        gateway: 'baileys'
+      };
+    }
+
+    let clean = String(target).replace(/[^0-9]/g, '');
+    if (clean.startsWith('0')) clean = '62' + clean.slice(1);
+    if (!clean.includes('@s.whatsapp.net')) clean = `${clean}@s.whatsapp.net`;
+
+    try {
+      const sent = await waSock.sendMessage(clean, { text: message });
+      return { success: !!sent, data: sent, gateway: 'baileys' };
+    } catch (err) {
+      return { success: false, error: err.message, gateway: 'baileys' };
+    }
   }
 }
 
@@ -515,9 +615,9 @@ async function sendToAllRecipients(token, messageTemplate, targetOverride = null
 
   for (const r of targets) {
     const msg    = messageTemplate.replace(/\{nama\}/gi, r.nama || 'Bapak/Ibu');
-    const result = await sendWhatsApp(token, r.nomor, msg);
-    results.push({ nama: r.nama, nomor: r.nomor, success: result.success, data: result.data });
-    await new Promise(res => setTimeout(res, 1000));
+    const result = await sendWhatsApp(r.nomor, msg, token);
+    results.push({ nama: r.nama, nomor: r.nomor, success: result.success, data: result.data, error: result.error });
+    await new Promise(res => setTimeout(res, 1200));
   }
 
   const successCount = results.filter(r => r.success).length;
@@ -779,6 +879,46 @@ app.post('/api/auth/change-app-password', (req, res) => {
   res.json({ success: true, message: 'Password akses aplikasi berhasil diperbarui!' });
 });
 
+// ─── WhatsApp Web (Baileys) Management Endpoints ─────────────────────────────
+app.get('/api/wa/status', (req, res) => {
+  const cfg = loadConfig();
+  res.json({
+    gateway: cfg.waGateway || 'baileys',
+    status: waConnectionStatus,
+    user: waConnectedUser,
+    qr: waQrCodeDataUrl
+  });
+});
+
+app.post('/api/wa/restart', async (req, res) => {
+  console.log('[WhatsApp Web] Permintaan regenerasi QR / restart koneksi...');
+  waConnectionStatus = 'connecting';
+  waQrCodeDataUrl = null;
+  waConnectedUser = null;
+  initBaileys();
+  res.json({ success: true, message: 'Memulai ulang koneksi WhatsApp Web...' });
+});
+
+app.post('/api/wa/logout', async (req, res) => {
+  console.log('[WhatsApp Web] Logout session...');
+  try {
+    if (waSock) {
+      await waSock.logout().catch(() => {});
+    }
+  } catch (e) {}
+
+  try {
+    fs.rmSync(BAILEYS_AUTH_DIR, { recursive: true, force: true });
+  } catch (e) {}
+
+  waConnectionStatus = 'disconnected';
+  waConnectedUser = null;
+  waQrCodeDataUrl = null;
+  addLog({ type: 'info', message: '📱 Sesi WhatsApp Web telah diputus/logout.' });
+  setTimeout(initBaileys, 1000);
+  res.json({ success: true, message: 'WhatsApp Web berhasil diputuskan.' });
+});
+
 // Config
 app.get('/api/config', (req, res) => {
   const cfg = loadConfig();
@@ -786,6 +926,7 @@ app.get('/api/config', (req, res) => {
     authMode: cfg.authMode || 'auto', username: cfg.username || '',
     usernameSet: !!cfg.username, passwordSet: !!cfg.password,
     cookieSet: !!cfg.cookie, cookieExpiry: cfg.cookieExpiry,
+    waGateway: cfg.waGateway || 'baileys',
     fonnteSet: !!cfg.fonnteToken, waNumberSet: !!cfg.waNumber,
     schedulerEnabled: cfg.schedulerEnabled !== false,
     schedulerPagiEnabled: cfg.schedulerPagiEnabled !== false,
@@ -801,7 +942,7 @@ app.get('/api/config', (req, res) => {
 app.post('/api/config', (req, res) => {
   const current = loadConfig();
   const allowed = [
-    'authMode','username','password','cookie','fonnteToken','waNumber',
+    'authMode','username','password','cookie','waGateway','fonnteToken','waNumber',
     'schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute',
     'schedulerPulangEnabled','pulangHour','pulangMinute',
     'message','messagePagi','messagePulang'
