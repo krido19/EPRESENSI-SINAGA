@@ -797,33 +797,53 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
       let curStatus    = isCurWeekend ? 'Libur (OFF)' : (d > now.getDate() && parseInt(month) === (now.getMonth() + 1) ? 'Belum Jadwal' : 'Belum Absen');
       let curIsHadir   = false;
 
+      // Assign timestamps if found
       if (allMatches.length > 0) {
         allMatches.sort();
         curJamMasuk  = allMatches[0];
         curJamPulang = allMatches.length > 1 ? allMatches[allMatches.length - 1] : '-';
-        curStatus    = 'Hadir';
-        curIsHadir   = true;
-        totalHadir++;
-      } else if (!isCurWeekend) {
-        // Check for Izin/Cuti marker specifically for this day in row HTML
-        // Common patterns: "I", "S", "A", "TL" in cells for this date
-        const dayOffRegex = new RegExp(`${curDateISO}[^<]*(?:class|title)[^>]*>[\\s]*([ISA])[\\s]*<`, 'gi');
-        const offMatch = rowHtml.match(dayOffRegex);
-        // Also check for 'Izin'/'Sakit' near this date
-        const hasIzin  = new RegExp(`${curDateISO}[^<]{0,100}Izin`, 'i').test(rowHtml);
-        const hasSakit = new RegExp(`${curDateISO}[^<]{0,100}Sakit`, 'i').test(rowHtml);
+      }
 
-        if (hasIzin) {
-          curStatus = 'Izin';
-          totalIzin++;
-        } else if (hasSakit) {
+      // Find the explicit status code from the hidden input for this date:
+      // id="202608_199012222014022002-s_10"
+      const statusInputId = `${year}${month}_${nip}-s_${dStr}`;
+      const statusRegex = new RegExp(`id=["']${statusInputId}["'][^>]*value=["']([^"']+)["']`, 'i');
+      const statusMatch = rowHtml.match(statusRegex);
+
+      if (statusMatch) {
+        const code = statusMatch[1].toUpperCase();
+        
+        if (['H', 'T', 'TAM', 'TAP', 'HB'].includes(code)) {
+          curStatus = 'Hadir';
+          curIsHadir = true;
+          totalHadir++;
+        } else if (code === 'CS' || code === 'S') {
           curStatus = 'Sakit';
           totalSakit++;
-        } else {
-          // Past days with no record = Belum Absen; future days = Belum Jadwal
-          if (d < now.getDate() && parseInt(month) === (now.getMonth() + 1)) {
+        } else if (code.startsWith('C') || code === 'I' || code === 'DL' || code === 'TL') {
+          if (code === 'DL') curStatus = 'Dinas Luar';
+          else if (code === 'TL') curStatus = 'Tugas Luar';
+          else if (code === 'I') curStatus = 'Izin';
+          else curStatus = 'Cuti';
+          totalIzin++;
+        } else if (code === 'OFF') {
+          curStatus = 'Libur (OFF)';
+        } else if (code === 'A' || code === 'HAPUS') {
+          // Alpha / Belum Absen
+          curStatus = 'Belum Absen';
+          // Only count as Belum Absen if it's past or today
+          if (parseInt(year) < now.getFullYear() || parseInt(month) < (now.getMonth() + 1) || (parseInt(month) === (now.getMonth() + 1) && d <= now.getDate())) {
             totalBelum++;
-          } else if (d === now.getDate() && parseInt(month) === (now.getMonth() + 1)) {
+          }
+        }
+      } else {
+        // Fallback if hidden input not found
+        if (allMatches.length > 0) {
+          curStatus = 'Hadir';
+          curIsHadir = true;
+          totalHadir++;
+        } else if (!isCurWeekend) {
+          if (parseInt(year) < now.getFullYear() || parseInt(month) < (now.getMonth() + 1) || (parseInt(month) === (now.getMonth() + 1) && d <= now.getDate())) {
             totalBelum++;
           }
         }
