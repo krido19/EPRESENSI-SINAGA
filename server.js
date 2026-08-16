@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors    = require('cors');
 const fetch   = require('node-fetch');
@@ -9,14 +11,41 @@ const XLSX    = require('xlsx');
 const QRCode  = require('qrcode');
 const pino    = require('pino');
 const crypto  = require('crypto');
+const cheerio = require('cheerio');
 const { exec } = require('child_process');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+
+// ─── Global Process Error Handlers (Anti-Crash Guard) ─────────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[CRITICAL] Uncaught Exception:', err.stack || err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Security Configuration & Middleware ──────────────────────────────────────
-const AUTH_SECRET = process.env.APP_SECRET || 'epresensi_sec_salt_key_2026';
+// ─── Security Configuration & Secret Key Management ──────────────────────────
+function getAppSecret() {
+  if (process.env.APP_SECRET && process.env.APP_SECRET.trim().length > 0) {
+    return process.env.APP_SECRET.trim();
+  }
+  const secretFile = path.join(__dirname, '.app_secret');
+  if (fs.existsSync(secretFile)) {
+    try {
+      const saved = fs.readFileSync(secretFile, 'utf8').trim();
+      if (saved) return saved;
+    } catch (e) {}
+  }
+  const generated = crypto.randomBytes(32).toString('hex');
+  try {
+    fs.writeFileSync(secretFile, generated, { mode: 0o600 });
+  } catch (e) {}
+  return generated;
+}
+
+const AUTH_SECRET = getAppSecret();
 
 // 1. CORS Boundary Hardening (Allows Localhost, Render, Railway, Koyeb)
 const allowedOrigins = [
@@ -210,36 +239,104 @@ async function initBaileys() {
 // Inisialisasi Baileys saat server start
 initBaileys();
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+// ─── Config (with Safe Atomic Storage & Environment Fallbacks) ─────────────────
 function loadConfig() {
+  let data = {};
   if (fs.existsSync(CONFIG_FILE)) {
-    const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-    if (!data.appPassword) data.appPassword = process.env.APP_PASSWORD || 'SMK3magelang';
-    return data;
+    try {
+      data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    } catch (e) {
+      console.error('Error reading config.json:', e.message);
+    }
   }
+
+  // Priority: process.env > saved config.json > defaults
+  const username    = process.env.EPRESENSI_USERNAME || data.username || '';
+  const password    = process.env.EPRESENSI_PASSWORD || data.password || '';
+  const fonnteToken = process.env.FONNTE_TOKEN       || data.fonnteToken || '';
+  const appPassword = process.env.APP_PASSWORD       || data.appPassword || 'SMK3magelang';
+  const waNumber    = process.env.WA_NUMBER          || data.waNumber || '';
+
   return {
-    authMode: 'auto', username: '', password: '',
-    cookie: '', cookieExpiry: null,
-    fonnteToken: '', waNumber: '',
-    schedulerEnabled: false, checkHour: 6, checkMinute: 0,
-    message: 'Halo *{nama}*! 👋\n\nPengingat presensi:\nAnda belum melakukan *absen pagi* hari ini di ePresensi Jateng.\n\nSegera absen sekarang! ⏰\n\n_Pesan otomatis dari sistem_',
-    appPassword: process.env.APP_PASSWORD || 'SMK3magelang'
+    authMode: data.authMode || 'auto',
+    username,
+    password,
+    cookie: data.cookie || '',
+    cookieExpiry: data.cookieExpiry || null,
+    fonnteToken,
+    waGateway: data.waGateway || 'baileys',
+    waNumber,
+    schedulerEnabled: data.schedulerEnabled !== false,
+    schedulerPagiEnabled: data.schedulerPagiEnabled !== false,
+    pagiHour: data.pagiHour ?? 7,
+    pagiMinute: data.pagiMinute ?? 30,
+    schedulerPulangEnabled: data.schedulerPulangEnabled !== false,
+    pulangHour: data.pulangHour ?? 18,
+    pulangMinute: data.pulangMinute ?? 0,
+    messagePagi: data.messagePagi || 'Halo *{nama}*! 👋\n\nPengingat presensi pagi:\nAnda tercatat belum melakukan *absen pagi / masuk* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! ⏰\n\n_Pesan otomatis ePresensi_',
+    messagePulang: data.messagePulang || 'Halo *{nama}*! 👋\n\nPengingat presensi pulang:\nAnda tercatat belum melakukan *absen pulang* hari ini di ePresensi Jateng.\n\nJangan lupa lakukan presensi pulang sebelum batas waktu berakhir! 🏢⏰\n\n_Pesan otomatis ePresensi_',
+    message: data.message || 'Halo *{nama}*! 👋\n\nPengingat presensi:\nAnda belum melakukan *absen* hari ini di ePresensi Jateng. Segera absen sekarang! ⏰',
+    appPassword,
+    namaSekolah: data.namaSekolah || 'SMKN 3 MAGELANG',
+    unitCode: data.unitCode || 'F208007700',
+    opdCode: data.opdCode || 'F200000000',
+    namaUser: data.namaUser || '',
+    accounts: Array.isArray(data.accounts) ? data.accounts : []
   };
 }
-function saveConfig(cfg) { fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2)); }
 
-// ─── Logs ─────────────────────────────────────────────────────────────────────
-function loadLogs() { return fs.existsSync(LOG_FILE) ? JSON.parse(fs.readFileSync(LOG_FILE, 'utf8')) : []; }
-function addLog(entry) {
-  const logs = loadLogs();
-  logs.unshift({ ...entry, timestamp: new Date().toISOString() });
-  if (logs.length > 200) logs.splice(200);
-  fs.writeFileSync(LOG_FILE, JSON.stringify(logs, null, 2));
+function saveConfig(cfg) {
+  try {
+    const tempFile = `${CONFIG_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(cfg, null, 2), 'utf8');
+    fs.renameSync(tempFile, CONFIG_FILE);
+  } catch (e) {
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+  }
 }
 
-// ─── Recipients ───────────────────────────────────────────────────────────────
-function loadRecipients() { return fs.existsSync(RECIPIENTS_FILE) ? JSON.parse(fs.readFileSync(RECIPIENTS_FILE, 'utf8')) : []; }
-function saveRecipients(list) { fs.writeFileSync(RECIPIENTS_FILE, JSON.stringify(list, null, 2)); }
+// ─── Logs (Safe Atomic Storage) ───────────────────────────────────────────────
+function loadLogs() {
+  if (!fs.existsSync(LOG_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(LOG_FILE, 'utf8'));
+  } catch (e) {
+    return [];
+  }
+}
+
+function addLog(entry) {
+  try {
+    const logs = loadLogs();
+    logs.unshift({ ...entry, timestamp: new Date().toISOString() });
+    if (logs.length > 200) logs.splice(200);
+    const tempFile = `${LOG_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(logs, null, 2), 'utf8');
+    fs.renameSync(tempFile, LOG_FILE);
+  } catch (e) {
+    console.error('Error saving log:', e.message);
+  }
+}
+
+// ─── Recipients (Safe Atomic Storage) ─────────────────────────────────────────
+function loadRecipients() {
+  if (!fs.existsSync(RECIPIENTS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(RECIPIENTS_FILE, 'utf8'));
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveRecipients(list) {
+  try {
+    const tempFile = `${RECIPIENTS_FILE}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify(list, null, 2), 'utf8');
+    fs.renameSync(tempFile, RECIPIENTS_FILE);
+  } catch (e) {
+    fs.writeFileSync(RECIPIENTS_FILE, JSON.stringify(list, null, 2), 'utf8');
+  }
+}
 
 // ─── ePresensi Auth ───────────────────────────────────────────────────────────
 const BASE_URL    = 'https://presensi.bkd.jatengprov.go.id';
@@ -254,9 +351,18 @@ async function fetchLoginPage() {
   const html = await res.text();
   const setCookieHeader = res.headers.raw()['set-cookie'] || [];
   const cookies = setCookieHeader.map(c => c.split(';')[0]).join('; ');
+  
+  const $ = cheerio.load(html);
+  const satuVal = $('input[name="satu"]').val();
+  const duaVal  = $('input[name="dua"]').val();
+  
   const satuMatch = html.match(/name=["']satu["'][^>]*value=["'](\d+)["']/) || html.match(/value=["'](\d+)["'][^>]*name=["']satu["']/);
   const duaMatch  = html.match(/name=["']dua["'][^>]*value=["'](\d+)["']/)  || html.match(/value=["'](\d+)["'][^>]*name=["']dua["']/);
-  return { html, cookies, satu: satuMatch ? parseInt(satuMatch[1]) : 2, dua: duaMatch ? parseInt(duaMatch[1]) : 3 };
+
+  const satu = satuVal ? parseInt(satuVal) : (satuMatch ? parseInt(satuMatch[1]) : 2);
+  const dua  = duaVal  ? parseInt(duaVal)  : (duaMatch  ? parseInt(duaMatch[1])  : 3);
+
+  return { html, cookies, satu, dua };
 }
 
 async function detectSchoolProfile(cookie) {
@@ -266,21 +372,34 @@ async function detectSchoolProfile(cookie) {
     });
     if (!res.ok) return null;
     const html = await res.text();
-    
-    // Extract Nama, NIP, Unit Kerja
-    const namaMatch = html.match(/Nama Lengkap<\/td><td>:<\/td><td>\s*([^<]+)<\/td>/i);
-    const nipMatch  = html.match(/NIP<\/td><td>:<\/td><td>\s*(\d+)<\/td>/i);
-    const unitMatch = html.match(/Unit Kerja<\/td><td>:<\/td><td>\s*([^<]+)<\/td>/i);
-    
-    const opdInputMatch  = html.match(/name=["']opd["']\s+value=["']([^"']+)["']/i);
-    const unitInputMatch = html.match(/name=["']unit["']\s+value=["']([^"']+)["']/i);
-    
+    const $ = cheerio.load(html);
+
+    let nama = '';
+    let nip = '';
+    let namaSekolah = 'SMKN 3 MAGELANG';
+
+    $('tr').each((_, el) => {
+      const text = $(el).text();
+      if (/Nama Lengkap/i.test(text)) {
+        nama = $(el).find('td').last().text().replace(/^:\s*/, '').trim();
+      } else if (/NIP/i.test(text)) {
+        const td = $(el).find('td').last().text().replace(/^:\s*/, '').trim();
+        const m = td.match(/(\d{18})/);
+        if (m) nip = m[1];
+      } else if (/Unit Kerja/i.test(text)) {
+        namaSekolah = $(el).find('td').last().text().replace(/^:\s*/, '').trim() || 'SMKN 3 MAGELANG';
+      }
+    });
+
+    const opdInputVal  = $('input[name="opd"]').val();
+    const unitInputVal = $('input[name="unit"]').val();
+
     return {
-      nama: namaMatch ? namaMatch[1].trim() : '',
-      nip: nipMatch ? nipMatch[1].trim() : '',
-      namaSekolah: unitMatch ? unitMatch[1].trim() : 'SMKN 3 MAGELANG',
-      opdCode: opdInputMatch ? opdInputMatch[1].trim() : 'F200000000',
-      unitCode: unitInputMatch ? unitInputMatch[1].trim() : 'F208007700'
+      nama: nama || '',
+      nip: nip || '',
+      namaSekolah: namaSekolah || 'SMKN 3 MAGELANG',
+      opdCode: String(opdInputVal || 'F200000000').trim(),
+      unitCode: String(unitInputVal || 'F208007700').trim()
     };
   } catch (e) {
     console.error('Error detectSchoolProfile:', e);
@@ -379,21 +498,27 @@ async function doLogin(username, password) {
   }
 }
 
-async function ensureValidSession() {
+async function ensureValidSession(forceFresh = false) {
   const config = loadConfig();
   if (config.authMode === 'manual') {
     if (!config.cookie) return { success: false, error: 'Cookie belum diset.' };
     return { success: true, cookie: config.cookie };
   }
-  if (config.cookie) {
+  if (config.cookie && !forceFresh) {
     const isExpired = config.cookieExpiry && new Date() > new Date(config.cookieExpiry);
     if (!isExpired) {
       try {
         const res = await fetch(`${BASE_URL}/v3/dashboard`, { headers: { ...HEADERS_BASE, Cookie: config.cookie }, redirect: 'manual' });
-        if (res.status === 200) return { success: true, cookie: config.cookie };
+        if (res.status === 200) {
+          const bodyHtml = await res.text();
+          // Pastikan bukan redirect ke halaman login
+          if (!bodyHtml.includes('portal/auth') && !bodyHtml.includes('name="password"') && !bodyHtml.includes('name="jawaban"')) {
+            return { success: true, cookie: config.cookie };
+          }
+        }
       } catch(e) {}
     }
-    addLog({ type: 'info', message: '🔄 Re-login otomatis...' });
+    addLog({ type: 'info', message: '🔄 Sesi ePresensi kedaluwarsa, melakukan re-login otomatis...' });
   }
   if (!config.username || !config.password) return { success: false, error: 'Username/password belum diset.' };
   return await doLogin(config.username, config.password);
@@ -414,47 +539,40 @@ async function checkAttendance(cookie) {
       return { success: false, error: 'Session expired.', sessionExpired: true };
     return { success: true, data: parseAttendanceHTML(html) };
   } catch (err) {
-    return { success: false, error: `Gagal: ${err.message}` };
+    return { success: false, error: `Gagal cek presensi: ${err.message}` };
   }
 }
 
 function parseAttendanceHTML(html) {
   const today  = new Date();
   const dayOfMonth = today.getDate();
-  const dd     = String(dayOfMonth).padStart(2, '0');
-  const mm     = String(today.getMonth() + 1).padStart(2, '0');
-  const yyyy   = today.getFullYear();
   const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
   const result = {
-    date: `${dayOfMonth} ${months[today.getMonth()]} ${yyyy}`,
+    date: `${dayOfMonth} ${months[today.getMonth()]} ${today.getFullYear()}`,
     hasAbsenPagi: false, hasAbsenPulang: false, status: 'Belum Absen',
     jamMasuk: null, jamPulang: null, rawIndicators: {}
   };
 
-  const tbodyMatch = html.match(/<tbody[\s\S]*?<\/tbody>/i);
-  if (!tbodyMatch) {
-    result.status = 'Tidak Dapat Dibaca';
-    return result;
-  }
-
-  const rows = tbodyMatch[0].match(/<tr[\s\S]*?<\/tr>/gi) || [];
+  const $ = cheerio.load(html);
+  const rows = $('tbody tr');
   if (rows.length === 0) {
     result.status = 'Tidak Ada Baris';
     return result;
   }
 
-  const targetRowIdx = dayOfMonth - 1;
-  const targetRow = rows[targetRowIdx] || rows[0];
-  const thMatches = [...targetRow.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)];
-  const cols = thMatches.map(m => m[1].replace(/<[^>]+>/g, '').trim());
+  const targetRow = rows.eq(dayOfMonth - 1).length ? rows.eq(dayOfMonth - 1) : rows.first();
+  const cols = [];
+  targetRow.find('th, td').each((_, el) => {
+    cols.push($(el).text().trim());
+  });
 
   const rawTanggal = cols[0] || '';
   const rawMasuk   = cols[1] || '-';
   const rawPulang  = cols[2] || '-';
   const rawStatus  = (cols[3] || '').trim().toUpperCase();
 
-  const jamMasukMatch = rawMasuk.match(/^(\d{2}:\d{2})$/);
+  const jamMasukMatch = rawMasuk.match(/^(\d{2}:\d{2})/);
   if (jamMasukMatch && rawMasuk !== '-') {
     result.jamMasuk     = jamMasukMatch[1];
     result.hasAbsenPagi = true;
@@ -463,7 +581,7 @@ function parseAttendanceHTML(html) {
     result.hasAbsenPagi = false;
   }
 
-  const jamPulangMatch = rawPulang.match(/^(\d{2}:\d{2})$/);
+  const jamPulangMatch = rawPulang.match(/^(\d{2}:\d{2})/);
   if (jamPulangMatch && rawPulang !== '-') {
     result.jamPulang     = jamPulangMatch[1];
     result.hasAbsenPulang = true;
@@ -483,7 +601,7 @@ function parseAttendanceHTML(html) {
     result.status = 'Belum Absen';
   }
 
-  result.rawIndicators = { dayOfMonth, targetRowIdx, totalRows: rows.length, rawTanggal, rawMasuk, rawPulang, rawStatus, cols };
+  result.rawIndicators = { dayOfMonth, targetRowIdx: dayOfMonth - 1, totalRows: rows.length, rawTanggal, rawMasuk, rawPulang, rawStatus, cols };
   return result;
 }
 
@@ -491,7 +609,7 @@ function parseAttendanceHTML(html) {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let colleagueCache = {};
 
-async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth = null, targetYear = null, forceRefresh = false) {
+async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth = null, targetYear = null, forceRefresh = false, retryCount = 0) {
   const cfg   = loadConfig();
   const now   = new Date();
   const day   = targetDay   ? parseInt(targetDay)   : now.getDate();
@@ -518,65 +636,220 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   const formData = new URLSearchParams();
   formData.append('opd', opdCode);
   formData.append('unit', unitCode);
-  formData.append('rl', '88');
+  formData.append('rl', '100'); // 100 baris (jika pakai 9999 server epresensi error/hanya memunculkan 1 nama)
   formData.append('bulan', month);
   formData.append('tahun', year);
   formData.append('nip', '');
 
-  const res = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
-    method: 'POST',
-    headers: {
-      ...HEADERS_BASE,
-      'Cookie': cookie,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Referer': `${BASE_URL}/v3/data_v4`
-    },
-    body: formData.toString()
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
+      method: 'POST',
+      headers: {
+        ...HEADERS_BASE,
+        'Cookie': cookie,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Referer': `${BASE_URL}/v3/data_v4`
+      },
+      body: formData.toString()
+    });
+  } catch (err) {
+    return { success: false, error: `Koneksi gagal: ${err.message}` };
+  }
 
-  if (!res.ok) return { success: false, error: `HTTP ${res.status}` };
+  if (!res.ok) {
+    if ((res.status === 301 || res.status === 302 || res.status === 401 || res.status === 403) && retryCount === 0) {
+      console.log('[Colleagues] Sesi ePresensi expired (HTTP ' + res.status + '), mencoba re-login...');
+      const fresh = await ensureValidSession(true);
+      if (fresh.success && fresh.cookie) {
+        return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1);
+      }
+    }
+    return { success: false, error: `HTTP ${res.status} dari portal ePresensi` };
+  }
+
   const html = await res.text();
 
-  const tables = [...html.matchAll(/<table[\s\S]*?<\/table>/gi)].map(m => m[0]);
-  if (tables.length < 2) return { success: false, error: 'Tabel data unit kerja tidak ditemukan.' };
+  // Deteksi jika respon berupa form login ePresensi
+  const isLoginPage = html.includes('name="password"') || html.includes('portal/auth') || html.includes('name="jawaban"');
+  if (isLoginPage && retryCount === 0) {
+    console.log('[Colleagues] Sesi ePresensi expired (halaman login terdeteksi), mencoba re-login otomatis...');
+    const fresh = await ensureValidSession(true);
+    if (fresh.success && fresh.cookie) {
+      return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1);
+    }
+  }
 
-  const rows = [...tables[1].matchAll(/<tr[\s\S]*?<\/tr>/gi)].map(m => m[0]);
+  const $ = cheerio.load(html);
+  const tables = $('table');
+
+  // Cari tabel dengan baris terbanyak (tabel data unit biasanya memiliki puluhan baris)
+  let targetTable = null;
+  let maxRows = 0;
+
+  tables.each((_, tbl) => {
+    const rowCount = $(tbl).find('tr').length;
+    if (rowCount > maxRows) {
+      maxRows = rowCount;
+      targetTable = $(tbl);
+    }
+  });
+
+  if (!targetTable || maxRows < 2) {
+    if (retryCount === 0) {
+      console.log('[Colleagues] Tabel data belum ditemukan, mencoba re-login...');
+      const fresh = await ensureValidSession(true);
+      if (fresh.success && fresh.cookie) {
+        return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1);
+      }
+    }
+    return {
+      success: false,
+      error: 'Tabel data unit kerja tidak ditemukan. Pastikan akun ePresensi aktif dan memiliki hak akses OPD/Unit sekolah.'
+    };
+  }
+
+  const rows = targetTable.find('tr');
   const colleagues = [];
 
   const dateObj  = new Date(parseInt(year), parseInt(month) - 1, day);
   const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   const namaHari = dayNames[dateObj.getDay()];
   const isWeekend = (namaHari === 'Sabtu' || namaHari === 'Minggu');
+  const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
 
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => m[1]);
-    if (cells.length < 2) continue;
+  rows.each((i, rowEl) => {
+    if (i === 0) return; // skip header row
+    const cells = $(rowEl).find('td');
+    if (cells.length < 2) return;
 
-    const no = cells[0].replace(/<[^>]+>/g, '').trim();
-    const rawNipNama = cells[1].replace(/<[^>]+>/g, '').replace(/'/g, '').trim();
-    const nipMatch   = rawNipNama.match(/(\d{18})/);
-    const nip        = nipMatch ? nipMatch[1] : '';
-    const nama       = rawNipNama.replace(nip, '').trim() || (cells[2] ? cells[2].replace(/<[^>]+>/g, '').trim() : '');
+    const rowHtml = $(rowEl).html() || '';
+    const rowText = $(rowEl).text();
 
-    // Cari semua timestamp untuk tanggal dayISO di row ini
-    const tsRegex = new RegExp(`${dayISO}\\s+(\\d{2}:\\d{2})(?::\\d{2})?`, 'g');
-    const matches = [...row.matchAll(tsRegex)].map(m => m[1]);
+    // ── Robust NIP + Nama Extraction ──────────────────────────────────────────
+    // Strategy: scan all early cells (0-4) for an 18-digit NIP, then derive name
+    let nip  = '';
+    let nama = '';
+    let nipCellIdx = -1;
 
-    let jamMasuk = null;
-    let jamPulang = null;
-    let statusText = 'Belum Absen';
-    let isHadir    = false;
-
-    if (matches.length > 0) {
-      matches.sort();
-      jamMasuk  = matches[0];
-      jamPulang = matches.length > 1 ? matches[matches.length - 1] : null;
-      statusText = 'Hadir';
-      isHadir    = true;
-    } else if (isWeekend || row.includes('OFF')) {
-      statusText = 'Libur (OFF)';
+    for (let ci = 0; ci <= Math.min(4, cells.length - 1); ci++) {
+      const cellText = cells.eq(ci).text().replace(/'/g, '').trim();
+      const nipM = cellText.match(/(\d{18})/);
+      if (nipM) {
+        nip = nipM[1];
+        nipCellIdx = ci;
+        // Name might be in same cell (after removing NIP) OR in next cell
+        const sameCell = cellText.replace(nip, '').replace(/[:\s]+/g, ' ').trim();
+        if (sameCell && sameCell.length > 2) {
+          nama = sameCell;
+        } else if (ci + 1 < cells.length) {
+          nama = cells.eq(ci + 1).text().replace(/[:\s]+/g, ' ').trim();
+        }
+        break;
+      }
     }
+
+    // If NIP not found at all → likely not a data row (could be sub-header), skip
+    if (!nip) {
+      // One last try: check if entire row has an 18-digit number
+      const globalNip = rowText.match(/(\d{18})/);
+      if (!globalNip) return;
+      nip = globalNip[1];
+    }
+
+    // Fallback: derive name from cells if still empty
+    if (!nama) {
+      for (let ci = 0; ci < cells.length; ci++) {
+        if (ci === nipCellIdx) continue;
+        const t = cells.eq(ci).text().replace(/[:\s]+/g, ' ').trim();
+        // Accept as name if it contains letters and is not a number sequence
+        if (t && t.length > 3 && /[A-Za-z]/.test(t) && !/^\d+$/.test(t)) {
+          nama = t;
+          break;
+        }
+      }
+    }
+
+    const no = cells.eq(0).text().trim();
+
+    // ── Build complete 1-Month attendance history for this teacher ────────────
+    const history = [];
+    let totalHadir = 0, totalIzin = 0, totalSakit = 0, totalBelum = 0;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dStr        = String(d).padStart(2, '0');
+      const curDateISO  = `${year}-${month}-${dStr}`;
+      const curDateObj  = new Date(parseInt(year), parseInt(month) - 1, d);
+      const curDayName  = dayNames[curDateObj.getDay()];
+      const isCurWeekend = (curDayName === 'Sabtu' || curDayName === 'Minggu');
+
+      // Look for timestamps tied to this specific date in row HTML
+      const tsRegex = new RegExp(`${curDateISO}[^"]*?\\s+(\\d{2}:\\d{2})(?::\\d{2})?`, 'g');
+      const matches = [...rowHtml.matchAll(tsRegex)].map(m => m[1]);
+
+      // Also try plain HH:MM pattern via title/data attributes for this date
+      const attrRegex = new RegExp(`(?:title|data-[^=]*)=["'][^"']*${curDateISO}[^"']*?(\\d{2}:\\d{2})`, 'gi');
+      const attrMatches = [...rowHtml.matchAll(attrRegex)].map(m => m[1]);
+      const allMatches = [...new Set([...matches, ...attrMatches])].filter(Boolean);
+
+      let curJamMasuk  = '-';
+      let curJamPulang = '-';
+      let curStatus    = isCurWeekend ? 'Libur (OFF)' : (d > now.getDate() && parseInt(month) === (now.getMonth() + 1) ? 'Belum Jadwal' : 'Belum Absen');
+      let curIsHadir   = false;
+
+      if (allMatches.length > 0) {
+        allMatches.sort();
+        curJamMasuk  = allMatches[0];
+        curJamPulang = allMatches.length > 1 ? allMatches[allMatches.length - 1] : '-';
+        curStatus    = 'Hadir';
+        curIsHadir   = true;
+        totalHadir++;
+      } else if (!isCurWeekend) {
+        // Check for Izin/Cuti marker specifically for this day in row HTML
+        // Common patterns: "I", "S", "A", "TL" in cells for this date
+        const dayOffRegex = new RegExp(`${curDateISO}[^<]*(?:class|title)[^>]*>[\\s]*([ISA])[\\s]*<`, 'gi');
+        const offMatch = rowHtml.match(dayOffRegex);
+        // Also check for 'Izin'/'Sakit' near this date
+        const hasIzin  = new RegExp(`${curDateISO}[^<]{0,100}Izin`, 'i').test(rowHtml);
+        const hasSakit = new RegExp(`${curDateISO}[^<]{0,100}Sakit`, 'i').test(rowHtml);
+
+        if (hasIzin) {
+          curStatus = 'Izin';
+          totalIzin++;
+        } else if (hasSakit) {
+          curStatus = 'Sakit';
+          totalSakit++;
+        } else {
+          // Past days with no record = Belum Absen; future days = Belum Jadwal
+          if (d < now.getDate() && parseInt(month) === (now.getMonth() + 1)) {
+            totalBelum++;
+          } else if (d === now.getDate() && parseInt(month) === (now.getMonth() + 1)) {
+            totalBelum++;
+          }
+        }
+      }
+
+      history.push({
+        tanggal: d,
+        tanggalLengkap: `${d}/${month}/${year}`,
+        hari: curDayName,
+        isWeekend: isCurWeekend,
+        isToday: (d === now.getDate() && parseInt(month) === (now.getMonth() + 1)),
+        isPast:   (d < now.getDate()  && parseInt(month) === (now.getMonth() + 1)),
+        isFuture: (d > now.getDate()  && parseInt(month) === (now.getMonth() + 1)),
+        jamMasuk:  curJamMasuk,
+        jamPulang: curJamPulang,
+        status:    curStatus,
+        isHadir:   curIsHadir
+      });
+    }
+
+    // Get specific stats for target day (e.g. today or selected day)
+    const targetEntry = history.find(h => h.tanggal === day) || {};
+    const jamMasuk  = targetEntry.jamMasuk  !== '-' ? targetEntry.jamMasuk  : null;
+    const jamPulang = targetEntry.jamPulang !== '-' ? targetEntry.jamPulang : null;
+    const statusText = targetEntry.status || 'Belum Absen';
+    const isHadir    = !!targetEntry.isHadir;
 
     colleagues.push({
       no: parseInt(no) || i,
@@ -585,9 +858,18 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
       jamMasuk,
       jamPulang,
       status: statusText,
-      isHadir
+      isHadir,
+      monthHistory: {
+        month,
+        year,
+        totalHadir,
+        totalIzin,
+        totalSakit,
+        totalBelum,
+        history
+      }
     });
-  }
+  });
 
   const hadirCount = colleagues.filter(c => c.isHadir).length;
   const belumCount = colleagues.length - hadirCount;
@@ -626,118 +908,110 @@ app.get('/api/colleagues', async (req, res) => {
   res.json(result);
 });
 
-// ─── Colleague 1-Month Detail History ─────────────────────────────────────────
-app.get('/api/colleagues/:nip/history', async (req, res) => {
+// ─── API: Debug – Raw HTML from ePresensi (inspect table structure) ───────────
+app.get('/api/colleagues/debug-html', async (req, res) => {
   const session = await ensureValidSession();
-  if (!session.success) return res.json({ success: false, error: session.error, needLogin: true });
+  if (!session.success) return res.json({ success: false, error: session.error });
 
+  const cfg   = loadConfig();
+  const now   = new Date();
+  const month = String(req.query.month || (now.getMonth() + 1)).padStart(2, '0');
+  const year  = String(req.query.year  || now.getFullYear());
+  const formData = new URLSearchParams({
+    opd: cfg.opdCode || 'F200000000',
+    unit: cfg.unitCode || 'F208007700',
+    rl: '88',
+    bulan: month,
+    tahun: year,
+    nip: ''
+  });
+
+  try {
+    const r = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
+      method: 'POST',
+      headers: { ...HEADERS_BASE, Cookie: session.cookie, 'Content-Type': 'application/x-www-form-urlencoded', Referer: `${BASE_URL}/v3/data_v4` },
+      body: formData.toString()
+    });
+    const html = await r.text();
+    const $ = cheerio.load(html);
+    const tables = $('table');
+    const tableCount = tables.length;
+
+    // Extract first 3 rows of each table for inspection
+    const tablesSummary = [];
+    tables.each((tIdx, tbl) => {
+      const rows = $(tbl).find('tr');
+      const rowsSample = [];
+      rows.each((rIdx, row) => {
+        if (rIdx > 2) return false;
+        const cells = $(row).find('td, th');
+        const cellTexts = [];
+        cells.each((cIdx, cell) => {
+          if (cIdx > 8) return false;
+          cellTexts.push($(cell).text().trim().slice(0, 80));
+        });
+        rowsSample.push({ rowIdx: rIdx, cells: cellTexts });
+      });
+      tablesSummary.push({ tableIdx: tIdx, rowCount: rows.length, rowsSample });
+    });
+
+    // Also return first 2000 chars of raw HTML for inspection
+    res.json({
+      success: true,
+      status: r.status,
+      tableCount,
+      tables: tablesSummary,
+      rawHtmlSnippet: html.slice(0, 3000)
+    });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// ─── Colleague 1-Month Detail History (Instant from Preloaded Cache) ─────────
+app.get('/api/colleagues/:nip/history', async (req, res) => {
   const targetNip = req.params.nip.replace(/'/g, '').trim();
   const now       = new Date();
   const month     = req.query.month ? String(req.query.month).padStart(2,'0') : String(now.getMonth() + 1).padStart(2,'0');
   const year      = req.query.year  ? String(req.query.year)  : String(now.getFullYear());
-  const dayNames  = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const cfg       = loadConfig();
+  const unitCode  = cfg.unitCode || 'F208007700';
 
-  const formData = new URLSearchParams();
-  formData.append('opd', 'F200000000');
-  formData.append('unit', 'F208007700');
-  formData.append('rl', '88');
-  formData.append('bulan', month);
-  formData.append('tahun', year);
-  formData.append('nip', '');
+  // 1. Fast path: check in-memory colleague cache
+  for (const key in colleagueCache) {
+    if (key.startsWith(unitCode) && colleagueCache[key].data && colleagueCache[key].data.colleagues) {
+      const found = colleagueCache[key].data.colleagues.find(c => c.nip === targetNip);
+      if (found && found.monthHistory) {
+        return res.json({
+          success: true,
+          nip: targetNip,
+          nama: found.nama,
+          fromCache: true,
+          ...found.monthHistory
+        });
+      }
+    }
+  }
+
+  // 2. If not found in cache, ensure valid session and fetch full colleagues list
+  const session = await ensureValidSession();
+  if (!session.success) return res.json({ success: false, error: session.error, needLogin: true });
 
   try {
-    const fetchRes = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
-      method: 'POST',
-      headers: {
-        ...HEADERS_BASE,
-        'Cookie': session.cookie,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Referer': `${BASE_URL}/v3/data_v4`
-      },
-      body: formData.toString()
-    });
-
-    if (!fetchRes.ok) return res.json({ success: false, error: `HTTP ${fetchRes.status}` });
-    const html = await fetchRes.text();
-
-    const tables = [...html.matchAll(/<table[\s\S]*?<\/table>/gi)].map(m => m[0]);
-    if (tables.length < 2) return res.json({ success: false, error: 'Tabel data unit kerja tidak ditemukan.' });
-
-    const rows = [...tables[1].matchAll(/<tr[\s\S]*?<\/tr>/gi)].map(m => m[0]);
-    let targetRow = null;
-
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i].includes(targetNip)) {
-        targetRow = rows[i];
-        break;
+    const result = await fetchColleaguesAttendance(session.cookie, now.getDate(), month, year, true);
+    if (result.success && result.colleagues) {
+      const found = result.colleagues.find(c => c.nip === targetNip);
+      if (found && found.monthHistory) {
+        return res.json({
+          success: true,
+          nip: targetNip,
+          nama: found.nama,
+          fromCache: false,
+          ...found.monthHistory
+        });
       }
     }
-
-    if (!targetRow) return res.json({ success: false, error: 'Data guru tidak ditemukan.' });
-
-    const cells = [...targetRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(m => m[1]);
-    const rawNipNama = (cells[1] || '').replace(/<[^>]+>/g, '').replace(/'/g, '').trim();
-    const nama = rawNipNama.replace(targetNip, '').trim() || (cells[2] ? cells[2].replace(/<[^>]+>/g, '').trim() : '');
-
-    const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
-    const history = [];
-    let totalHadir = 0, totalIzin = 0, totalSakit = 0, totalBelum = 0;
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dStr    = String(d).padStart(2, '0');
-      const dateISO = `${year}-${month}-${dStr}`;
-      const dateObj = new Date(parseInt(year), parseInt(month) - 1, d);
-      const namaHari = dayNames[dateObj.getDay()];
-      const isWeekend = (namaHari === 'Sabtu' || namaHari === 'Minggu');
-
-      const tsRegex = new RegExp(`${dateISO}\\s+(\\d{2}:\\d{2})(?::\\d{2})?`, 'g');
-      const matches = [...targetRow.matchAll(tsRegex)].map(m => m[1]);
-
-      let jamMasuk  = '-';
-      let jamPulang = '-';
-      let status    = 'Belum Absen';
-      let isHadir   = false;
-
-      if (matches.length > 0) {
-        matches.sort();
-        jamMasuk  = matches[0];
-        jamPulang = matches.length > 1 ? matches[matches.length - 1] : '-';
-        status    = 'Hadir';
-        isHadir   = true;
-        totalHadir++;
-      } else if (isWeekend) {
-        status = 'Libur (OFF)';
-      } else if (d <= now.getDate()) {
-        totalBelum++;
-      }
-
-      history.push({
-        tanggal: d,
-        tanggalLengkap: `${d}/${month}/${year}`,
-        hari: namaHari,
-        isWeekend,
-        isToday: (d === now.getDate() && parseInt(month) === (now.getMonth() + 1)),
-        isPast: (d < now.getDate()),
-        isFuture: (d > now.getDate()),
-        jamMasuk,
-        jamPulang,
-        status,
-        isHadir
-      });
-    }
-
-    res.json({
-      success: true,
-      nip: targetNip,
-      nama,
-      month,
-      year,
-      totalHadir,
-      totalIzin,
-      totalSakit,
-      totalBelum,
-      history
-    });
+    res.json({ success: false, error: 'Data guru tidak ditemukan.' });
   } catch (err) {
     res.json({ success: false, error: err.message });
   }
@@ -1667,6 +1941,18 @@ app.get('/api/status', (req, res) => {
     cookieExpiry: cfg.cookieExpiry, fonnteSet: !!cfg.fonnteToken, waNumberSet: !!cfg.waNumber,
     recipientCount: loadRecipients().filter(r => r.aktif !== false).length,
   });
+});
+
+// ─── Global Express Error Handler Middleware ──────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('[Express Unhandled Error]', err);
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: 'Terjadi kesalahan internal pada server.',
+      detail: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────

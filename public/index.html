@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.png">
 </head>
   <!-- ─── 00. Landing / Gatekeeper Access Screen ──────────────────────────── -->
   <div class="gatekeeper-screen" id="appGatekeeperScreen">
@@ -250,6 +252,103 @@
               </div>
             </div>
 
+            <!-- 1-Month Analytics & Trend Card (Rekapitulasi Kehadiran, Alpha, Izin/Cuti & Sakit) -->
+            <div class="monthly-analytics-card" id="monthlyAnalyticsCard">
+              <div class="analytics-card-header">
+                <div class="analytics-title-wrap">
+                  <div class="analytics-icon-badge">📊</div>
+                  <div>
+                    <h3 class="analytics-title">Rekapitulasi & Analisis Presensi 1 Bulan (98 Rekan Guru)</h3>
+                    <p class="analytics-subtitle" id="monthlyAnalyticsSubtitle">Statistik akumulasi & grafik harian kehadiran, alpha (belum absen), izin/cuti, dan sakit</p>
+                  </div>
+                </div>
+                <div class="analytics-header-actions">
+                  <button type="button" class="modern-btn btn-glass btn-xs" id="btnToggleAnalyticsChart" title="Tampilkan / Sembunyikan Detail Grafik">
+                    <span id="toggleAnalyticsIcon">📉</span> <span id="toggleAnalyticsText">Sembunyikan Grafik</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Monthly Summary Stat Boxes -->
+              <div class="analytics-stats-row">
+                <div class="analytics-stat-box stat-box-hadir" style="cursor: pointer;" title="Filter: Tampilkan guru yang memiliki riwayat Hadir" onclick="setFilter('monthly_hadir')">
+                  <div class="stat-box-header">
+                    <span class="stat-box-icon">🟢</span>
+                    <span class="stat-box-lbl">Total Hadir</span>
+                  </div>
+                  <div class="stat-box-body">
+                    <strong class="stat-box-val font-mono" id="monthlyTotalHadir">0</strong>
+                    <span class="stat-box-pct font-mono" id="monthlyPctHadir">0%</span>
+                  </div>
+                </div>
+
+                <div class="analytics-stat-box stat-box-belum" style="cursor: pointer;" title="Filter: Tampilkan guru yang memiliki riwayat Belum Absen/Alpha" onclick="setFilter('monthly_belum')">
+                  <div class="stat-box-header">
+                    <span class="stat-box-icon">🔴</span>
+                    <span class="stat-box-lbl">Belum Absen (Alpha)</span>
+                  </div>
+                  <div class="stat-box-body">
+                    <strong class="stat-box-val font-mono text-rose" id="monthlyTotalBelum">0</strong>
+                    <span class="stat-box-pct font-mono" id="monthlyPctBelum">0%</span>
+                  </div>
+                </div>
+
+                <div class="analytics-stat-box stat-box-izin" style="cursor: pointer;" title="Filter: Tampilkan guru yang memiliki riwayat Izin/Cuti" onclick="setFilter('monthly_izin')">
+                  <div class="stat-box-header">
+                    <span class="stat-box-icon">🟡</span>
+                    <span class="stat-box-lbl">Izin / Cuti</span>
+                  </div>
+                  <div class="stat-box-body">
+                    <strong class="stat-box-val font-mono text-amber" id="monthlyTotalIzin">0</strong>
+                    <span class="stat-box-pct font-mono" id="monthlyPctIzin">0%</span>
+                  </div>
+                </div>
+
+                <div class="analytics-stat-box stat-box-sakit" style="cursor: pointer;" title="Filter: Tampilkan guru yang memiliki riwayat Sakit" onclick="setFilter('monthly_sakit')">
+                  <div class="stat-box-header">
+                    <span class="stat-box-icon">🔵</span>
+                    <span class="stat-box-lbl">Sakit</span>
+                  </div>
+                  <div class="stat-box-body">
+                    <strong class="stat-box-val font-mono text-sky" id="monthlyTotalSakit">0</strong>
+                    <span class="stat-box-pct font-mono" id="monthlyPctSakit">0%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Interactive Visual Chart Body -->
+              <div class="analytics-chart-body" id="analyticsChartBody">
+                <div class="chart-legend-row">
+                  <span class="legend-item"><span class="legend-dot dot-hadir"></span> Hadir</span>
+                  <span class="legend-item"><span class="legend-dot dot-belum"></span> Belum Absen</span>
+                  <span class="legend-item"><span class="legend-dot dot-izin"></span> Izin / Cuti</span>
+                  <span class="legend-item"><span class="legend-dot dot-sakit"></span> Sakit</span>
+                  <span class="legend-item"><span class="legend-dot dot-libur"></span> Libur (OFF)</span>
+                  <span class="legend-hint text-xs text-muted font-mono">💡 Klik salah satu batang tanggal untuk langsung memfilter tabel</span>
+                </div>
+
+                <div class="daily-chart-scroll-wrap">
+                  <div class="daily-chart-bars" id="dailyChartBars">
+                    <!-- Rendered dynamically by app.js -->
+                  </div>
+                </div>
+
+                <!-- Active Day Detail Popup Bar -->
+                <div class="active-day-popup" id="activeDayPopup" style="display: none;">
+                  <div class="popup-left">
+                    <span class="popup-date font-mono" id="popupDateText">-</span>
+                    <span class="popup-sub" id="popupSubText">-</span>
+                  </div>
+                  <div class="popup-badges" id="popupBadgesContainer">
+                    <!-- Dynamic badges -->
+                  </div>
+                  <button type="button" class="modern-btn btn-purple btn-xs" id="btnApplyDayFromChart">
+                    Tampilkan di Tabel &rarr;
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- Progress Bar -->
             <div class="progress-section">
               <div class="progress-labels">
@@ -261,7 +360,21 @@
               </div>
             </div>
 
-            <!-- Filter Controls -->
+            <!-- Date Strip Row (full width, above filter pills) -->
+            <div class="date-strip-section">
+              <div class="date-strip-label">📅 Pilih Tanggal</div>
+              <div class="date-strip-container">
+                <button class="date-strip-arrow" id="dateStripPrev" title="Hari sebelumnya">&#8249;</button>
+                <div class="date-strip-scroll" id="dateStripScroll">
+                  <!-- rendered by JS -->
+                </div>
+                <button class="date-strip-arrow" id="dateStripNext" title="Hari berikutnya">&#8250;</button>
+              </div>
+              <!-- Hidden select for API compatibility -->
+              <select id="colleagueDaySelect" style="display:none;"></select>
+            </div>
+
+            <!-- Filter Toolbar -->
             <div class="filter-toolbar">
               <!-- Filter Pills -->
               <div class="filter-pills">
@@ -274,21 +387,23 @@
                 <button class="pill-btn pill-success" data-filter="hadir" id="chipFilterHadir">
                   ✓ Hadir (<span id="countHadirChip">0</span>)
                 </button>
+                <button class="pill-btn pill-warning" data-filter="izin" id="chipFilterIzin">
+                  🟡 Izin / Cuti (<span id="countIzinChip">0</span>)
+                </button>
+                <button class="pill-btn pill-info" data-filter="sakit" id="chipFilterSakit">
+                  🔵 Sakit (<span id="countSakitChip">0</span>)
+                </button>
               </div>
 
-              <!-- Search & Day Filter -->
+              <!-- Search -->
               <div class="filter-inputs">
                 <div class="search-input-box">
                   <span class="search-icon">🔍</span>
                   <input type="text" id="searchColleagueInput" class="custom-input" placeholder="Cari nama atau NIP guru...">
                 </div>
-                <div class="date-select-box">
-                  <select id="colleagueDaySelect" class="custom-select">
-                    <!-- 1..31 -->
-                  </select>
-                </div>
               </div>
             </div>
+
 
             <!-- Table Responsive -->
             <div class="table-container">

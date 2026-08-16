@@ -6,6 +6,9 @@ yarn-error.log*
 
 # Environment / Logs / WhatsApp Sessions / Sensitive Credentials
 .env
+.env.*
+!.env.example
+.app_secret
 *.log
 baileys_auth_info/
 config.json

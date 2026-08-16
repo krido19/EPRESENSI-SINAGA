@@ -184,6 +184,28 @@ const unabsentBadgeCount       = document.getElementById('unabsentBadgeCount');
 const btnCopyBelumAbsenToWA    = document.getElementById('btnCopyBelumAbsenToWA');
 const tableSummaryFootnote     = document.getElementById('tableSummaryFootnote');
 
+// Monthly Analytics & Chart Elements
+const monthlyAnalyticsCard     = document.getElementById('monthlyAnalyticsCard');
+const monthlyAnalyticsSubtitle = document.getElementById('monthlyAnalyticsSubtitle');
+const btnToggleAnalyticsChart  = document.getElementById('btnToggleAnalyticsChart');
+const toggleAnalyticsIcon      = document.getElementById('toggleAnalyticsIcon');
+const toggleAnalyticsText      = document.getElementById('toggleAnalyticsText');
+const analyticsChartBody       = document.getElementById('analyticsChartBody');
+const monthlyTotalHadir        = document.getElementById('monthlyTotalHadir');
+const monthlyPctHadir          = document.getElementById('monthlyPctHadir');
+const monthlyTotalBelum        = document.getElementById('monthlyTotalBelum');
+const monthlyPctBelum          = document.getElementById('monthlyPctBelum');
+const monthlyTotalIzin         = document.getElementById('monthlyTotalIzin');
+const monthlyPctIzin           = document.getElementById('monthlyPctIzin');
+const monthlyTotalSakit        = document.getElementById('monthlyTotalSakit');
+const monthlyPctSakit          = document.getElementById('monthlyPctSakit');
+const dailyChartBars           = document.getElementById('dailyChartBars');
+const activeDayPopup           = document.getElementById('activeDayPopup');
+const popupDateText            = document.getElementById('popupDateText');
+const popupSubText             = document.getElementById('popupSubText');
+const popupBadgesContainer     = document.getElementById('popupBadgesContainer');
+const btnApplyDayFromChart     = document.getElementById('btnApplyDayFromChart');
+
 // Progress Bar & Filter Pills
 const progressPercentageText   = document.getElementById('progressPercentageText');
 const progressFractionText     = document.getElementById('progressFractionText');
@@ -191,9 +213,13 @@ const progressBarFill          = document.getElementById('progressBarFill');
 const chipFilterAll            = document.getElementById('chipFilterAll');
 const chipFilterBelum          = document.getElementById('chipFilterBelum');
 const chipFilterHadir          = document.getElementById('chipFilterHadir');
+const chipFilterIzin           = document.getElementById('chipFilterIzin');
+const chipFilterSakit          = document.getElementById('chipFilterSakit');
 const countAllChip             = document.getElementById('countAllChip');
 const countBelumChip           = document.getElementById('countBelumChip');
 const countHadirChip           = document.getElementById('countHadirChip');
+const countIzinChip            = document.getElementById('countIzinChip');
+const countSakitChip           = document.getElementById('countSakitChip');
 
 // Recipients
 const recipientsTableBody      = document.getElementById('recipientsTableBody');
@@ -262,22 +288,130 @@ const historyStatSakit          = document.getElementById('historyStatSakit');
 const historyStatBelum          = document.getElementById('historyStatBelum');
 const historyTableBody          = document.getElementById('historyTableBody');
 
-// ─── Init Options ─────────────────────────────────────────────────────────────
-function initSelectOptions() {
-  const now = new Date();
-  const currentDay = now.getDate();
+// ─── Modern Date Strip ────────────────────────────────────────────────────────
+const dateStripScroll = document.getElementById('dateStripScroll');
+const dateStripPrev   = document.getElementById('dateStripPrev');
+const dateStripNext   = document.getElementById('dateStripNext');
 
-  if (colleagueDaySelect) {
-    colleagueDaySelect.innerHTML = '';
-    for (let d = 1; d <= 31; d++) {
-      const opt = document.createElement('option');
-      opt.value = d;
-      opt.textContent = `Tgl ${d} ${d === currentDay ? '(Hari ini)' : ''}`;
-      if (d === currentDay) opt.selected = true;
-      colleagueDaySelect.appendChild(opt);
-    }
+const DAY_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+let activeDatePill = null;
+
+function buildDateStrip(activeDay) {
+  if (!dateStripScroll || !colleagueDaySelect) return;
+  const now = new Date();
+  const year  = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = now.getDate();
+
+  // Force horizontal layout on the scroll container via inline style (bulletproof)
+  Object.assign(dateStripScroll.style, {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    overflowX: 'auto',
+    overflowY: 'visible',
+    gap: '4px',
+    alignItems: 'center',
+    scrollBehavior: 'smooth',
+    paddingBottom: '6px',
+    minWidth: '0',
+    flex: '1 1 auto'
+  });
+
+  // Keep hidden select in sync
+  colleagueDaySelect.innerHTML = '';
+  dateStripScroll.innerHTML = '';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const dayName = DAY_SHORT[dateObj.getDay()];
+    const isWeekend = (dateObj.getDay() === 0 || dateObj.getDay() === 6);
+    const isToday   = (d === today);
+    const isActive  = (d === (activeDay || today));
+
+    // Hidden select option
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = `Tgl ${d}`;
+    if (isActive) opt.selected = true;
+    colleagueDaySelect.appendChild(opt);
+
+    // Visible pill — inline styles as failsafe
+    const pill = document.createElement('div');
+    pill.className = 'date-pill'
+      + (isWeekend ? ' is-weekend' : '')
+      + (isToday   ? ' is-today'   : '')
+      + (isActive  ? ' is-active'  : '');
+    pill.dataset.day = d;
+    // Inline style to guarantee column layout inside each pill
+    Object.assign(pill.style, {
+      display: 'inline-flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: '0',
+      width: '44px',
+      minWidth: '44px'
+    });
+    pill.innerHTML = `
+      <span class="dp-day" style="font-size:0.6rem;font-weight:700;letter-spacing:0.04em;color:#94a3b8;text-transform:uppercase;line-height:1">${dayName}</span>
+      <span class="dp-num" style="font-size:1rem;font-weight:800;line-height:1.2">${d}</span>
+      <span class="dp-dot"></span>
+    `;
+    pill.addEventListener('click', () => selectDatePill(d));
+    dateStripScroll.appendChild(pill);
+
+    if (isActive) activeDatePill = pill;
   }
 
+  // Scroll today/active into center view
+  setTimeout(() => {
+    if (activeDatePill) {
+      activeDatePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, 80);
+}
+
+function selectDatePill(d) {
+  // Update hidden select
+  if (colleagueDaySelect) colleagueDaySelect.value = d;
+  // Update pill classes
+  dateStripScroll?.querySelectorAll('.date-pill').forEach(p => {
+    const isNow = parseInt(p.dataset.day) === d;
+    p.classList.toggle('is-active', isNow);
+    if (isNow) {
+      activeDatePill = p;
+      p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  });
+  loadColleagues();
+}
+
+// Arrow navigation
+if (dateStripPrev) {
+  dateStripPrev.addEventListener('click', () => {
+    const cur = parseInt(colleagueDaySelect?.value || new Date().getDate());
+    if (cur > 1) selectDatePill(cur - 1);
+  });
+}
+if (dateStripNext) {
+  dateStripNext.addEventListener('click', () => {
+    const now = new Date();
+    const max = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const cur = parseInt(colleagueDaySelect?.value || now.getDate());
+    if (cur < max) selectDatePill(cur + 1);
+  });
+}
+
+// Allow chart click to update the date strip too
+window.updateDateStripFromChart = function(day) {
+  selectDatePill(day);
+};
+
+// ─── Init Options (Hour/Minute selects for scheduler) ─────────────────────────
+function initSelectOptions() {
   // Populate Pagi & Pulang Hour & Minute Selects
   [cfgPagiHour, cfgPulangHour].forEach(sel => {
     if (!sel) return;
@@ -340,19 +474,23 @@ if (sidebarBackdrop) {
 
 initSidebarState();
 
+window.switchNavTab = function(tabName) {
+  const targetTab = tabName.replace(/^tab-/, '');
+  document.querySelectorAll('.tab-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === targetTab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === `tab-${targetTab}`);
+  });
+  if (window.innerWidth <= 960 && dashboardSidebar) {
+    dashboardSidebar.classList.remove('mobile-open');
+    sidebarBackdrop?.classList.remove('show');
+  }
+};
+
 document.querySelectorAll('.tab-item').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const tabId = `tab-${btn.dataset.tab}`;
-    document.getElementById(tabId)?.classList.add('active');
-
-    // Auto-close sidebar on mobile
-    if (window.innerWidth <= 960 && dashboardSidebar) {
-      dashboardSidebar.classList.remove('mobile-open');
-      sidebarBackdrop?.classList.remove('show');
-    }
+    window.switchNavTab(btn.dataset.tab);
   });
 });
 
@@ -794,16 +932,24 @@ if (selectAllRecipients) {
 }
 
 // ─── Monitoring Rekan Guru (SMKN 3 Magelang with Instant Local Cache) ─────────
+let selectedChartDay = null;
+
 function applyColleaguesData(data) {
   colleagues = data.colleagues || [];
   const total = colleagues.length;
   const hadir = data.hadirCount || 0;
   const belum = data.belumCount || 0;
   
+  // Count Izin and Sakit for selected day
+  const izinCount = colleagues.filter(c => c.status && (c.status.includes('Izin') || c.status.includes('Cuti'))).length;
+  const sakitCount = colleagues.filter(c => c.status && c.status.includes('Sakit')).length;
+
   // Update Chips Counts
   if (countAllChip) countAllChip.textContent = total;
   if (countHadirChip) countHadirChip.textContent = hadir;
   if (countBelumChip) countBelumChip.textContent = belum;
+  if (countIzinChip) countIzinChip.textContent = izinCount;
+  if (countSakitChip) countSakitChip.textContent = sakitCount;
   if (unabsentBadgeCount) unabsentBadgeCount.textContent = belum;
 
   // Update Progress Bar & HUD Metrics
@@ -816,7 +962,211 @@ function applyColleaguesData(data) {
   if (hudColleagueFraction) hudColleagueFraction.textContent = `${hadir} / ${total} Guru Hadir`;
   
   updateDonutChart(percentage);
+  renderMonthlyAnalytics(colleagues);
   renderColleaguesTable();
+}
+
+// ─── 1-Month Analytics & Daily Attendance Chart Generator ─────────────────────
+function renderMonthlyAnalytics(colleaguesList) {
+  if (!colleaguesList || colleaguesList.length === 0) return;
+
+  const totalTeachers = colleaguesList.length;
+  const now = new Date();
+  const currentMonthIdx = now.getMonth();
+  const currentYear = now.getFullYear();
+  const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const monthName = monthNames[currentMonthIdx];
+
+  if (monthlyAnalyticsSubtitle) {
+    monthlyAnalyticsSubtitle.textContent = `Rekapitulasi presensi bulan ${monthName} ${currentYear} (${totalTeachers} Rekan Guru SMKN 3 Magelang)`;
+  }
+
+  // 1. Accumulate month totals across all teachers
+  let aggHadir = 0;
+  let aggBelum = 0;
+  let aggIzin  = 0;
+  let aggSakit = 0;
+
+  // 2. Prepare 31-day daily buckets
+  const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+  const dailyStats = Array.from({ length: daysInMonth }, (_, idx) => ({
+    day: idx + 1,
+    hadir: 0,
+    belum: 0,
+    izin: 0,
+    sakit: 0,
+    libur: 0,
+    total: totalTeachers,
+    isWeekend: false,
+    hari: ''
+  }));
+
+  colleaguesList.forEach(c => {
+    if (!c.monthHistory || !c.monthHistory.history) return;
+    aggHadir += c.monthHistory.totalHadir || 0;
+    aggBelum += c.monthHistory.totalBelum || 0;
+    aggIzin  += c.monthHistory.totalIzin || 0;
+    aggSakit += c.monthHistory.totalSakit || 0;
+
+    c.monthHistory.history.forEach((h, hIdx) => {
+      if (hIdx >= daysInMonth) return;
+      const bucket = dailyStats[hIdx];
+      bucket.isWeekend = h.isWeekend;
+      bucket.hari = h.hari;
+
+      if (h.isHadir) {
+        bucket.hadir++;
+      } else if (h.status && (h.status.includes('Izin') || h.status.includes('Cuti'))) {
+        bucket.izin++;
+      } else if (h.status && h.status.includes('Sakit')) {
+        bucket.sakit++;
+      } else if (h.isWeekend || (h.status && h.status.includes('Libur'))) {
+        bucket.libur++;
+      } else if (h.isPast || h.isToday) {
+        bucket.belum++;
+      }
+    });
+  });
+
+  const totalActions = aggHadir + aggBelum + aggIzin + aggSakit;
+  const pctHadir = totalActions > 0 ? ((aggHadir / totalActions) * 100).toFixed(1) : 0;
+  const pctBelum = totalActions > 0 ? ((aggBelum / totalActions) * 100).toFixed(1) : 0;
+  const pctIzin  = totalActions > 0 ? ((aggIzin / totalActions) * 100).toFixed(1) : 0;
+  const pctSakit = totalActions > 0 ? ((aggSakit / totalActions) * 100).toFixed(1) : 0;
+
+  if (monthlyTotalHadir) monthlyTotalHadir.textContent = aggHadir.toLocaleString('id-ID');
+  if (monthlyPctHadir)   monthlyPctHadir.textContent   = `${pctHadir}%`;
+  if (monthlyTotalBelum) monthlyTotalBelum.textContent = aggBelum.toLocaleString('id-ID');
+  if (monthlyPctBelum)   monthlyPctBelum.textContent   = `${pctBelum}%`;
+  if (monthlyTotalIzin)  monthlyTotalIzin.textContent  = aggIzin.toLocaleString('id-ID');
+  if (monthlyPctIzin)    monthlyPctIzin.textContent    = `${pctIzin}%`;
+  if (monthlyTotalSakit) monthlyTotalSakit.textContent = aggSakit.toLocaleString('id-ID');
+  if (monthlyPctSakit)   monthlyPctSakit.textContent   = `${pctSakit}%`;
+
+  // 3. Render Daily Stacked Bars
+  if (!dailyChartBars) return;
+
+  // Force horizontal flex layout on the chart container (inline style = highest priority)
+  Object.assign(dailyChartBars.style, {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    alignItems: 'flex-end',
+    height: '130px',
+    gap: '3px',
+    borderBottom: '1px solid rgba(255,255,255,0.08)',
+    paddingBottom: '8px',
+    width: '100%'
+  });
+
+  const currentSelectedDay = parseInt(colleagueDaySelect ? colleagueDaySelect.value : now.getDate());
+  const colStyle = 'display:inline-flex;flex-direction:column;align-items:center;flex:1;height:100%;cursor:pointer;border-radius:6px;padding:2px 1px;min-width:0;';
+  const trackStyle = 'flex:1;width:10px;border-radius:4px;overflow:hidden;display:flex;flex-direction:column-reverse;background:rgba(255,255,255,0.06);';
+
+  // If no colleagues data at all, render skeleton placeholder bars
+  if (totalTeachers === 0) {
+    dailyChartBars.innerHTML = Array.from({ length: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() }, (_, i) => {
+      const d = i + 1;
+      const dateObj = new Date(now.getFullYear(), now.getMonth(), d);
+      const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+      const hari = dayNames[dateObj.getDay()];
+      const isWeekend = (dateObj.getDay() === 0 || dateObj.getDay() === 6);
+      const bg = isWeekend ? 'rgba(255,255,255,0.08)' : 'rgba(168,85,247,0.2)';
+      return `<div style="${colStyle}" data-day="${d}" onclick="selectChartDay(${d})" title="Tgl ${d} (${hari})">
+        <div style="${trackStyle}"><div style="width:100%;height:${isWeekend?'100':'5'}%;background:${bg};"></div></div>
+        <span style="font-size:0.62rem;font-family:monospace;color:#64748b;margin-top:4px;font-weight:600;">${d}</span>
+        <span style="font-size:0.55rem;color:#475569;">${hari}</span>
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  dailyChartBars.innerHTML = dailyStats.map(stat => {
+    const isToday    = stat.day === now.getDate();
+    const isSelected = stat.day === (selectedChartDay || currentSelectedDay);
+    const hHadir = Math.max(stat.hadir / totalTeachers * 100, 0);
+    const hBelum = Math.max(stat.belum / totalTeachers * 100, 0);
+    const hIzin  = Math.max(stat.izin  / totalTeachers * 100, 0);
+    const hSakit = Math.max(stat.sakit / totalTeachers * 100, 0);
+    const hLibur = stat.isWeekend ? 100 : Math.max(stat.libur / totalTeachers * 100, 0);
+
+    const extra = isToday    ? 'border:1px dashed rgba(168,85,247,0.6);background:rgba(168,85,247,0.08);'
+                : isSelected ? 'background:rgba(168,85,247,0.15);'
+                : '';
+
+    return `<div style="${colStyle}${extra}" data-day="${stat.day}" onclick="selectChartDay(${stat.day})" title="Tgl ${stat.day} (${stat.hari}): ${stat.hadir} Hadir, ${stat.belum} Belum">
+      <div style="${trackStyle}">
+        ${hHadir > 0 ? `<div style="width:100%;height:${hHadir}%;background:#10b981;"></div>` : ''}
+        ${hBelum > 0 ? `<div style="width:100%;height:${hBelum}%;background:#f43f5e;"></div>` : ''}
+        ${hIzin  > 0 ? `<div style="width:100%;height:${hIzin}%;background:#f59e0b;"></div>`  : ''}
+        ${hSakit > 0 ? `<div style="width:100%;height:${hSakit}%;background:#0ea5e9;"></div>` : ''}
+        ${hLibur > 0 && hHadir === 0 ? `<div style="width:100%;height:${hLibur}%;background:rgba(255,255,255,0.15);"></div>` : ''}
+      </div>
+      <span style="font-size:0.62rem;font-family:monospace;color:${isToday?'#c084fc':'#64748b'};margin-top:4px;font-weight:600;">${stat.day}</span>
+      <span style="font-size:0.55rem;color:${isToday?'#a855f7':'#475569'};">${(stat.hari||'').slice(0,3)}</span>
+    </div>`;
+  }).join('');
+}
+
+window.selectChartDay = function(day) {
+  selectedChartDay = day;
+  document.querySelectorAll('.day-bar-column').forEach(col => {
+    col.classList.toggle('selected-day', parseInt(col.dataset.day) === day);
+  });
+
+  const now = new Date();
+  const dayObj = new Date(now.getFullYear(), now.getMonth(), day);
+  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const dayName = dayNames[dayObj.getDay()];
+  const isWeekend = (dayName === 'Sabtu' || dayName === 'Minggu');
+
+  // Count stats for this day across colleagues
+  let hadir = 0, belum = 0, izin = 0, sakit = 0, libur = 0;
+  colleagues.forEach(c => {
+    if (c.monthHistory && c.monthHistory.history && c.monthHistory.history[day - 1]) {
+      const h = c.monthHistory.history[day - 1];
+      if (h.isHadir) hadir++;
+      else if (h.status && (h.status.includes('Izin') || h.status.includes('Cuti'))) izin++;
+      else if (h.status && h.status.includes('Sakit')) sakit++;
+      else if (isWeekend || (h.status && h.status.includes('Libur'))) libur++;
+      else belum++;
+    }
+  });
+
+  if (popupDateText) popupDateText.textContent = `📅 ${dayName}, ${day} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  if (popupSubText) popupSubText.textContent = `Rekapitulasi 98 guru pada tanggal ${day}`;
+
+  if (popupBadgesContainer) {
+    popupBadgesContainer.innerHTML = `
+      <span class="mini-stat-badge mini-badge-hadir">🟢 ${hadir} Hadir</span>
+      ${belum > 0 ? `<span class="mini-stat-badge mini-badge-belum">🔴 ${belum} Belum Absen</span>` : ''}
+      ${izin > 0 ? `<span class="mini-stat-badge mini-badge-izin">🟡 ${izin} Izin/Cuti</span>` : ''}
+      ${sakit > 0 ? `<span class="mini-stat-badge mini-badge-sakit">🔵 ${sakit} Sakit</span>` : ''}
+      ${isWeekend ? `<span class="mini-stat-badge mini-badge-libur">⚪ Libur Akhir Pekan</span>` : ''}
+    `;
+  }
+
+  if (activeDayPopup) activeDayPopup.style.display = 'flex';
+};
+
+if (btnApplyDayFromChart) {
+  btnApplyDayFromChart.addEventListener('click', () => {
+    if (selectedChartDay) {
+      selectDatePill(selectedChartDay);
+      showToast(`Menampilkan data presensi Tanggal ${selectedChartDay}`, 'info');
+      document.querySelector('.table-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+}
+
+if (btnToggleAnalyticsChart && analyticsChartBody) {
+  btnToggleAnalyticsChart.addEventListener('click', () => {
+    const isHidden = analyticsChartBody.style.display === 'none';
+    analyticsChartBody.style.display = isHidden ? 'block' : 'none';
+    if (toggleAnalyticsIcon) toggleAnalyticsIcon.textContent = isHidden ? '📉' : '📊';
+    if (toggleAnalyticsText) toggleAnalyticsText.textContent = isHidden ? 'Sembunyikan Grafik' : 'Buka Grafik 1 Bulan';
+  });
 }
 
 async function loadColleagues(force = false) {
@@ -855,8 +1205,22 @@ async function loadColleagues(force = false) {
       if (!hasRenderedFromCache) {
         colleaguesTableBody.innerHTML = `
           <tr>
-            <td colspan="8" class="table-empty" style="color: var(--rose-500);">
-              ❌ Gagal memuat data: ${data.error}
+            <td colspan="8" class="table-empty" style="padding: 32px 16px;">
+              <div style="font-size: 2.2rem; margin-bottom: 8px;">🔑</div>
+              <div style="font-weight: 700; color: var(--rose-400); font-size: 1.05rem; margin-bottom: 6px;">
+                Sesi ePresensi Memerlukan Login Ulang
+              </div>
+              <div style="color: var(--text-muted); font-size: 0.84rem; max-width: 460px; margin: 0 auto 18px; line-height: 1.55;">
+                ${escapeHtml(data.error || 'Sesi login telah berakhir atau password ePresensi perlu dimasukkan ulang.')}
+              </div>
+              <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <button type="button" class="modern-btn btn-purple-gradient btn-sm" onclick="window.openSchoolAccountModal()">
+                  🏫 Masuk / Ganti Akun Sekolah
+                </button>
+                <button type="button" class="modern-btn btn-glass btn-sm" onclick="window.switchNavTab('config')">
+                  ⚙️ Pengaturan ePresensi
+                </button>
+              </div>
             </td>
           </tr>`;
       }
@@ -890,7 +1254,16 @@ function renderColleaguesTable() {
     if (!matchSearch) return false;
 
     if (activeFilter === 'hadir') return c.isHadir;
-    if (activeFilter === 'belum') return !c.isHadir;
+    if (activeFilter === 'belum') return !c.isHadir && !c.status.includes('Libur');
+    if (activeFilter === 'izin') return c.status && (c.status.includes('Izin') || c.status.includes('Cuti'));
+    if (activeFilter === 'sakit') return c.status && c.status.includes('Sakit');
+    
+    // Monthly Filters
+    if (activeFilter === 'monthly_hadir') return c.monthHistory && c.monthHistory.totalHadir > 0;
+    if (activeFilter === 'monthly_belum') return c.monthHistory && c.monthHistory.totalBelum > 0;
+    if (activeFilter === 'monthly_izin') return c.monthHistory && c.monthHistory.totalIzin > 0;
+    if (activeFilter === 'monthly_sakit') return c.monthHistory && c.monthHistory.totalSakit > 0;
+
     return true;
   });
 
@@ -913,17 +1286,19 @@ function renderColleaguesTable() {
       badgeClass = 'badge-status badge-status-hadir';
     } else if (c.status.includes('Libur')) {
       badgeClass = 'badge-status badge-status-libur';
-    } else if (c.status.includes('Izin') || c.status.includes('Sakit')) {
+    } else if (c.status.includes('Izin') || c.status.includes('Cuti')) {
+      badgeClass = 'badge-status badge-status-izin';
+    } else if (c.status.includes('Sakit')) {
       badgeClass = 'badge-status badge-status-izin';
     } else {
       badgeClass = 'badge-status badge-status-belum';
     }
 
-    const cleanC = c.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const matchedRecipient = recipients.find(r => {
+    const cleanC = c.nama ? c.nama.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+    const matchedRecipient = Array.isArray(recipients) ? recipients.find(r => {
       const cleanR = (r.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       return cleanR.includes(cleanC) || cleanC.includes(cleanR);
-    });
+    }) : null;
 
     const isSelected = selectedTeachers.has(c.nip || c.no);
     const waBtnHtml = matchedRecipient
@@ -963,16 +1338,40 @@ function renderColleaguesTable() {
 }
 
 // ─── Filter Pills Event ───────────────────────────────────────────────────────
-[chipFilterAll, chipFilterBelum, chipFilterHadir].forEach(chip => {
+[chipFilterAll, chipFilterBelum, chipFilterHadir, chipFilterIzin, chipFilterSakit].forEach(chip => {
   if (chip) {
     chip.addEventListener('click', () => {
-      document.querySelectorAll('.pill-btn').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      activeFilter = chip.dataset.filter;
-      renderColleaguesTable();
+      window.setFilter(chip.dataset.filter, chip);
     });
   }
 });
+
+window.setFilter = function(filterType, chipElement = null) {
+  activeFilter = filterType;
+  
+  // Reset all active states
+  document.querySelectorAll('.pill-btn').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.analytics-stat-box').forEach(b => {
+    b.style.boxShadow = 'none';
+    b.style.borderColor = 'var(--border-glass)';
+  });
+
+  if (chipElement) {
+    // It's a daily pill click
+    chipElement.classList.add('active');
+  } else {
+    // It's a monthly stat box click
+    // Also reset pills to 'Semua' visually so they don't look active
+    const statBoxClass = filterType.replace('monthly_', 'stat-box-');
+    const box = document.querySelector('.' + statBoxClass);
+    if (box) {
+      box.style.boxShadow = '0 0 15px rgba(168, 85, 247, 0.4)';
+      box.style.borderColor = 'rgba(168, 85, 247, 0.8)';
+    }
+  }
+
+  renderColleaguesTable();
+};
 
 if (searchColleagueInput) searchColleagueInput.addEventListener('input', renderColleaguesTable);
 if (colleagueDaySelect) colleagueDaySelect.addEventListener('change', loadColleagues);
@@ -1021,87 +1420,109 @@ async function triggerSendUnabsent() {
 
 if (btnQuickSendUnabsent) btnQuickSendUnabsent.addEventListener('click', triggerSendUnabsent);
 
-// ─── Teacher 1-Month History Modal ────────────────────────────────────────────
+// ─── Teacher 1-Month History Modal (Instant 0ms from Preloaded In-Memory Data) ──
+function renderHistoryModalContent(nama, nip, monthHistory) {
+  if (historyModalTeacherName) historyModalTeacherName.textContent = nama;
+  if (historyModalTeacherNip) historyModalTeacherNip.textContent = `NIP: ${nip || '-'}`;
+  if (historyStatHadir) historyStatHadir.textContent = monthHistory.totalHadir ?? 0;
+  if (historyStatIzin)  historyStatIzin.textContent  = monthHistory.totalIzin ?? 0;
+  if (historyStatSakit) historyStatSakit.textContent = monthHistory.totalSakit ?? 0;
+  if (historyStatBelum) historyStatBelum.textContent = monthHistory.totalBelum ?? 0;
+
+  const list = monthHistory.history || [];
+  if (!historyTableBody) return;
+
+  if (list.length === 0) {
+    historyTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="table-empty">
+          Tidak ada data presensi bulan ini.
+        </td>
+      </tr>`;
+    return;
+  }
+
+  historyTableBody.innerHTML = list.map(h => {
+    let badge = 'badge-status';
+    if (h.isHadir) badge = 'badge-status badge-status-hadir';
+    else if (h.status.includes('Libur')) badge = 'badge-status badge-status-libur';
+    else if (h.status.includes('Izin') || h.status.includes('Sakit')) badge = 'badge-status badge-status-izin';
+    else if (h.isPast) badge = 'badge-status badge-status-belum';
+
+    const todayHighlight = h.isToday ? 'style="background: rgba(168, 85, 247, 0.12); font-weight: 600;"' : '';
+
+    return `
+      <tr ${todayHighlight}>
+        <td class="font-mono"><strong>Tgl ${h.tanggal}</strong> ${h.isToday ? '<span class="text-purple">●</span>' : ''}</td>
+        <td class="${h.isWeekend ? 'text-muted' : ''}">${h.hari}</td>
+        <td class="font-mono">${h.jamMasuk !== '-' ? `<strong>${h.jamMasuk}</strong>` : '-'}</td>
+        <td class="font-mono">${h.jamPulang !== '-' ? `<strong>${h.jamPulang}</strong>` : '-'}</td>
+        <td><span class="${badge}">${h.status}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
 window.openTeacherHistory = async function(nip, nama) {
   if (!nip) {
     showToast('NIP guru tidak valid.', 'error');
     return;
   }
 
-  historyModalTeacherName.textContent = nama;
-  historyModalTeacherNip.textContent = `NIP: ${nip}`;
-  historyStatHadir.textContent = '-';
-  historyStatIzin.textContent = '-';
-  historyStatSakit.textContent = '-';
-  historyStatBelum.textContent = '-';
+  // 1. INSTANT ZERO-LATENCY PATH: check in-memory colleagues array already loaded in background
+  const teacher = colleagues.find(c => String(c.nip).trim() === String(nip).trim());
+  if (teacher && teacher.monthHistory && teacher.monthHistory.history && teacher.monthHistory.history.length > 0) {
+    renderHistoryModalContent(nama, nip, teacher.monthHistory);
+    colleagueHistoryModal?.classList.add('show');
+    return;
+  }
 
-  historyTableBody.innerHTML = `
-    <tr>
-      <td colspan="5" class="table-empty">
-        <div class="loading-spinner"></div>
-        <span>Memuat riwayat presensi 1 bulan untuk ${nama}...</span>
-      </td>
-    </tr>`;
+  // 2. Fallback: if not yet in memory, show loading and fetch from API
+  if (historyModalTeacherName) historyModalTeacherName.textContent = nama;
+  if (historyModalTeacherNip) historyModalTeacherNip.textContent = `NIP: ${nip}`;
+  if (historyStatHadir) historyStatHadir.textContent = '-';
+  if (historyStatIzin)  historyStatIzin.textContent  = '-';
+  if (historyStatSakit) historyStatSakit.textContent = '-';
+  if (historyStatBelum) historyStatBelum.textContent = '-';
 
-  colleagueHistoryModal.classList.add('show');
+  if (historyTableBody) {
+    historyTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="table-empty">
+          <div class="loading-spinner"></div>
+          <span>Memuat riwayat presensi 1 bulan untuk ${nama}...</span>
+        </td>
+      </tr>`;
+  }
+
+  colleagueHistoryModal?.classList.add('show');
 
   try {
     const res = await fetch(`/api/colleagues/${nip}/history`);
     const data = await res.json();
 
     if (!data.success) {
+      if (historyTableBody) {
+        historyTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="table-empty" style="color: var(--rose-500);">
+              ❌ Gagal memuat riwayat: ${data.error}
+            </td>
+          </tr>`;
+      }
+      return;
+    }
+
+    renderHistoryModalContent(data.nama || nama, nip, data);
+  } catch (err) {
+    if (historyTableBody) {
       historyTableBody.innerHTML = `
         <tr>
           <td colspan="5" class="table-empty" style="color: var(--rose-500);">
-            ❌ Gagal memuat riwayat: ${data.error}
+            ❌ Error: ${err.message}
           </td>
         </tr>`;
-      return;
     }
-
-    historyStatHadir.textContent = data.totalHadir || 0;
-    historyStatIzin.textContent  = data.totalIzin || 0;
-    historyStatSakit.textContent = data.totalSakit || 0;
-    historyStatBelum.textContent = data.totalBelum || 0;
-
-    const list = data.history || [];
-    if (list.length === 0) {
-      historyTableBody.innerHTML = `
-        <tr>
-          <td colspan="5" class="table-empty">
-            Tidak ada data presensi bulan ini.
-          </td>
-        </tr>`;
-      return;
-    }
-
-    historyTableBody.innerHTML = list.map(h => {
-      let badge = 'badge-status';
-      if (h.isHadir) badge = 'badge-status badge-status-hadir';
-      else if (h.status.includes('Libur')) badge = 'badge-status badge-status-libur';
-      else if (h.status.includes('Izin') || h.status.includes('Sakit')) badge = 'badge-status badge-status-izin';
-      else if (h.isPast) badge = 'badge-status badge-status-belum';
-
-      const todayHighlight = h.isToday ? 'style="background: rgba(168, 85, 247, 0.12); font-weight: 600;"' : '';
-
-      return `
-        <tr ${todayHighlight}>
-          <td class="font-mono"><strong>Tgl ${h.tanggal}</strong> ${h.isToday ? '<span class="text-purple">●</span>' : ''}</td>
-          <td class="${h.isWeekend ? 'text-muted' : ''}">${h.hari}</td>
-          <td class="font-mono">${h.jamMasuk !== '-' ? `<strong>${h.jamMasuk}</strong>` : '-'}</td>
-          <td class="font-mono">${h.jamPulang !== '-' ? `<strong>${h.jamPulang}</strong>` : '-'}</td>
-          <td><span class="${badge}">${h.status}</span></td>
-        </tr>
-      `;
-    }).join('');
-
-  } catch (err) {
-    historyTableBody.innerHTML = `
-      <tr>
-        <td colspan="5" class="table-empty" style="color: var(--rose-500);">
-          ❌ Error: ${err.message}
-        </td>
-      </tr>`;
   }
 };
 
@@ -1117,9 +1538,20 @@ if (colleagueHistoryModal) {
 async function loadRecipients() {
   try {
     const res = await fetch('/api/recipients');
-    recipients = await res.json();
-    recipientTotalCount.textContent = `Total: ${recipients.length} Guru Terdaftar`;
-    hudRecipientCount.textContent = recipients.length;
+    const data = await res.json();
+    // Guard: API returns object {success:false} when session expired
+    if (Array.isArray(data)) {
+      recipients = data;
+    } else if (data && Array.isArray(data.recipients)) {
+      recipients = data.recipients;
+    } else {
+      recipients = [];
+      if (data && data.needLogin) {
+        showToast('Sesi habis, silakan login ulang di Pengaturan.', 'error');
+      }
+    }
+    if (recipientTotalCount) recipientTotalCount.textContent = `Total: ${recipients.length} Guru Terdaftar`;
+    if (hudRecipientCount) hudRecipientCount.textContent = recipients.length;
     renderRecipientsTable();
   } catch (err) {
     console.error('Error loadRecipients:', err);
@@ -1566,7 +1998,9 @@ let activeLogRawMessage = '';
 async function loadLogs() {
   try {
     const res = await fetch('/api/logs');
-    logs = await res.json();
+    const data = await res.json();
+    // Guard: API may return {success:false} when session expired
+    logs = Array.isArray(data) ? data : (Array.isArray(data?.logs) ? data.logs : []);
     renderLogs();
   } catch (err) {
     console.error('Error loadLogs:', err);
@@ -1949,12 +2383,16 @@ window.deleteSchoolAccount = async function(username) {
   }
 };
 
+window.openSchoolAccountModal = function() {
+  loadSchoolAccounts();
+  if (addAccountFeedback) addAccountFeedback.style.display = 'none';
+  if (schoolAccountModal) {
+    schoolAccountModal.classList.add('show');
+  }
+};
+
 if (btnOpenSchoolModal) {
-  btnOpenSchoolModal.addEventListener('click', () => {
-    loadSchoolAccounts();
-    if (addAccountFeedback) addAccountFeedback.style.display = 'none';
-    schoolAccountModal?.classList.add('show');
-  });
+  btnOpenSchoolModal.addEventListener('click', window.openSchoolAccountModal);
 }
 
 if (btnCloseSchoolModal) btnCloseSchoolModal.addEventListener('click', () => schoolAccountModal?.classList.remove('show'));
@@ -2031,6 +2469,7 @@ if (formAddSchoolAccount) {
 // ─── Initialize ───────────────────────────────────────────────────────────────
 checkAppAuth();
 initSelectOptions();
+buildDateStrip();      // render modern date strip on load
 loadSchoolAccounts();
 loadStatus();
 loadConfig();

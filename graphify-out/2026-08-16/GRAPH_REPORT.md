@@ -1,11 +1,11 @@
 # Graph Report - epresensi jateng  (2026-08-16)
 
 ## Corpus Check
-- 12 files · ~252,960 words
+- 12 files · ~22,270 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 355 nodes · 408 edges · 14 communities (8 shown, 6 thin omitted)
+- 355 nodes · 407 edges · 14 communities (8 shown, 6 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
@@ -95,6 +95,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `dependencies` be split into smaller, more focused modules?**
   _Cohesion score 0.06451612903225806 - nodes in this community are weakly interconnected._
 - **Should `escapeHtml` be split into smaller, more focused modules?**
-  _Cohesion score 0.13450292397660818 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1286549707602339 - nodes in this community are weakly interconnected._
 - **Should `✨ Fitur Utama Aplikasi` be split into smaller, more focused modules?**
   _Cohesion score 0.06896551724137931 - nodes in this community are weakly interconnected._

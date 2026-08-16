@@ -12,7 +12,7 @@ pinned: false
 
 Aplikasi **Dashboard Monitoring Presensi & WhatsApp Multi-Device Gateway Otomatis** untuk Pegawai / Guru Pemerintah Provinsi Jawa Tengah (*Sinaga / ePresensi BKD Jateng*).
 
-Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gratis Selamanya via Baileys Multi-Device)**, pemantauan presensi seluruh rekan guru unit kerja secara *real-time*, dual scheduler otomatis (07:30 & 18:00 WIB), tombol kirim WA instan 1-klik, batch send, serta desain antarmuka **Enterprise Dark Glassmorphism & Crisp Light Mode**.
+Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gratis Selamanya via Baileys Multi-Device)**, pemantauan presensi seluruh rekan guru unit kerja secara *real-time*, dual scheduler otomatis (07:30 & 18:00 WIB), scraping DOM andal berbasis **Cheerio**, keamanan berlapis (**HMAC Token + Environment Secrets**), serta desain antarmuka **Enterprise Dark Glassmorphism & Crisp Light Mode**.
 
 ---
 
@@ -27,6 +27,7 @@ Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gra
 ### 👥 2. Monitoring Presensi Rekan Guru Real-Time
 - **Daftar Lengkap Rekan Kerja (98 Guru):** Memantau status kehadiran (*Hadir, Belum Hadir, Libur, Sakit, Izin*), jam masuk, dan jam pulang rekan satu instansi (SMKN 3 Magelang).
 - **Riwayat Presensi 1 Bulan Penuh:** Rekapan absensi lengkap dari tanggal 1 hingga akhir bulan untuk setiap guru.
+- **Scraping Andal & Cepat:** Menggunakan parser DOM **Cheerio** yang tangguh terhadap perubahan markup ePresensi.
 - **Dynamic Colorful Avatars:** Inisial nama dengan gradasi warna cerdas untuk tiap guru.
 - **SVG Circular Donut Chart:** Metrik persentase kehadiran visual dengan indikator warna dinamis.
 
@@ -44,21 +45,24 @@ Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gra
 - **Unduh Template Otomatis:** Menyiapkan file Excel yang terisi seluruh **98 Nama Guru & NIP** SMKN 3 Magelang.
 - **Smart Column Detection & Phone Normalization:** Deteksi kolom pintar dan konversi format nomor telepon otomatis (`858...` ➡️ `0858...`).
 
-### 🎨 6. Modern Sidebar, Auto-Hide & Theme Switcher
+### 🔒 6. Keamanan & Stabilitas Tingkat Enterprise
+- **Environment Configuration (`.env`):** Pemisahan kredensial sensitif dari kode sumber via `dotenv`.
+- **HMAC Token + Timing-Safe Verification:** Mencegah serangan *timing attack* pada autentikasi sesi.
+- **Cryptographic Secret Generator:** Auto-generation kunci rahasia 32-byte acak jika tidak didefinisikan secara manual.
+- **Anti-Crash Guard:** Global process error listener (`uncaughtException` & `unhandledRejection`) dan middleware error handling terpusat.
+- **Atomic File Storage:** Mencegah kerusakan file JSON (`config.json`, `recipients.json`, `logs.json`) akibat power loss atau concurrent writes.
+
+### 🎨 7. Modern Sidebar, Auto-Hide & Theme Switcher
 - **🍔 Hamburger & Auto-Hide Sidebar:** Mode ciut (*Icon-Only 78px*) di desktop dengan *auto-expand on hover*, dan *off-canvas drawer* di HP.
 - **🌙 Dark Glassmorphism & ☀️ Clean Light Mode:** Tombol sakelar tema di pojok atas.
 - **Sleek Custom Scrollbars:** Scrollbar tipis transparan modern.
-
-### 🔒 7. Gatekeeper Security Access
-- Proteksi akses dashboard dengan password keamanan dinamis (default: `SMK3magelang`).
-- Fitur ganti password dan kunci aplikasi langsung dari menu pengaturan.
 
 ---
 
 ## 🚀 Panduan Instalasi & Menjalankan
 
 ### 1. Prasyarat
-- [Node.js](https://nodejs.org/) versi 18.x atau yang lebih baru.
+- [Node.js](https://nodejs.org/) versi 18.x atau yang lebih baru (Rekomendasi Node.js 20+).
 - Akun WhatsApp aktif di HP untuk di-scan ke aplikasi.
 
 ### 2. Instalasi Dependensi
@@ -68,14 +72,29 @@ cd EPRESENSI-SINAGA
 npm install
 ```
 
-### 3. Menjalankan Aplikasi
+### 3. Konfigurasi Lingkungan (`.env`)
+Salin file template `.env.example` menjadi `.env`:
 ```bash
-node server.js
+# Di Windows PowerShell:
+Copy-Item .env.example .env
+
+# Di Linux / macOS:
+cp .env.example .env
+```
+Sesuaikan variabel di dalam `.env` jika diperlukan (port, password akses aplikasi, secret key, akun ePresensi).
+
+### 4. Menjalankan Aplikasi
+```bash
+# Menjalankan langsung:
+npm start
+
+# Atau via file batch (Windows):
+start.bat
 ```
 Buka browser dan akses alamat: **`http://localhost:3000`**
 
-### 4. Menghubungkan WhatsApp
-1. Buka dashboard di browser dan login dengan password awal: `SMK3magelang`.
+### 5. Menghubungkan WhatsApp
+1. Buka dashboard di browser dan login dengan password awal: `SMK3magelang` (atau sesuai `APP_PASSWORD` di `.env`).
 2. Masuk ke menu **⚙️ Pengaturan & WhatsApp**.
 3. Pada bagian **WhatsApp Gateway**, pilih opsi **WhatsApp Web (Scan QR - Gratis)**.
 4. Buka WhatsApp di HP ➡️ **Perangkat Tertaut** ➡️ **Tautkan Perangkat** ➡️ Scan kode QR di layar dashboard.
@@ -86,7 +105,9 @@ Buka browser dan akses alamat: **`http://localhost:3000`**
 
 ```text
 epresensi-jateng/
-├── server.js               # Express backend, Baileys socket, scraper, scheduler & API endpoints
+├── server.js               # Express backend, Baileys socket, Cheerio scraper, scheduler & API endpoints
+├── .env.example            # Template variabel lingkungan untuk konfigurasi rahasia
+├── .env                    # File konfigurasi lokal (diabaikan oleh git)
 ├── config.json             # File konfigurasi cookie, credentials & gateway state
 ├── recipients.json         # Database lokal nomor kontak guru/penerima WhatsApp
 ├── logs.json               # Catatan log aktivitas bot dan pengiriman pesan
@@ -97,22 +118,19 @@ epresensi-jateng/
 │   ├── index.html          # Layout antarmuka dashboard, sidebar, modal, dan gatekeeper
 │   ├── style.css           # Desain Glassmorphism, Theme Tokens (Dark & Light), dan Scrollbar CSS
 │   └── app.js              # Logika frontend, event handler, avatar generator, dan polling WA
+├── graphify-out/           # Knowledge graph & visualisasi arsitektur kode
 └── baileys_auth_info/      # Direktori sesi WhatsApp Web multi-device (diabaikan oleh .gitignore)
 ```
 
 ---
 
-## 📚 Dokumentasi Terkait
-- 📘 **[Panduan & Troubleshooting Baileys (BAILEYS_GUIDE.md)](BAILEYS_GUIDE.md):** Penjelasan mendalam mengenai siklus hidup koneksi WebSocket, penanganan reconnect/logout, pemformatan JID internasional, dan penghindaran konflik gateway.
-
----
-
 ## 🛠️ Tech Stack
 
-- **Backend:** Node.js, Express.js, `@whiskeysockets/baileys` (Multi-Device WA), `node-cron`, `multer`, `xlsx`, `pino`, `qrcode`.
+- **Backend:** Node.js, Express.js, `@whiskeysockets/baileys` (Multi-Device WA), `cheerio` (DOM Scraper), `node-cron`, `dotenv`, `multer`, `xlsx`, `pino`, `qrcode`.
 - **Frontend:** Vanilla HTML5, Modern CSS Variables (Design Tokens, Dark/Light Mode, Glassmorphism), Vanilla JavaScript (ES6+), `Plus Jakarta Sans`, `JetBrains Mono`.
 - **Data Provider:** Portal Resmi ePresensi BKD Pemerintah Provinsi Jawa Tengah.
 
 ---
 
-
+## 📚 Dokumentasi Terkait
+- 📘 **[Panduan & Troubleshooting Baileys (BAILEYS_GUIDE.md)](BAILEYS_GUIDE.md):** Penjelasan mendalam mengenai siklus hidup koneksi WebSocket, penanganan reconnect/logout, pemformatan JID internasional, dan penghindaran konflik gateway.
