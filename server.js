@@ -1528,13 +1528,36 @@ app.delete('/api/accounts/:username', (req, res) => {
   const cfg = loadConfig();
   if (!cfg.accounts) cfg.accounts = [];
 
-  if (cfg.username === targetUsername && cfg.accounts.length <= 1) {
-    return res.json({ success: false, error: 'Tidak dapat menghapus satu-satunya akun aktif.' });
+  const initialCount = cfg.accounts.length;
+  cfg.accounts = cfg.accounts.filter(a => a.username !== targetUsername && a.id !== targetUsername);
+
+  // If the deleted account was the currently active one
+  if (cfg.username === targetUsername) {
+    if (cfg.accounts.length > 0) {
+      // Auto-switch to the first available account
+      const fallback = cfg.accounts[0];
+      cfg.username = fallback.username;
+      cfg.password = fallback.password;
+      cfg.namaSekolah = fallback.namaSekolah;
+      cfg.unitCode = fallback.unitCode;
+      cfg.opdCode = fallback.opdCode;
+      cfg.namaUser = fallback.namaUser;
+      // Note: session will need to be re-established on next request, 
+      // but for now config is safely swapped.
+    } else {
+      // Log out completely
+      cfg.username = '';
+      cfg.password = '';
+      cfg.namaSekolah = '';
+      cfg.unitCode = '';
+      cfg.opdCode = '';
+      cfg.namaUser = '';
+    }
+    colleagueCache = {}; // Flush cache
   }
 
-  cfg.accounts = cfg.accounts.filter(a => a.username !== targetUsername && a.id !== targetUsername);
   saveConfig(cfg);
-  res.json({ success: true, count: cfg.accounts.length });
+  res.json({ success: true, count: cfg.accounts.length, switched: cfg.username !== targetUsername });
 });
 
 // ─── WhatsApp Web (Baileys) Management Endpoints ─────────────────────────────
