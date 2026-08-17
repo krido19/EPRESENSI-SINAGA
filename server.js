@@ -274,7 +274,9 @@ function loadConfig() {
     pulangHour: data.pulangHour ?? 18,
     pulangMinute: data.pulangMinute ?? 0,
     messagePagi: data.messagePagi || 'Halo *{nama}*! 👋\n\nPengingat presensi pagi:\nAnda tercatat belum melakukan *absen pagi / masuk* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! ⏰\n\n_Pesan otomatis ePresensi_',
+    messagePagiSudah: data.messagePagiSudah || 'Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pagi / masuk hari ini di ePresensi Jateng. Selamat bertugas! 🏢✨\n\n_Pesan otomatis ePresensi_',
     messagePulang: data.messagePulang || 'Halo *{nama}*! 👋\n\nPengingat presensi pulang:\nAnda tercatat belum melakukan *absen pulang* hari ini di ePresensi Jateng.\n\nJangan lupa lakukan presensi pulang sebelum batas waktu berakhir! 🏢⏰\n\n_Pesan otomatis ePresensi_',
+    messagePulangSudah: data.messagePulangSudah || 'Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\n_Pesan otomatis ePresensi_',
     message: data.message || 'Halo *{nama}*! 👋\n\nPengingat presensi:\nAnda belum melakukan *absen* hari ini di ePresensi Jateng. Segera absen sekarang! ⏰',
     appPassword,
     namaSekolah: data.namaSekolah || 'SMKN 3 MAGELANG',
@@ -1117,7 +1119,98 @@ async function sendToAllRecipients(token, messageTemplate, targetOverride = null
   return { success: successCount > 0, results, successCount, totalCount: targets.length };
 }
 
-// ─── Scheduler (Dual: 07:30 WIB Pagi & 18:00 WIB Pulang) ──────────────────────
+// ─── Shared Scheduler Logic (Reusable for cron & manual trigger) ─────────────
+async function runSchedulerLogic(type = 'pagi') {
+  const config = loadConfig();
+  const gateway = config.waGateway || 'baileys';
+  if (gateway !== 'fonnte' && !waSock) {
+    throw new Error('WhatsApp Web belum terhubung. Scan QR Code terlebih dahulu.');
+  }
+  if (gateway === 'fonnte' && !config.fonnteToken) {
+    throw new Error('Token Fonnte belum dikonfigurasi.');
+  }
+
+  const session = await ensureValidSession();
+  if (!session.success) throw new Error('Gagal login ke ePresensi. Cek konfigurasi akun.');
+
+  const day = new Date().getDate();
+  const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, true);
+  if (!colleaguesRes.success) throw new Error('Gagal mengambil data presensi rekan guru.');
+
+  // Ambil semua guru yang tidak sedang libur/cuti
+  let targets_raw = colleaguesRes.colleagues.filter(c => !c.status.includes('Libur'));
+  let labelWaktu = type === 'pagi' ? '🌅 Pagi' : '🌆 Pulang';
+
+  if (targets_raw.length === 0) {
+    const msg = `${labelWaktu}: Tidak ada guru target (semua libur).`;
+    addLog({ type: 'info', message: msg });
+    return { success: true, sent: 0, total: 0, message: msg };
+  }
+
+  const registered = loadRecipients().filter(r => r.aktif !== false);
+  const targets = [];
+  for (const guru of targets_raw) {
+    const cleanGuru = guru.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const found = registered.find(r => {
+      const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanGuru.includes(cleanR) || cleanR.includes(cleanGuru);
+    });
+    if (found && found.nomor) {
+      targets.push({ 
+        nama: guru.nama, 
+        nomor: found.nomor,
+        isHadir: type === 'pagi' ? guru.isHadir : !!guru.jamPulang
+      });
+    }
+  }
+
+  if (targets.length === 0) {
+    const msg = `${labelWaktu}: Ada ${targets_raw.length} guru target, tapi nomor WA belum terdaftar di sistem.`;
+    addLog({ type: 'info', message: msg });
+    return { success: true, sent: 0, total: 0, message: msg };
+  }
+
+  let sentCount = 0;
+  const defaultMsgPagiSudah = "Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pagi / masuk hari ini di ePresensi Jateng. Selamat bertugas! 🏢✨\n\n_Pesan otomatis ePresensi_";
+  const defaultMsgPulangSudah = "Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\n_Pesan otomatis ePresensi_";
+  
+  const msgPagiSudah = config.messagePagiSudah || defaultMsgPagiSudah;
+  const msgPulangSudah = config.messagePulangSudah || defaultMsgPulangSudah;
+  
+  const msgBelumPagi = config.messagePagi || config.message;
+  const msgBelumPulang = config.messagePulang || config.message;
+
+  const logsArr = [];
+
+  for (const t of targets) {
+    let template = "";
+    if (type === 'pagi') {
+      template = t.isHadir ? msgPagiSudah : msgBelumPagi;
+    } else {
+      template = t.isHadir ? msgPulangSudah : msgBelumPulang;
+    }
+
+    const msg = template.replace(/\{nama\}/gi, t.nama);
+    const sRes = await sendWhatsApp(config.fonnteToken, t.nomor, msg);
+    if (sRes.success) {
+      sentCount++;
+      logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg });
+    }
+    await new Promise(r => setTimeout(r, 1000));
+  }
+
+  const summaryMsg = `${labelWaktu}: Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru (Laporan Status).`;
+  addLog({
+    type: sentCount > 0 ? 'sent' : 'error',
+    message: summaryMsg,
+    detailMessage: `Menjalankan pengiriman laporan ke semua guru.`,
+    targets: logsArr
+  });
+
+  return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
+}
+
+// ─── Scheduler (Dual: Pagi & Pulang) ─────────────────────────────────────────
 let cronPagi = null;
 let cronPulang = null;
 
@@ -1131,131 +1224,42 @@ function setupScheduler() {
     return;
   }
 
-  // 1. Jadwal Pagi (Absen Masuk) - 07:30 WIB
+  // 1. Jadwal Pagi (Absen Masuk)
   if (cfg.schedulerPagiEnabled !== false) {
     const hour = cfg.pagiHour ?? 7;
     const minute = cfg.pagiMinute ?? 30;
     console.log(`[Scheduler] Pagi Aktif — ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')} WIB`);
-
     cronPagi = cron.schedule(`${minute} ${hour} * * *`, async () => {
-      console.log(`[Scheduler 🌅 Pagi] Memulai pengecekan presensi masuk...`);
-      try {
-        const config = loadConfig();
-        if (!config.fonnteToken) return;
-        const session = await ensureValidSession();
-        if (!session.success) return;
-
-        const day = new Date().getDate();
-        const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, true);
-        if (!colleaguesRes.success) return;
-
-        // Cari guru yang belum absen masuk dan bukan hari libur
-        const unabsent = colleaguesRes.colleagues.filter(c => !c.isHadir && !c.status.includes('Libur'));
-        if (unabsent.length === 0) {
-          addLog({ type: 'info', message: '🌅 Pagi (07:30 WIB): Semua guru sudah hadir.' });
-          return;
-        }
-
-        const registered = loadRecipients().filter(r => r.aktif !== false);
-        const targets = [];
-        for (const guru of unabsent) {
-          const cleanGuru = guru.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
-          const found = registered.find(r => {
-            const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
-            return cleanGuru.includes(cleanR) || cleanR.includes(cleanGuru);
-          });
-          if (found && found.nomor) targets.push({ nama: guru.nama, nomor: found.nomor });
-        }
-
-        if (targets.length === 0) {
-          addLog({ type: 'info', message: `🌅 Pagi: Ada ${unabsent.length} guru belum absen, tapi nomor WA belum terdaftar di sistem.` });
-          return;
-        }
-
-        const template = config.messagePagi || config.message;
-        let sentCount = 0;
-        for (const t of targets) {
-          const msg = template.replace(/\{nama\}/gi, t.nama);
-          const sRes = await sendWhatsApp(config.fonnteToken, t.nomor, msg);
-          if (sRes.success) sentCount++;
-          await new Promise(r => setTimeout(r, 1000));
-        }
-
-        addLog({
-          type: sentCount > 0 ? 'sent' : 'error',
-          message: `🌅 Auto Pagi (07:30 WIB): Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru yang belum absen masuk.`,
-          detailMessage: template,
-          targets: targets.map(t => ({ nama: t.nama, nomor: t.nomor, text: template.replace(/\{nama\}/gi, t.nama) }))
-        });
-      } catch (err) {
-        addLog({ type: 'error', message: `🌅 Error scheduler pagi: ${err.message}` });
-      }
+      console.log(`[Scheduler 🌅 Pagi] Memulai...`);
+      try { await runSchedulerLogic('pagi'); }
+      catch (err) { addLog({ type: 'error', message: `🌅 Error scheduler pagi: ${err.message}` }); }
     }, { timezone: 'Asia/Jakarta' });
   }
 
-  // 2. Jadwal Sore (Absen Pulang) - 18:00 WIB
+  // 2. Jadwal Sore (Absen Pulang)
   if (cfg.schedulerPulangEnabled !== false) {
     const hour = cfg.pulangHour ?? 18;
     const minute = cfg.pulangMinute ?? 0;
     console.log(`[Scheduler] Pulang Aktif — ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')} WIB`);
-
     cronPulang = cron.schedule(`${minute} ${hour} * * *`, async () => {
-      console.log(`[Scheduler 🌆 Pulang] Memulai pengecekan presensi pulang...`);
-      try {
-        const config = loadConfig();
-        if (!config.fonnteToken) return;
-        const session = await ensureValidSession();
-        if (!session.success) return;
-
-        const day = new Date().getDate();
-        const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, true);
-        if (!colleaguesRes.success) return;
-
-        // Cari guru yang belum absen pulang dan bukan hari libur
-        const noPulang = colleaguesRes.colleagues.filter(c => !c.jamPulang && !c.status.includes('Libur'));
-        if (noPulang.length === 0) {
-          addLog({ type: 'info', message: '🌆 Pulang (18:00 WIB): Semua guru sudah absen pulang.' });
-          return;
-        }
-
-        const registered = loadRecipients().filter(r => r.aktif !== false);
-        const targets = [];
-        for (const guru of noPulang) {
-          const cleanGuru = guru.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
-          const found = registered.find(r => {
-            const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
-            return cleanGuru.includes(cleanR) || cleanR.includes(cleanGuru);
-          });
-          if (found && found.nomor) targets.push({ nama: guru.nama, nomor: found.nomor });
-        }
-
-        if (targets.length === 0) {
-          addLog({ type: 'info', message: `🌆 Pulang: Ada ${noPulang.length} guru belum absen pulang, tapi nomor WA belum terdaftar di sistem.` });
-          return;
-        }
-
-        const template = config.messagePulang || config.message;
-        let sentCount = 0;
-        for (const t of targets) {
-          const msg = template.replace(/\{nama\}/gi, t.nama);
-          const sRes = await sendWhatsApp(config.fonnteToken, t.nomor, msg);
-          if (sRes.success) sentCount++;
-          await new Promise(r => setTimeout(r, 1000));
-        }
-
-        addLog({
-          type: sentCount > 0 ? 'sent' : 'error',
-          message: `🌆 Auto Pulang (18:00 WIB): Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru yang belum absen pulang.`,
-          detailMessage: template,
-          targets: targets.map(t => ({ nama: t.nama, nomor: t.nomor, text: template.replace(/\{nama\}/gi, t.nama) }))
-        });
-      } catch (err) {
-        addLog({ type: 'error', message: `🌆 Error scheduler pulang: ${err.message}` });
-      }
+      console.log(`[Scheduler 🌆 Pulang] Memulai...`);
+      try { await runSchedulerLogic('pulang'); }
+      catch (err) { addLog({ type: 'error', message: `🌆 Error scheduler pulang: ${err.message}` }); }
     }, { timezone: 'Asia/Jakarta' });
   }
 }
 setupScheduler();
+
+// ─── Manual Trigger Scheduler ─────────────────────────────────────────────────
+app.post('/api/scheduler/run-now', requireAppAuth, async (req, res) => {
+  const type = req.body.type === 'pulang' ? 'pulang' : 'pagi';
+  try {
+    const result = await runSchedulerLogic(type);
+    res.json(result);
+  } catch (err) {
+    res.json({ success: false, message: err.message });
+  }
+});
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 
@@ -1616,7 +1620,9 @@ app.get('/api/config', (req, res) => {
     pulangHour: cfg.pulangHour ?? 18, pulangMinute: cfg.pulangMinute ?? 0,
     message: cfg.message || '',
     messagePagi: cfg.messagePagi || '',
+    messagePagiSudah: cfg.messagePagiSudah || '',
     messagePulang: cfg.messagePulang || '',
+    messagePulangSudah: cfg.messagePulangSudah || '',
   });
 });
 
@@ -1626,7 +1632,7 @@ app.post('/api/config', (req, res) => {
     'authMode','username','password','cookie','waGateway','fonnteToken','waNumber',
     'schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute',
     'schedulerPulangEnabled','pulangHour','pulangMinute',
-    'message','messagePagi','messagePulang'
+    'message','messagePagi','messagePagiSudah','messagePulang','messagePulangSudah','testModeSudahAbsen'
   ];
   const updated = { ...current };
   for (const key of allowed) {

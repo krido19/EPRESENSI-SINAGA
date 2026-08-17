@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "public/app.js": {
-    "mtime": 1786925393.5258613,
-    "ast_hash": "58cf44062936f601cf71fd472260ab32",
+    "mtime": 1786924707.200211,
+    "ast_hash": "7dec7dd232b79052d2e8c003308b7093",
     "semantic_hash": ""
   },
   "public/manifest.json": {
@@ -20,8 +20,8 @@
     "semantic_hash": ""
   },
   "server.js": {
-    "mtime": 1786925324.8820863,
-    "ast_hash": "359775250ed77fb4e87604ad9bfb504d",
+    "mtime": 1786924680.9756138,
+    "ast_hash": "8223d1ec9b783b73576a6c1c05664fb4",
     "semantic_hash": ""
   },
   "deploy_vps.sh": {
@@ -55,8 +55,8 @@
     "semantic_hash": ""
   },
   "public/index.html": {
-    "mtime": 1786925357.8108232,
-    "ast_hash": "4155bedc8d5c55e0781f84fbcad6940c",
+    "mtime": 1786924181.1955569,
+    "ast_hash": "dc7b9827e27f334047335156b9ae2482",
     "semantic_hash": ""
   },
   "render.yaml": {

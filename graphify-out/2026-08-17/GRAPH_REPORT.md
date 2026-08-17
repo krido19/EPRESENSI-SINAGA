@@ -1,11 +1,11 @@
 # Graph Report - EPRESENSI-SINAGA  (2026-08-17)
 
 ## Corpus Check
-- 13 files · ~253,527 words
+- 13 files · ~253,570 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 362 nodes · 419 edges · 15 communities (8 shown, 7 thin omitted)
+- 363 nodes · 420 edges · 15 communities (8 shown, 7 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
@@ -53,7 +53,7 @@
 
 ### Community 0 - "app.js"
 Cohesion: 0.01
-Nodes (193): activeDayPopup, addAccountFeedback, addRecipientForm, addRecipientModal, analyticsChartBody, appGatekeeperScreen, AVATAR_GRADIENTS, batchCountBtn (+185 more)
+Nodes (194): activeDayPopup, addAccountFeedback, addRecipientForm, addRecipientModal, analyticsChartBody, appGatekeeperScreen, AVATAR_GRADIENTS, batchCountBtn (+186 more)
 
 ### Community 1 - "server.js"
 Cohesion: 0.06
@@ -80,7 +80,7 @@ Cohesion: 0.40
 Nodes (5): formatWaHtml(), loadConfig(), loadWaStatus(), switchWaGatewayUI(), updateMessagePreviews()
 
 ## Knowledge Gaps
-- **271 isolated node(s):** `deploy_vps.sh script`, `name`, `version`, `description`, `main` (+266 more)
+- **272 isolated node(s):** `deploy_vps.sh script`, `name`, `version`, `description`, `main` (+267 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -88,9 +88,9 @@ Nodes (5): formatWaHtml(), loadConfig(), loadWaStatus(), switchWaGatewayUI(), up
 _Questions this graph is uniquely positioned to answer:_
 
 - **What connects `deploy_vps.sh script`, `name`, `version` to the rest of the system?**
-  _271 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _272 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `app.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.01 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.009950248756218905 - nodes in this community are weakly interconnected._
 - **Should `server.js` be split into smaller, more focused modules?**
   _Cohesion score 0.06386066763425254 - nodes in this community are weakly interconnected._
 - **Should `dependencies` be split into smaller, more focused modules?**

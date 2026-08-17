@@ -225,6 +225,31 @@ const countSakitChip           = document.getElementById('countSakitChip');
 const recipientsTableBody      = document.getElementById('recipientsTableBody');
 const recipientTotalCount      = document.getElementById('recipientTotalCount');
 const excelFileInput          = document.getElementById('excelFileInput');
+const btnDownloadTemplate     = document.getElementById('btnDownloadTemplate');
+
+if (btnDownloadTemplate) {
+  btnDownloadTemplate.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/api/recipients/template');
+      if (!response.ok) throw new Error('Gagal mengunduh template');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'template_98_guru_smkn3_magelang.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      if (typeof showToast === 'function') {
+        showToast('Gagal download: ' + err.message, 'error');
+      } else {
+        alert('Error: ' + err.message);
+      }
+    }
+  });
+}
 const btnAddRecipientModal     = document.getElementById('btnAddRecipientModal');
 const btnClearAllRecipients    = document.getElementById('btnClearAllRecipients');
 
@@ -267,9 +292,13 @@ const btnTestLogin                = document.getElementById('btnTestLogin');
 const testLoginFeedback           = document.getElementById('testLoginFeedback');
 
 const cfgMessagePagi              = document.getElementById('cfgMessagePagi');
+const cfgMessagePagiSudah         = document.getElementById('cfgMessagePagiSudah');
 const cfgMessagePulang            = document.getElementById('cfgMessagePulang');
+const cfgMessagePulangSudah       = document.getElementById('cfgMessagePulangSudah');
 const whatsappPreviewPagi         = document.getElementById('whatsappPreviewPagi');
+const whatsappPreviewPagiSudah    = document.getElementById('whatsappPreviewPagiSudah');
 const whatsappPreviewPulang       = document.getElementById('whatsappPreviewPulang');
+const whatsappPreviewPulangSudah  = document.getElementById('whatsappPreviewPulangSudah');
 const btnSaveTemplate             = document.getElementById('btnSaveTemplate');
 
 const logsContainer       = document.getElementById('logsContainer');
@@ -687,7 +716,9 @@ async function loadConfig() {
     if (cfgPulangMinute) cfgPulangMinute.value = config.pulangMinute ?? 0;
     
     if (cfgMessagePagi && config.messagePagi) cfgMessagePagi.value = config.messagePagi;
+    if (cfgMessagePagiSudah && config.messagePagiSudah) cfgMessagePagiSudah.value = config.messagePagiSudah;
     if (cfgMessagePulang && config.messagePulang) cfgMessagePulang.value = config.messagePulang;
+    if (cfgMessagePulangSudah && config.messagePulangSudah) cfgMessagePulangSudah.value = config.messagePulangSudah;
     updateMessagePreviews();
   } catch (err) {
     console.error('Error loadConfig:', err);
@@ -964,6 +995,11 @@ function applyColleaguesData(data) {
   updateDonutChart(percentage);
   renderMonthlyAnalytics(colleagues);
   renderColleaguesTable();
+
+  const datalist = document.getElementById('listGuruSkaniga');
+  if (datalist) {
+    datalist.innerHTML = colleagues.map(c => `<option value="${c.nama}">`).join('');
+  }
 }
 
 // ─── 1-Month Analytics & Daily Attendance Chart Generator ─────────────────────
@@ -1893,6 +1929,39 @@ if (configForm) {
   });
 }
 
+// ─── Manual Trigger Scheduler ─────────────────────────────────────────────────
+async function runNowScheduler(type) {
+  const btn = type === 'pagi'
+    ? document.getElementById('btnRunNowPagi')
+    : document.getElementById('btnRunNowPulang');
+  const label = type === 'pagi' ? '🌅 Pagi' : '🌆 Pulang';
+  const origText = btn?.innerHTML;
+  if (btn) { btn.disabled = true; btn.innerHTML = `⏳ Mengirim ${label}...`; }
+  try {
+    const res = await fetch('/api/scheduler/run-now', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || `${label}: Selesai!`, 'success');
+      loadLogs();
+    } else {
+      showToast(`${label} Error: ${data.message}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+  }
+}
+
+const btnRunNowPagi   = document.getElementById('btnRunNowPagi');
+const btnRunNowPulang = document.getElementById('btnRunNowPulang');
+if (btnRunNowPagi)   btnRunNowPagi.addEventListener('click',   () => runNowScheduler('pagi'));
+if (btnRunNowPulang) btnRunNowPulang.addEventListener('click', () => runNowScheduler('pulang'));
+
 if (btnTestLogin) {
   btnTestLogin.addEventListener('click', async () => {
     if (testLoginFeedback) {
@@ -1948,13 +2017,21 @@ function updateMessagePreviews() {
   if (cfgMessagePagi && whatsappPreviewPagi) {
     whatsappPreviewPagi.innerHTML = formatWaHtml(cfgMessagePagi.value);
   }
+  if (cfgMessagePagiSudah && whatsappPreviewPagiSudah) {
+    whatsappPreviewPagiSudah.innerHTML = formatWaHtml(cfgMessagePagiSudah.value);
+  }
   if (cfgMessagePulang && whatsappPreviewPulang) {
     whatsappPreviewPulang.innerHTML = formatWaHtml(cfgMessagePulang.value);
+  }
+  if (cfgMessagePulangSudah && whatsappPreviewPulangSudah) {
+    whatsappPreviewPulangSudah.innerHTML = formatWaHtml(cfgMessagePulangSudah.value);
   }
 }
 
 if (cfgMessagePagi) cfgMessagePagi.addEventListener('input', updateMessagePreviews);
+if (cfgMessagePagiSudah) cfgMessagePagiSudah.addEventListener('input', updateMessagePreviews);
 if (cfgMessagePulang) cfgMessagePulang.addEventListener('input', updateMessagePreviews);
+if (cfgMessagePulangSudah) cfgMessagePulangSudah.addEventListener('input', updateMessagePreviews);
 
 if (btnSaveTemplate) {
   btnSaveTemplate.addEventListener('click', async () => {
@@ -1964,7 +2041,9 @@ if (btnSaveTemplate) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messagePagi: cfgMessagePagi?.value || '',
-          messagePulang: cfgMessagePulang?.value || ''
+          messagePagiSudah: cfgMessagePagiSudah?.value || '',
+          messagePulang: cfgMessagePulang?.value || '',
+          messagePulangSudah: cfgMessagePulangSudah?.value || ''
         })
       });
       const data = await res.json();
