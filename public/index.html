@@ -24,18 +24,24 @@
 
       <form id="gatekeeperForm" class="gatekeeper-form mt-4">
         <div class="form-item text-left">
-          <label class="form-label" for="gatekeeperInputPassword">Password Akses Aplikasi</label>
+          <label class="form-label" for="gatekeeperInputEmail">Email Akun</label>
+          <input type="email" id="gatekeeperInputEmail" class="custom-input" placeholder="contoh@sekolah.sch.id" required autofocus autocomplete="email">
+          <span class="form-hint">Email yang terdaftar di sistem ePresensi.</span>
+        </div>
+
+        <div class="form-item text-left mt-3">
+          <label class="form-label" for="gatekeeperInputPassword">Password</label>
           <div class="password-input-wrap">
-            <input type="password" id="gatekeeperInputPassword" class="custom-input font-mono" placeholder="Masukkan password..." required autofocus>
+            <input type="password" id="gatekeeperInputPassword" class="custom-input font-mono" placeholder="Masukkan password..." required autocomplete="current-password">
             <button type="button" class="btn-toggle-eye" id="btnToggleGatekeeperEye" title="Lihat Password">👁️</button>
           </div>
-          <span class="form-hint">Masukkan password akses yang telah ditentukan.</span>
+          <span class="form-hint">Password akun ePresensi Anda.</span>
         </div>
 
         <div id="gatekeeperErrorMsg" class="feedback-error"></div>
 
         <button type="submit" class="modern-btn btn-purple-gradient btn-block mt-3" id="btnSubmitGatekeeper">
-          🔓 Buka Dashboard &rarr;
+          🔓 Masuk ke Dashboard &rarr;
         </button>
       </form>
 
@@ -90,6 +96,11 @@
         <button class="nav-item tab-item" data-tab="graph" title="Peta Arsitektur & Knowledge Graph">
           <span class="nav-icon">🕸️</span>
           <span class="nav-text">Peta Arsitektur (Graph)</span>
+        </button>
+        <!-- Super Admin Tab — hidden unless role=super_admin -->
+        <button class="nav-item tab-item" data-tab="superadmin" id="navSuperAdmin" title="Super Admin Dashboard" style="display:none;">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Super Admin</span>
         </button>
       </nav>
 
@@ -786,6 +797,86 @@
         </div>
 
         <!-- TAB 6: Peta Arsitektur & Knowledge Graph (Graphify) -->
+        <!-- ── Super Admin Panel ─────────────────────────────────────────── -->
+        <div class="tab-panel" id="tab-superadmin">
+          <!-- Stats Cards -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:24px;">
+            <div class="glass-card" style="padding:20px; text-align:center;">
+              <div style="font-size:2rem; font-weight:700; color:var(--accent-purple);" id="saasStatTotal">-</div>
+              <div style="font-size:0.8rem; opacity:.7;">Total Sekolah</div>
+            </div>
+            <div class="glass-card" style="padding:20px; text-align:center;">
+              <div style="font-size:2rem; font-weight:700; color:#10b981;" id="saasStatPro">-</div>
+              <div style="font-size:0.8rem; opacity:.7;">Plan Pro</div>
+            </div>
+            <div class="glass-card" style="padding:20px; text-align:center;">
+              <div style="font-size:2rem; font-weight:700; color:#f59e0b;" id="saasStatFree">-</div>
+              <div style="font-size:0.8rem; opacity:.7;">Plan Free</div>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">⚙️ Super Admin — Kelola Sekolah</h2>
+                <p class="panel-desc">Tambah, edit, dan hapus sekolah yang terdaftar dalam sistem SaaS ePresensi.</p>
+              </div>
+              <button class="modern-btn btn-purple-gradient" id="btnShowAddSchool">+ Tambah Sekolah</button>
+            </div>
+
+            <!-- Form Tambah Sekolah (hidden by default) -->
+            <div id="formAddSchoolWrap" style="display:none; margin-bottom:24px; border:1px solid rgba(139,92,246,.3); border-radius:12px; padding:20px; background:rgba(139,92,246,.05);">
+              <h3 style="margin-bottom:16px; font-size:1rem;">➕ Tambah Sekolah Baru</h3>
+              <form id="formAddSchool">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px;">
+                  <div class="form-item"><label class="form-label">Nama Sekolah*</label><input class="custom-input" id="saasSchoolName" placeholder="SMKN 1 Kota" required></div>
+                  <div class="form-item"><label class="form-label">NPSN</label><input class="custom-input" id="saasSchoolNpsn" placeholder="20301234"></div>
+                  <div class="form-item"><label class="form-label">Email Login*</label><input class="custom-input" type="email" id="saasSchoolEmail" placeholder="admin@smkn1.sch.id" required></div>
+                  <div class="form-item"><label class="form-label">Password Login*</label><input class="custom-input" type="password" id="saasSchoolPassword" placeholder="Password akun" required autocomplete="new-password"></div>
+                  <div class="form-item"><label class="form-label">NIP ePresensi</label><input class="custom-input" id="saasSchoolEpUser" placeholder="NIP guru admin"></div>
+                  <div class="form-item"><label class="form-label">Password ePresensi</label><input class="custom-input" type="password" id="saasSchoolEpPass" placeholder="Password ePresensi" autocomplete="new-password"></div>
+                  <div class="form-item"><label class="form-label">Fonnte Token</label><input class="custom-input" id="saasSchoolFonnte" placeholder="Token API Fonnte"></div>
+                  <div class="form-item"><label class="form-label">Kode Unit</label><input class="custom-input" id="saasSchoolUnit" placeholder="F208007700"></div>
+                  <div class="form-item"><label class="form-label">Kode OPD</label><input class="custom-input" id="saasSchoolOpd" placeholder="F200000000"></div>
+                  <div class="form-item"><label class="form-label">Plan</label>
+                    <select class="custom-input" id="saasSchoolPlan">
+                      <option value="free">Free</option>
+                      <option value="pro">Pro</option>
+                    </select>
+                  </div>
+                  <div class="form-item"><label class="form-label">Jam Pagi (HH:mm)</label><input class="custom-input" id="saasSchoolPagi" placeholder="07:30" value="07:30"></div>
+                  <div class="form-item"><label class="form-label">Jam Pulang (HH:mm)</label><input class="custom-input" id="saasSchoolPulang" placeholder="18:00" value="18:00"></div>
+                </div>
+                <div id="formAddSchoolError" class="feedback-error" style="margin-top:12px;"></div>
+                <div style="display:flex; gap:10px; margin-top:16px;">
+                  <button type="submit" class="modern-btn btn-purple-gradient" id="btnSubmitAddSchool">💾 Simpan Sekolah</button>
+                  <button type="button" class="modern-btn" id="btnCancelAddSchool" style="background:rgba(255,255,255,.1);">Batal</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Table Daftar Sekolah -->
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="saasSchoolsTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Nama Sekolah</th>
+                    <th>Email</th>
+                    <th>Plan</th>
+                    <th>Scheduler</th>
+                    <th>Jam Absen</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="saasSchoolsBody">
+                  <tr><td colspan="7" style="text-align:center;padding:30px;opacity:.5;">Memuat data sekolah...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <div class="tab-panel" id="tab-graph">
           <div class="glass-card">
             

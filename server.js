@@ -14,6 +14,16 @@ const crypto  = require('crypto');
 const cheerio = require('cheerio');
 const { exec } = require('child_process');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const { createClient } = require('@supabase/supabase-js');
+
+// ─── Initialize Supabase ──────────────────────────────────────────────────────
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!supabaseUrl || !supabaseKey) {
+  console.error('[CRITICAL] SUPABASE_URL atau SUPABASE_SERVICE_ROLE_KEY tidak ditemukan di .env!');
+  process.exit(1);
+}
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ─── Global Process Error Handlers (Anti-Crash Guard) ─────────────────────────
 process.on('uncaughtException', (err) => {
@@ -132,18 +142,112 @@ function verifyAuthToken(token, currentPassword) {
 }
 
 // 4. API Authentication Guard Middleware
-function requireAppAuth(req, res, next) {
-  const cfg = loadConfig();
-  const validPass = cfg.appPassword || process.env.APP_PASSWORD || 'SMK3magelang';
+// ─── Auth cache (60s) untuk kurangi query Supabase di free tier ───────────────
+const authCache = new Map(); // token → { user, tenantCfg, role, expiresAt }
+
+async function requireAppAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
 
-  if (!token || !verifyAuthToken(token, validPass)) {
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized: Akses ditolak. Harap masukkan password login aplikasi terlebih dahulu.'
-    });
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Token tidak ditemukan.' });
   }
+
+  // Cek cache dulu (kurangi round-trip ke Supabase)
+  const cached = authCache.get(token);
+  if (cached && cached.expiresAt > Date.now()) {
+    req.userId    = cached.userId;
+    req.userRole  = cached.role;
+    req.schoolId  = cached.schoolId;
+    req.tenantCfg = cached.tenantCfg;
+    return next();
+  }
+
+  // Verifikasi JWT via Supabase
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Sesi tidak valid atau telah kedaluwarsa.' });
+  }
+
+  req.userId = data.user.id;
+
+  // Ambil role dan school dari user_roles
+  try {
+    const { data: roleRow } = await supabase
+      .from('user_roles')
+      .select('role, school_id')
+      .eq('user_id', data.user.id)
+      .single();
+
+    req.userRole = roleRow?.role || 'school_admin';
+    req.schoolId = roleRow?.school_id || null;
+
+    let tenantCfg = null;
+
+    if (roleRow?.school_id) {
+      // Ambil data sekolah + konfigurasi jadwal sekaligus
+      const { data: school } = await supabase
+        .from('schools')
+        .select('*')
+        .eq('id', roleRow.school_id)
+        .single();
+
+      const { data: schoolCfg } = await supabase
+        .from('school_configs')
+        .select('*')
+        .eq('school_id', roleRow.school_id)
+        .single();
+
+      if (school) {
+        // Bangun tenantCfg dengan format yang kompatibel dengan loadConfig()
+        const localCfg = (() => { try { return JSON.parse(fs.readFileSync(CONFIG_FILE,'utf8')); } catch(e) { return {}; } })();
+        tenantCfg = {
+          username:       school.epresensi_username || localCfg.username || '',
+          password:       school.epresensi_password || localCfg.password || '',
+          cookie:         localCfg.cookie || '',
+          cookieExpiry:   localCfg.cookieExpiry || null,
+          fonnteToken:    school.fonnte_token || localCfg.fonnteToken || '',
+          waGateway:      school.wa_gateway || localCfg.waGateway || 'baileys',
+          waNumber:       school.wa_number  || localCfg.waNumber || '',
+          unitCode:       school.unit_code  || localCfg.unitCode || 'F208007700',
+          opdCode:        school.opd_code   || localCfg.opdCode  || 'F200000000',
+          namaSekolah:    school.name       || localCfg.namaSekolah || '',
+          schoolId:       school.id,
+          plan:           school.plan || 'free',
+          authMode:       localCfg.authMode || 'auto',
+          // Scheduler config dari school_configs
+          schedulerEnabled:       schoolCfg?.scheduler_enabled ?? localCfg.schedulerEnabled ?? true,
+          schedulerPagiEnabled:   localCfg.schedulerPagiEnabled !== false,
+          schedulerPulangEnabled: localCfg.schedulerPulangEnabled !== false,
+          pagiHour:       schoolCfg?.pagi_hour   ?? localCfg.pagiHour   ?? 7,
+          pagiMinute:     schoolCfg?.pagi_minute  ?? localCfg.pagiMinute  ?? 30,
+          pulangHour:     schoolCfg?.pulang_hour  ?? localCfg.pulangHour  ?? 18,
+          pulangMinute:   schoolCfg?.pulang_minute ?? localCfg.pulangMinute ?? 0,
+          // Pesan dari school_configs atau local fallback
+          messagePagi:        schoolCfg?.message_pagi        || localCfg.messagePagi || '',
+          messagePagiSudah:   schoolCfg?.message_pagi_sudah  || localCfg.messagePagiSudah || '',
+          messagePulang:      schoolCfg?.message_pulang       || localCfg.messagePulang || '',
+          messagePulangSudah: schoolCfg?.message_pulang_sudah || localCfg.messagePulangSudah || '',
+          message:            localCfg.message || '',
+        };
+      }
+    }
+
+    req.tenantCfg = tenantCfg;
+
+    // Simpan ke cache selama 60 detik
+    authCache.set(token, {
+      userId: data.user.id,
+      role: req.userRole,
+      schoolId: req.schoolId,
+      tenantCfg,
+      expiresAt: Date.now() + 60_000
+    });
+
+  } catch(e) {
+    console.error('[Auth] Error fetching tenant config:', e.message);
+  }
+
   next();
 }
 
@@ -816,9 +920,12 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
         const code = statusMatch[1].toUpperCase();
         
         if (['H', 'T', 'TAM', 'TAP', 'HB'].includes(code)) {
-          curStatus = 'Hadir';
+          curStatus = (code === 'T' || code === 'TAM' || code === 'TAP') ? 'Terlambat' : 'Hadir';
           curIsHadir = true;
           totalHadir++;
+        } else if (code === 'HBN') {
+          // HBN = Hari Besar Nasional
+          curStatus = 'Libur (Hari Besar Nasional)';
         } else if (code === 'CS' || code === 'S') {
           curStatus = 'Sakit';
           totalSakit++;
@@ -1173,82 +1280,257 @@ async function runSchedulerLogic(type = 'pagi') {
   let sentCount = 0;
   const defaultMsgPagiSudah = "Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pagi / masuk hari ini di ePresensi Jateng. Selamat bertugas! 🏢✨\n\n_Pesan otomatis ePresensi_";
   const defaultMsgPulangSudah = "Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\n_Pesan otomatis ePresensi_";
-  
-  const msgPagiSudah = config.messagePagiSudah || defaultMsgPagiSudah;
-  const msgPulangSudah = config.messagePulangSudah || defaultMsgPulangSudah;
-  
-  const msgBelumPagi = config.messagePagi || config.message;
+
+  const msgPagiSudah   = config.messagePagiSudah   || defaultMsgPagiSudah;
+  const msgPulangSudah = config.messagePulangSudah  || defaultMsgPulangSudah;
+  const msgBelumPagi   = config.messagePagi   || config.message;
   const msgBelumPulang = config.messagePulang || config.message;
 
   const logsArr = [];
-
   for (const t of targets) {
-    let template = "";
-    if (type === 'pagi') {
-      template = t.isHadir ? msgPagiSudah : msgBelumPagi;
-    } else {
-      template = t.isHadir ? msgPulangSudah : msgBelumPulang;
-    }
-
+    let template = '';
+    if (type === 'pagi')   template = t.isHadir ? msgPagiSudah   : msgBelumPagi;
+    else                   template = t.isHadir ? msgPulangSudah  : msgBelumPulang;
     const msg = template.replace(/\{nama\}/gi, t.nama);
     const sRes = await sendWhatsApp(config.fonnteToken, t.nomor, msg);
-    if (sRes.success) {
-      sentCount++;
-      logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg });
-    }
+    if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
     await new Promise(r => setTimeout(r, 1000));
   }
 
   const summaryMsg = `${labelWaktu}: Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru (Laporan Status).`;
-  addLog({
-    type: sentCount > 0 ? 'sent' : 'error',
-    message: summaryMsg,
-    detailMessage: `Menjalankan pengiriman laporan ke semua guru.`,
-    targets: logsArr
-  });
-
+  addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, detailMessage: 'Menjalankan pengiriman laporan ke semua guru.', targets: logsArr });
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
 
-// ─── Scheduler (Dual: Pagi & Pulang) ─────────────────────────────────────────
-let cronPagi = null;
-let cronPulang = null;
+// ─── Scheduler (Master 1-Menit, Multi-Tenant, Cache 5 Menit) ──────────────────
+let masterCron = null;
+let schoolsCache = null;        // cache hasil query Supabase
+let schoolsCacheExpiry = 0;     // timestamp expiry cache
+
+async function getActiveSchools() {
+  // Gunakan cache 5 menit agar tidak query Supabase setiap menit
+  if (schoolsCache && Date.now() < schoolsCacheExpiry) {
+    return schoolsCache;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('school_configs')
+      .select(`
+        scheduler_enabled, pagi_hour, pagi_minute, pulang_hour, pulang_minute,
+        message_pagi, message_pagi_sudah, message_pulang, message_pulang_sudah,
+        school_id,
+        schools!inner(id, name, epresensi_username, epresensi_password, fonnte_token, wa_gateway, wa_number, unit_code, opd_code, plan)
+      `)
+      .eq('scheduler_enabled', true);
+
+    if (!error && data && data.length > 0) {
+      schoolsCache = data;
+      schoolsCacheExpiry = Date.now() + 5 * 60_000; // cache 5 menit
+      return data;
+    }
+  } catch(e) {
+    console.error('[Scheduler] Gagal ambil data sekolah dari Supabase:', e.message);
+  }
+
+  // Fallback: pakai config.json lokal (single-tenant)
+  const localCfg = loadConfig();
+  if (localCfg.username && localCfg.schedulerEnabled) {
+    return [{
+      scheduler_enabled: localCfg.schedulerEnabled,
+      pagi_hour: localCfg.pagiHour, pagi_minute: localCfg.pagiMinute,
+      pulang_hour: localCfg.pulangHour, pulang_minute: localCfg.pulangMinute,
+      message_pagi: localCfg.messagePagi, message_pagi_sudah: localCfg.messagePagiSudah,
+      message_pulang: localCfg.messagePulang, message_pulang_sudah: localCfg.messagePulangSudah,
+      schools: { ...localCfg, id: 'local' }
+    }];
+  }
+  return [];
+}
+
+function buildTenantCfg(row) {
+  const s   = row.schools;
+  const loc = (() => { try { return JSON.parse(fs.readFileSync(CONFIG_FILE,'utf8')); } catch(e) { return {}; } })();
+  return {
+    username:           s.epresensi_username || loc.username || '',
+    password:           s.epresensi_password || loc.password || '',
+    cookie:             loc.cookie || '',
+    cookieExpiry:       loc.cookieExpiry || null,
+    fonnteToken:        s.fonnte_token   || loc.fonnteToken || '',
+    waGateway:          s.wa_gateway     || loc.waGateway   || 'baileys',
+    waNumber:           s.wa_number      || loc.waNumber    || '',
+    unitCode:           s.unit_code      || loc.unitCode    || 'F208007700',
+    opdCode:            s.opd_code       || loc.opdCode     || 'F200000000',
+    namaSekolah:        s.name           || loc.namaSekolah || '',
+    schoolId:           s.id,
+    plan:               s.plan || 'free',
+    authMode:           loc.authMode || 'auto',
+    schedulerEnabled:        true,
+    schedulerPagiEnabled:    true,
+    schedulerPulangEnabled:  true,
+    pagiHour:    row.pagi_hour   ?? 7,
+    pagiMinute:  row.pagi_minute ?? 30,
+    pulangHour:  row.pulang_hour  ?? 18,
+    pulangMinute: row.pulang_minute ?? 0,
+    messagePagi:        row.message_pagi        || loc.messagePagi        || '',
+    messagePagiSudah:   row.message_pagi_sudah  || loc.messagePagiSudah  || '',
+    messagePulang:      row.message_pulang       || loc.messagePulang      || '',
+    messagePulangSudah: row.message_pulang_sudah || loc.messagePulangSudah || '',
+    message:            loc.message || '',
+  };
+}
 
 function setupScheduler() {
-  if (cronPagi) { cronPagi.stop(); cronPagi = null; }
-  if (cronPulang) { cronPulang.stop(); cronPulang = null; }
+  if (masterCron) { masterCron.stop(); masterCron = null; }
 
-  const cfg = loadConfig();
-  if (!cfg.schedulerEnabled) {
-    console.log('[Scheduler] Nonaktif');
-    return;
-  }
+  masterCron = cron.schedule('* * * * *', async () => {
+    const now = new Date();
+    const wib = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    const H = wib.getHours();
+    const M = wib.getMinutes();
 
-  // 1. Jadwal Pagi (Absen Masuk)
-  if (cfg.schedulerPagiEnabled !== false) {
-    const hour = cfg.pagiHour ?? 7;
-    const minute = cfg.pagiMinute ?? 30;
-    console.log(`[Scheduler] Pagi Aktif — ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')} WIB`);
-    cronPagi = cron.schedule(`${minute} ${hour} * * *`, async () => {
-      console.log(`[Scheduler 🌅 Pagi] Memulai...`);
-      try { await runSchedulerLogic('pagi'); }
-      catch (err) { addLog({ type: 'error', message: `🌅 Error scheduler pagi: ${err.message}` }); }
-    }, { timezone: 'Asia/Jakarta' });
-  }
+    const schools = await getActiveSchools();
+    if (!schools.length) return;
 
-  // 2. Jadwal Sore (Absen Pulang)
-  if (cfg.schedulerPulangEnabled !== false) {
-    const hour = cfg.pulangHour ?? 18;
-    const minute = cfg.pulangMinute ?? 0;
-    console.log(`[Scheduler] Pulang Aktif — ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')} WIB`);
-    cronPulang = cron.schedule(`${minute} ${hour} * * *`, async () => {
-      console.log(`[Scheduler 🌆 Pulang] Memulai...`);
-      try { await runSchedulerLogic('pulang'); }
-      catch (err) { addLog({ type: 'error', message: `🌆 Error scheduler pulang: ${err.message}` }); }
-    }, { timezone: 'Asia/Jakarta' });
-  }
+    for (const row of schools) {
+      const cfg = buildTenantCfg(row);
+
+      // Cek jadwal Pagi
+      if (H === cfg.pagiHour && M === cfg.pagiMinute) {
+        console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+        runSchedulerLogic('pagi', cfg).catch(e =>
+          console.error(`[Scheduler] Pagi error (${cfg.namaSekolah}):`, e.message)
+        );
+      }
+
+      // Cek jadwal Pulang
+      if (H === cfg.pulangHour && M === cfg.pulangMinute) {
+        console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+        runSchedulerLogic('pulang', cfg).catch(e =>
+          console.error(`[Scheduler] Pulang error (${cfg.namaSekolah}):`, e.message)
+        );
+      }
+    }
+  });
+
+  console.log('[Scheduler] Master Multi-Tenant Cron aktif (setiap 1 menit, cache Supabase 5 menit)');
 }
 setupScheduler();
+
+// ─── Super Admin API ───────────────────────────────────────────────────────────
+function requireSuperAdmin(req, res, next) {
+  if (req.userRole !== 'super_admin') {
+    return res.status(403).json({ success: false, error: 'Akses ditolak: hanya Super Admin.' });
+  }
+  next();
+}
+
+// GET semua sekolah
+app.get('/api/admin/schools', requireSuperAdmin, async (req, res) => {
+  const { data, error } = await supabase
+    .from('schools')
+    .select('*, school_configs(*), subscriptions(*)')
+    .order('created_at', { ascending: false });
+  if (error) return res.json({ success: false, error: error.message });
+  res.json({ success: true, schools: data });
+});
+
+// POST tambah sekolah baru + buat user Supabase Auth + assign role
+app.post('/api/admin/schools', requireSuperAdmin, async (req, res) => {
+  const { name, npsn, email, password, plan,
+          epresensi_username, epresensi_password,
+          wa_gateway, fonnte_token, wa_number,
+          unit_code, opd_code,
+          pagi_hour, pagi_minute, pulang_hour, pulang_minute } = req.body;
+
+  if (!name || !email || !password) {
+    return res.json({ success: false, error: 'name, email, password wajib diisi.' });
+  }
+
+  // 1. Buat user Supabase Auth
+  const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+    email, password, email_confirm: true
+  });
+  if (authErr) return res.json({ success: false, error: authErr.message });
+
+  // 2. Insert ke tabel schools
+  const { data: school, error: schoolErr } = await supabase.from('schools').insert({
+    name, npsn, email, plan: plan || 'free',
+    epresensi_username, epresensi_password,
+    wa_gateway: wa_gateway || 'fonnte', fonnte_token, wa_number,
+    unit_code, opd_code
+  }).select().single();
+  if (schoolErr) return res.json({ success: false, error: schoolErr.message });
+
+  // 3. Insert ke school_configs
+  await supabase.from('school_configs').insert({
+    school_id: school.id,
+    scheduler_enabled: true,
+    pagi_hour: pagi_hour ?? 7, pagi_minute: pagi_minute ?? 30,
+    pulang_hour: pulang_hour ?? 18, pulang_minute: pulang_minute ?? 0
+  });
+
+  // 4. Assign role school_admin
+  await supabase.from('user_roles').insert({
+    user_id: authData.user.id,
+    role: 'school_admin',
+    school_id: school.id
+  });
+
+  // Invalidate schools cache agar scheduler langsung pakai data baru
+  schoolsCache = null;
+
+  res.json({ success: true, school, userId: authData.user.id });
+});
+
+// PUT update data sekolah
+app.put('/api/admin/schools/:id', requireSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  const allowed = ['name','npsn','plan','epresensi_username','epresensi_password',
+                   'wa_gateway','fonnte_token','wa_number','unit_code','opd_code'];
+  const updates = {};
+  for (const k of allowed) if (req.body[k] !== undefined) updates[k] = req.body[k];
+
+  const { data, error } = await supabase.from('schools').update(updates).eq('id', id).select().single();
+  if (error) return res.json({ success: false, error: error.message });
+
+  // Update school_configs jika ada jadwal
+  const cfgUpdates = {};
+  ['scheduler_enabled','pagi_hour','pagi_minute','pulang_hour','pulang_minute',
+   'message_pagi','message_pagi_sudah','message_pulang','message_pulang_sudah']
+    .forEach(k => { if (req.body[k] !== undefined) cfgUpdates[k] = req.body[k]; });
+
+  if (Object.keys(cfgUpdates).length > 0) {
+    await supabase.from('school_configs').update(cfgUpdates).eq('school_id', id);
+  }
+
+  // Invalidate caches
+  schoolsCache = null;
+  for (const [key, val] of authCache.entries()) {
+    if (val.schoolId === id) authCache.delete(key);
+  }
+
+  res.json({ success: true, school: data });
+});
+
+// DELETE hapus sekolah
+app.delete('/api/admin/schools/:id', requireSuperAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { error } = await supabase.from('schools').delete().eq('id', id);
+  if (error) return res.json({ success: false, error: error.message });
+  schoolsCache = null;
+  res.json({ success: true });
+});
+
+// GET stats ringkas untuk Super Admin dashboard
+app.get('/api/admin/stats', requireSuperAdmin, async (req, res) => {
+  const [{ count: totalSchools }, { count: freeSchools }, { count: proSchools }] = await Promise.all([
+    supabase.from('schools').select('*', { count: 'exact', head: true }),
+    supabase.from('schools').select('*', { count: 'exact', head: true }).eq('plan', 'free'),
+    supabase.from('schools').select('*', { count: 'exact', head: true }).eq('plan', 'pro'),
+  ]);
+  res.json({ success: true, totalSchools, freeSchools, proSchools });
+});
 
 // ─── Manual Trigger Scheduler ─────────────────────────────────────────────────
 app.post('/api/scheduler/run-now', requireAppAuth, async (req, res) => {
@@ -1379,20 +1661,38 @@ app.post('/api/send-direct', async (req, res) => {
   res.json({ success: result.success, error: result.error, data: result.data });
 });
 
-// ─── App Gatekeeper Security (Password: SMK3magelang by default) ───────────────
-app.post('/api/auth/app-login', authLimiter, (req, res) => {
-  const { password } = req.body;
-  const cfg = loadConfig();
-  const validPass = cfg.appPassword || process.env.APP_PASSWORD || 'SMK3magelang';
-
-  if (password === validPass) {
-    const token = generateAuthToken(validPass);
-    addLog({ type: 'info', message: '🔓 Berhasil masuk ke dashboard aplikasi.' });
-    return res.json({ success: true, token });
+// ─── App Gatekeeper Security (Supabase Auth) ───────────────────────────────────
+app.post('/api/auth/app-login', authLimiter, async (req, res) => {
+  const { email, password } = req.body;
+  
+  if (!email || !password) {
+    return res.status(400).json({ success: false, error: 'Email dan password wajib diisi.' });
   }
 
-  res.json({ success: false, error: 'Password akses salah. Silakan coba lagi.' });
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error || !data.session) {
+      console.error('[Login] Supabase error:', error?.message);
+      return res.status(401).json({ success: false, error: 'Email atau password salah. Silakan periksa kembali.' });
+    }
+
+    const { data: roleData } = await supabase.from('user_roles').select('*').eq('user_id', data.user.id).single();
+    
+    addLog(null, { type: 'info', message: '🔓 Berhasil masuk ke dashboard aplikasi.' });
+    
+    res.json({ 
+      success: true, 
+      token: data.session.access_token,
+      role: roleData?.role || 'school_admin',
+      schoolId: roleData?.school_id || process.env.DEFAULT_SCHOOL_ID
+    });
+  } catch (err) {
+    console.error('[Login] Server error:', err);
+    res.status(500).json({ success: false, error: 'Terjadi kesalahan pada server saat login.' });
+  }
 });
+
 
 app.post('/api/auth/change-app-password', requireAppAuth, (req, res) => {
   const { oldPassword, newPassword } = req.body;
@@ -1978,7 +2278,7 @@ app.get('/api/status', (req, res) => {
 
   res.json({
     authMode: cfg.authMode || 'auto',
-    schedulerActive: (cronPagi !== null || cronPulang !== null) && cfg.schedulerEnabled,
+    schedulerActive: masterCron !== null && cfg.schedulerEnabled,
     schedulerEnabled: cfg.schedulerEnabled || false,
     pagiTime: `${String(cfg.pagiHour ?? 7).padStart(2,'0')}:${String(cfg.pagiMinute ?? 30).padStart(2,'0')}`,
     pulangTime: `${String(cfg.pulangHour ?? 18).padStart(2,'0')}:${String(cfg.pulangMinute ?? 0).padStart(2,'0')}`,

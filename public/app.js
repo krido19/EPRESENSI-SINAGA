@@ -23,6 +23,7 @@ window.fetch = async function (url, options = {}) {
 const appGatekeeperScreen        = document.getElementById('appGatekeeperScreen');
 const mainAppWrapper             = document.getElementById('mainAppWrapper');
 const gatekeeperForm             = document.getElementById('gatekeeperForm');
+const gatekeeperInputEmail       = document.getElementById('gatekeeperInputEmail');
 const gatekeeperInputPassword    = document.getElementById('gatekeeperInputPassword');
 const btnToggleGatekeeperEye     = document.getElementById('btnToggleGatekeeperEye');
 const gatekeeperErrorMsg         = document.getElementById('gatekeeperErrorMsg');
@@ -56,8 +57,12 @@ if (btnToggleGatekeeperEye && gatekeeperInputPassword) {
 if (gatekeeperForm) {
   gatekeeperForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const password = gatekeeperInputPassword.value.trim();
-    if (!password) return;
+    const email    = gatekeeperInputEmail ? gatekeeperInputEmail.value.trim() : '';
+    const password = gatekeeperInputPassword ? gatekeeperInputPassword.value.trim() : '';
+    if (!email || !password) {
+      if (gatekeeperErrorMsg) gatekeeperErrorMsg.textContent = '❌ Email dan password wajib diisi.';
+      return;
+    }
 
     if (btnSubmitGatekeeper) {
       btnSubmitGatekeeper.disabled = true;
@@ -69,27 +74,32 @@ if (gatekeeperForm) {
       const res = await fetch('/api/auth/app-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ email, password })
       });
       const data = await res.json();
 
       if (data.success && data.token) {
         localStorage.setItem('epresensi_app_token', data.token);
+        if (data.role)    localStorage.setItem('epresensi_user_role', data.role);
+        if (data.schoolId) localStorage.setItem('epresensi_school_id', data.schoolId);
         checkAppAuth();
         showToast('Selamat datang di Dashboard ePresensi!', 'success');
         loadStatus();
         loadColleagues();
+        loadSchoolAccounts();
+        loadConfig();
+        loadRecipients();
+        loadLogs();
       } else {
-        if (gatekeeperErrorMsg) gatekeeperErrorMsg.textContent = `❌ ${data.error || 'Password salah'}`;
-        gatekeeperInputPassword.value = '';
-        gatekeeperInputPassword.focus();
+        if (gatekeeperErrorMsg) gatekeeperErrorMsg.textContent = `❌ ${data.error || 'Email atau password salah'}`;
+        if (gatekeeperInputPassword) { gatekeeperInputPassword.value = ''; gatekeeperInputPassword.focus(); }
       }
     } catch (err) {
-      if (gatekeeperErrorMsg) gatekeeperErrorMsg.textContent = `❌ Error: ${err.message}`;
+      if (gatekeeperErrorMsg) gatekeeperErrorMsg.textContent = `❌ Error koneksi: ${err.message}`;
     } finally {
       if (btnSubmitGatekeeper) {
         btnSubmitGatekeeper.disabled = false;
-        btnSubmitGatekeeper.textContent = '🔓 Buka Dashboard →';
+        btnSubmitGatekeeper.textContent = '🔓 Masuk ke Dashboard →';
       }
     }
   });
@@ -100,10 +110,9 @@ if (btnLogoutApp) {
     if (confirm('Kunci aplikasi dan kembali ke halaman login?')) {
       localStorage.removeItem('epresensi_app_token');
       checkAppAuth();
-      if (gatekeeperInputPassword) {
-        gatekeeperInputPassword.value = '';
-        gatekeeperInputPassword.focus();
-      }
+      if (gatekeeperInputEmail) gatekeeperInputEmail.value = '';
+      if (gatekeeperInputPassword) { gatekeeperInputPassword.value = ''; }
+      if (gatekeeperInputEmail) gatekeeperInputEmail.focus();
       showToast('Aplikasi terkunci.', 'info');
     }
   });
@@ -2556,3 +2565,151 @@ loadRecipients();
 loadColleagues();
 loadLogs();
 loadGraphStats();
+
+// ─── Super Admin Module ────────────────────────────────────────────────────────
+(function initSuperAdmin() {
+  const navBtn      = document.getElementById('navSuperAdmin');
+  const addWrap     = document.getElementById('formAddSchoolWrap');
+  const formAdd     = document.getElementById('formAddSchool');
+  const btnShow     = document.getElementById('btnShowAddSchool');
+  const btnCancel   = document.getElementById('btnCancelAddSchool');
+  const errEl       = document.getElementById('formAddSchoolError');
+  const tbody       = document.getElementById('saasSchoolsBody');
+
+  // Reveal Super Admin tab only for super_admin role
+  const role = localStorage.getItem('epresensi_user_role');
+  if (role === 'super_admin' && navBtn) {
+    navBtn.style.display = '';
+  }
+
+  // Load Stats
+  async function loadSaasStats() {
+    try {
+      const r = await apiFetch('/api/admin/stats');
+      if (r.success) {
+        document.getElementById('saasStatTotal').textContent = r.totalSchools ?? '-';
+        document.getElementById('saasStatPro').textContent   = r.proSchools   ?? '-';
+        document.getElementById('saasStatFree').textContent  = r.freeSchools  ?? '-';
+      }
+    } catch(e) {}
+  }
+
+  // Load Schools Table
+  async function loadSaasSchools() {
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;opacity:.5;">Memuat...</td></tr>';
+    try {
+      const r = await apiFetch('/api/admin/schools');
+      if (!r.success) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--red);">${r.error}</td></tr>`;
+        return;
+      }
+      if (!r.schools || r.schools.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;opacity:.5;">Belum ada sekolah terdaftar.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = r.schools.map((s, i) => {
+        const cfg    = s.school_configs?.[0] || {};
+        const planBadge = s.plan === 'pro'
+          ? '<span style="color:#10b981;font-weight:600;">✅ Pro</span>'
+          : '<span style="color:#f59e0b;font-weight:600;">🆓 Free</span>';
+        const schedulerBadge = cfg.scheduler_enabled !== false
+          ? '<span style="color:#10b981;">Aktif</span>'
+          : '<span style="color:#ef4444;">Nonaktif</span>';
+        const jam = `${String(cfg.pagi_hour??7).padStart(2,'0')}:${String(cfg.pagi_minute??30).padStart(2,'0')} / ${String(cfg.pulang_hour??18).padStart(2,'0')}:${String(cfg.pulang_minute??0).padStart(2,'0')}`;
+        return `<tr>
+          <td class="font-mono">${i+1}</td>
+          <td><strong>${s.name}</strong><br><span style="font-size:.75rem;opacity:.6;">${s.npsn||'-'}</span></td>
+          <td class="font-mono" style="font-size:.82rem;">${s.email}</td>
+          <td>${planBadge}</td>
+          <td>${schedulerBadge}</td>
+          <td class="font-mono" style="font-size:.82rem;">${jam}</td>
+          <td>
+            <button class="modern-btn" style="padding:5px 10px;font-size:.78rem;background:rgba(239,68,68,.15);color:#f87171;" onclick="deleteSaasSchool('${s.id}','${s.name}')">🗑️ Hapus</button>
+          </td>
+        </tr>`;
+      }).join('');
+    } catch(e) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red);">${e.message}</td></tr>`;
+    }
+  }
+
+  // Load when super admin tab is opened
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-tab="superadmin"]')) {
+      loadSaasStats();
+      loadSaasSchools();
+    }
+  });
+
+  // Show/hide form
+  if (btnShow)   btnShow.addEventListener('click', () => { if(addWrap) addWrap.style.display=''; btnShow.style.display='none'; });
+  if (btnCancel) btnCancel.addEventListener('click', () => { if(addWrap) addWrap.style.display='none'; if(btnShow) btnShow.style.display=''; if(formAdd) formAdd.reset(); if(errEl) errEl.textContent=''; });
+
+  // Submit form tambah sekolah
+  if (formAdd) {
+    formAdd.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (errEl) errEl.textContent = '';
+      const btn = document.getElementById('btnSubmitAddSchool');
+      if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+
+      const pagiParts   = (document.getElementById('saasSchoolPagi')?.value || '07:30').split(':');
+      const pulangParts = (document.getElementById('saasSchoolPulang')?.value || '18:00').split(':');
+
+      try {
+        const r = await apiFetch('/api/admin/schools', {
+          method: 'POST',
+          body: JSON.stringify({
+            name:                document.getElementById('saasSchoolName')?.value.trim(),
+            npsn:                document.getElementById('saasSchoolNpsn')?.value.trim(),
+            email:               document.getElementById('saasSchoolEmail')?.value.trim(),
+            password:            document.getElementById('saasSchoolPassword')?.value.trim(),
+            plan:                document.getElementById('saasSchoolPlan')?.value,
+            epresensi_username:  document.getElementById('saasSchoolEpUser')?.value.trim(),
+            epresensi_password:  document.getElementById('saasSchoolEpPass')?.value.trim(),
+            fonnte_token:        document.getElementById('saasSchoolFonnte')?.value.trim(),
+            unit_code:           document.getElementById('saasSchoolUnit')?.value.trim(),
+            opd_code:            document.getElementById('saasSchoolOpd')?.value.trim(),
+            pagi_hour:   parseInt(pagiParts[0]) || 7,
+            pagi_minute: parseInt(pagiParts[1]) || 30,
+            pulang_hour:   parseInt(pulangParts[0]) || 18,
+            pulang_minute: parseInt(pulangParts[1]) || 0,
+          })
+        });
+        if (r.success) {
+          showToast(`✅ Sekolah "${r.school.name}" berhasil ditambahkan!`, 'success');
+          formAdd.reset();
+          if (addWrap) addWrap.style.display = 'none';
+          if (btnShow) btnShow.style.display = '';
+          loadSaasSchools();
+          loadSaasStats();
+        } else {
+          if (errEl) errEl.textContent = `❌ ${r.error}`;
+        }
+      } catch(err) {
+        if (errEl) errEl.textContent = `❌ ${err.message}`;
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan Sekolah'; }
+      }
+    });
+  }
+
+  // Delete school (global function for onclick)
+  window.deleteSaasSchool = async (id, name) => {
+    if (!confirm(`Hapus sekolah "${name}"? Semua data konfigurasi akan ikut terhapus!`)) return;
+    try {
+      const r = await apiFetch(`/api/admin/schools/${id}`, { method: 'DELETE' });
+      if (r.success) {
+        showToast(`🗑️ Sekolah "${name}" dihapus.`, 'info');
+        loadSaasSchools();
+        loadSaasStats();
+      } else {
+        showToast(`❌ Gagal: ${r.error}`, 'error');
+      }
+    } catch(e) {
+      showToast(`❌ ${e.message}`, 'error');
+    }
+  };
+})();
+
