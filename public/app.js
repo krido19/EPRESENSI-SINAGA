@@ -80,16 +80,20 @@ if (gatekeeperForm) {
 
       if (data.success && data.token) {
         localStorage.setItem('epresensi_app_token', data.token);
-        if (data.role)    localStorage.setItem('epresensi_user_role', data.role);
+        if (data.role)     localStorage.setItem('epresensi_user_role', data.role);
         if (data.schoolId) localStorage.setItem('epresensi_school_id', data.schoolId);
+        else               localStorage.removeItem('epresensi_school_id');
         checkAppAuth();
-        showToast('Selamat datang di Dashboard ePresensi!', 'success');
-        loadStatus();
-        loadColleagues();
-        loadSchoolAccounts();
-        loadConfig();
-        loadRecipients();
-        loadLogs();
+        applyRoleUI(data.role); // update tampilan sesuai role baru
+        showToast(`Selamat datang, ${data.role === 'super_admin' ? 'Super Admin' : 'Admin Sekolah'}!`, 'success');
+        if (data.role !== 'super_admin') {
+          loadStatus();
+          loadColleagues();
+          loadSchoolAccounts();
+          loadConfig();
+          loadRecipients();
+          loadLogs();
+        }
       } else {
         if (gatekeeperErrorMsg) gatekeeperErrorMsg.textContent = `❌ ${data.error || 'Email atau password salah'}`;
         if (gatekeeperInputPassword) { gatekeeperInputPassword.value = ''; gatekeeperInputPassword.focus(); }
@@ -105,10 +109,34 @@ if (gatekeeperForm) {
   });
 }
 
+// ─── Role-based UI ────────────────────────────────────────────────────────────
+function applyRoleUI(role) {
+  role = role || localStorage.getItem('epresensi_user_role') || 'school_admin';
+  const navSA = document.getElementById('navSuperAdmin');
+
+  if (role === 'super_admin') {
+    if (navSA) navSA.style.display = '';
+    // Auto switch ke tab Super Admin setelah DOM siap
+    setTimeout(() => {
+      const saTab = document.querySelector('[data-tab="superadmin"]');
+      if (saTab) saTab.click();
+      // Load data Super Admin
+      if (window._saasLoadStats)   window._saasLoadStats();
+      if (window._saasLoadSchools) window._saasLoadSchools();
+    }, 300);
+  } else {
+    if (navSA) navSA.style.display = 'none';
+  }
+}
+// Jalankan on page load
+applyRoleUI();
+
 if (btnLogoutApp) {
   btnLogoutApp.addEventListener('click', () => {
     if (confirm('Kunci aplikasi dan kembali ke halaman login?')) {
       localStorage.removeItem('epresensi_app_token');
+      localStorage.removeItem('epresensi_user_role');
+      localStorage.removeItem('epresensi_school_id');
       checkAppAuth();
       if (gatekeeperInputEmail) gatekeeperInputEmail.value = '';
       if (gatekeeperInputPassword) { gatekeeperInputPassword.value = ''; }
@@ -2576,11 +2604,11 @@ loadGraphStats();
   const errEl       = document.getElementById('formAddSchoolError');
   const tbody       = document.getElementById('saasSchoolsBody');
 
-  // Reveal Super Admin tab only for super_admin role
-  const role = localStorage.getItem('epresensi_user_role');
-  if (role === 'super_admin' && navBtn) {
-    navBtn.style.display = '';
-  }
+  // Tab visibility dihandle oleh applyRoleUI() — tidak perlu cek lagi di sini
+
+  // Expose agar applyRoleUI() bisa panggil setelah login
+  window._saasLoadStats   = loadSaasStats;
+  window._saasLoadSchools = loadSaasSchools;
 
   // Load Stats
   async function loadSaasStats() {
