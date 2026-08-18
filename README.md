@@ -48,11 +48,17 @@ Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gra
 ### 🔒 6. Keamanan & Stabilitas Tingkat Enterprise
 - **Environment Configuration (`.env`):** Pemisahan kredensial sensitif dari kode sumber via `dotenv`.
 - **HMAC Token + Timing-Safe Verification:** Mencegah serangan *timing attack* pada autentikasi sesi.
-- **Cryptographic Secret Generator:** Auto-generation kunci rahasia 32-byte acak jika tidak didefinisikan secara manual.
-- **Anti-Crash Guard:** Global process error listener (`uncaughtException` & `unhandledRejection`) dan middleware error handling terpusat.
-- **Atomic File Storage:** Mencegah kerusakan file JSON (`config.json`, `recipients.json`, `logs.json`) akibat power loss atau concurrent writes.
+- **Auto-Backup & Atomic Storage:** Mem-backup `config.json` secara otomatis dan melakukan *auto-restore* jika file korup. Mencegah kerusakan file saat *power loss*.
+- **Anti-Crash Guard & Process Manager:** Global error listener (`uncaughtException`), serta dilengkapi script **PM2** (`Setup_PM2.bat` / `Kelola_PM2.bat`) untuk *auto-restart* di background.
 
-### 🎨 7. Modern Sidebar, Auto-Hide & Theme Switcher
+### 📈 7. Monitoring & Reliabilitas Pengiriman (Baru!)
+- **Health Check Endpoint (`/health`):** Endpoint khusus untuk memonitor status server, koneksi WhatsApp, dan scheduler. Siap diintegrasikan dengan *UptimeRobot* (24/7).
+- **Persistent Logs via Supabase:** Riwayat pengiriman WhatsApp dicatat permanen ke database Supabase (`notification_logs`), sehingga data tidak hilang saat restart.
+- **Smart Retry Mechanism:** Jika pengiriman WhatsApp gagal (timeout sesaat), sistem otomatis mengulang 3x dengan *exponential backoff* (2s ➡️ 4s ➡️ 8s).
+- **WhatsApp Disconnect Alert:** Sistem otomatis mengirimkan pesan peringatan ke nomor Admin jika koneksi WhatsApp terputus lebih dari 5 menit.
+- **Smart Cache Invalidation:** Memastikan bot mengambil data presensi paling aktual (force refresh) saat eksekusi otomatis tanpa terjebak *cache* lama.
+
+### 🎨 8. Modern Sidebar, Auto-Hide & Theme Switcher
 - **🍔 Hamburger & Auto-Hide Sidebar:** Mode ciut (*Icon-Only 78px*) di desktop dengan *auto-expand on hover*, dan *off-canvas drawer* di HP.
 - **🌙 Dark Glassmorphism & ☀️ Clean Light Mode:** Tombol sakelar tema di pojok atas.
 - **Sleek Custom Scrollbars:** Scrollbar tipis transparan modern.
