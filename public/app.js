@@ -650,7 +650,7 @@ window.switchNavTab = function(tabName) {
     sidebarBackdrop?.classList.remove('show');
   }
   // Load data saat masuk ke tab tertentu
-  if (targetTab === 'template') loadConfig();
+  if (targetTab === 'config' || targetTab === 'template') loadConfig();
   if (targetTab === 'recipients') loadRecipients();
   if (targetTab === 'logs') loadLogs();
 };
