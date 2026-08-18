@@ -90,12 +90,16 @@ cp .env.example .env
 Sesuaikan variabel di dalam `.env` jika diperlukan (port, password akses aplikasi, secret key, akun ePresensi).
 
 ### 4. Menjalankan Aplikasi
-```bash
-# Menjalankan langsung:
-npm start
 
-# Atau via file batch (Windows):
-start.bat
+**Rekomendasi (Menggunakan PM2 - Background Process):**
+Karena aplikasi ini harus berjalan 24 jam untuk pengiriman pesan jadwal (*scheduler*), kami sangat menyarankan menggunakan **PM2**.
+1. Klik kanan pada **`Setup_PM2.bat`** lalu pilih **Run as Administrator** (hanya perlu dilakukan sekali).
+2. Untuk memantau server, melihat log, atau menyalakan/mematikan aplikasi, gunakan **`Kelola_PM2.bat`** sebagai *remote control* Anda.
+
+**Alternatif (Menjalankan Manual di CMD):**
+Jika hanya untuk *testing* / pengembangan:
+```bash
+npm start
 ```
 Buka browser dan akses alamat: **`http://localhost:3000`**
 
