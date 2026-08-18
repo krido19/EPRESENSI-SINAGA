@@ -23,6 +23,7 @@ if (!supabaseUrl || !supabaseKey) {
   console.error('[CRITICAL] SUPABASE_URL atau SUPABASE_SERVICE_ROLE_KEY tidak ditemukan di .env!');
   process.exit(1);
 }
+console.log('[DEBUG INIT] Supabase URL:', supabaseUrl, 'Key Prefix:', supabaseKey.substring(0, 15));
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ─── Global Process Error Handlers (Anti-Crash Guard) ─────────────────────────
@@ -173,29 +174,38 @@ async function requireAppAuth(req, res, next) {
 
   // Ambil role dan school dari user_roles
   try {
-    const { data: roleRow } = await supabase
+    const { data: roleData } = await supabase
       .from('user_roles')
       .select('role, school_id')
       .eq('user_id', data.user.id)
       .single();
 
-    req.userRole = roleRow?.role || 'school_admin';
-    req.schoolId = roleRow?.school_id || null;
+    const userRole = roleData?.role || 'school_admin';
+    const userSchoolId = userRole === 'super_admin' ? null : (roleData?.school_id || process.env.DEFAULT_SCHOOL_ID);
+
+    req.user = {
+      id: data.user.id,
+      email: data.user.email,
+      role: userRole,
+      schoolId: userSchoolId
+    };
+    req.userRole = userRole;
+    req.schoolId = userSchoolId;
 
     let tenantCfg = null;
 
-    if (roleRow?.school_id) {
+    if (userSchoolId) {
       // Ambil data sekolah + konfigurasi jadwal sekaligus
       const { data: school } = await supabase
         .from('schools')
         .select('*')
-        .eq('id', roleRow.school_id)
+        .eq('id', userSchoolId)
         .single();
 
       const { data: schoolCfg } = await supabase
         .from('school_configs')
         .select('*')
-        .eq('school_id', roleRow.school_id)
+        .eq('school_id', userSchoolId)
         .single();
 
       if (school) {
@@ -580,7 +590,7 @@ async function doLogin(username, password) {
     const sessionCookies = setCookies.map(c => c.split(';')[0]).join('; ');
     const allCookies     = [initCookies, sessionCookies].filter(Boolean).join('; ');
 
-    if (status === 301 || status === 302 || status === 303) {
+    if (status === 301 || status === 302 || status === 303 || status === 307) {
       const verifyRes = await fetch(`${BASE_URL}/v3/dashboard`, { headers: { ...HEADERS_BASE, Cookie: allCookies }, redirect: 'manual' });
       if (verifyRes.status === 200) return await saveSessionAndReturn(username, allCookies);
       const finalUrl  = location.startsWith('http') ? location : `${BASE_URL}${location}`;
@@ -601,6 +611,60 @@ async function doLogin(username, password) {
     return { success: false, error: `Login gagal HTTP ${status}` };
   } catch (err) {
     return { success: false, error: `Koneksi gagal: ${err.message}` };
+  }
+}
+
+const tenantSessions = {};
+
+async function ensureTenantSession(cfg, forceFresh = false) {
+  const schoolId = cfg.schoolId;
+  if (!schoolId) return await ensureValidSession(forceFresh);
+
+  let session = tenantSessions[schoolId];
+  if (session && !forceFresh) {
+    const isExpired = new Date() > new Date(session.expiry);
+    if (!isExpired) {
+      try {
+        const res = await fetch(`${BASE_URL}/v3/dashboard`, { headers: { ...HEADERS_BASE, Cookie: session.cookie }, redirect: 'manual' });
+        if (res.status === 200) {
+          const bodyHtml = await res.text();
+          if (!bodyHtml.includes('portal/auth')) {
+            return { success: true, cookie: session.cookie };
+          }
+        }
+      } catch(e) {}
+    }
+  }
+
+  if (!cfg.username || !cfg.password) return { success: false, error: 'Username/password belum diset untuk tenant ini.' };
+  
+  try {
+    const { html: loginHtml, cookies: initCookies, satu, dua } = await fetchLoginPage();
+    const jawaban = satu + dua;
+    const formData = new URLSearchParams({ username: cfg.username, password: cfg.password, satu, dua, jawaban });
+    
+    const loginRes = await fetch(`${BASE_URL}/v3/portal/auth`, {
+      method: 'POST',
+      headers: { ...HEADERS_BASE, 'Content-Type': 'application/x-www-form-urlencoded', 'Cookie': initCookies },
+      body: formData.toString(), redirect: 'manual',
+    });
+    
+    const status = loginRes.status;
+    const setCookies = loginRes.headers.raw()['set-cookie'] || [];
+    const sessionCookies = setCookies.map(c => c.split(';')[0]).join('; ');
+    const allCookies = [initCookies, sessionCookies].filter(Boolean).join('; ');
+
+    if (status === 301 || status === 302 || status === 303 || status === 307) {
+      const verifyRes = await fetch(`${BASE_URL}/v3/dashboard`, { headers: { ...HEADERS_BASE, Cookie: allCookies }, redirect: 'manual' });
+      if (verifyRes.status === 200) {
+         const expiry = new Date(); expiry.setHours(expiry.getHours() + 8);
+         tenantSessions[schoolId] = { cookie: allCookies, expiry: expiry.toISOString() };
+         return { success: true, cookie: allCookies };
+      }
+    }
+    return { success: false, error: `Login ePresensi gagal (HTTP ${status})` };
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }
 
@@ -715,16 +779,16 @@ function parseAttendanceHTML(html) {
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let colleagueCache = {};
 
-async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth = null, targetYear = null, forceRefresh = false, retryCount = 0) {
-  const cfg   = loadConfig();
+async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth = null, targetYear = null, forceRefresh = false, retryCount = 0, cfg = null) {
+  const currentCfg = cfg || loadConfig();
   const now   = new Date();
   const day   = targetDay   ? parseInt(targetDay)   : now.getDate();
   const month = targetMonth ? String(targetMonth).padStart(2,'0') : String(now.getMonth() + 1).padStart(2,'0');
   const year  = targetYear  ? String(targetYear)  : String(now.getFullYear());
   const dayISO = `${year}-${month}-${String(day).padStart(2,'0')}`;
   
-  const opdCode = cfg.opdCode || 'F200000000';
-  const unitCode = cfg.unitCode || 'F208007700';
+  const opdCode = currentCfg.opdCode || 'F200000000';
+  const unitCode = currentCfg.unitCode || 'F208007700';
   const cacheKey = `${unitCode}_${year}-${month}-${day}`;
 
   // Cek cache memory jika tidak force refresh
@@ -1039,13 +1103,64 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
 }
 
 // ─── API: Colleagues List with Caching ───────────────────────────────────────
-app.get('/api/colleagues', async (req, res) => {
-  const session = await ensureValidSession();
-  if (!session.success) return res.json({ success: false, error: session.error, needLogin: true });
+app.get('/api/colleagues', requireAppAuth, async (req, res) => {
+  const role = req.userRole;
+  const schoolId = req.userSchoolId;
 
-  const force = req.query.force === 'true';
-  const result = await fetchColleaguesAttendance(session.cookie, req.query.day, req.query.month, req.query.year, force);
-  res.json(result);
+  try {
+    if (role === 'super_admin') {
+      const { data: allSchools } = await supabase.from('schools').select('*');
+      if (!allSchools || !allSchools.length) return res.json({ success: true, colleagues: [] });
+
+      let aggregatedColleagues = [];
+      console.log(`[SuperAdmin] Ditemukan ${allSchools.length} sekolah aktif untuk agregasi.`);
+      const promises = allSchools.map(async (schoolData) => {
+        const cfg = buildTenantCfg({ schools: schoolData });
+        console.log(`[SuperAdmin] Memproses tenant: ${cfg.namaSekolah}`);
+        const session = await ensureTenantSession(cfg);
+        if (!session.success) {
+          console.error(`[SuperAdmin] Gagal login tenant ${cfg.namaSekolah}: ${session.error}`);
+          return; 
+        }
+        const force = req.query.force === 'true';
+        const result = await fetchColleaguesAttendance(session.cookie, req.query.day, req.query.month, req.query.year, force, 0, cfg);
+        
+        if (result.success && result.colleagues) {
+          result.colleagues.forEach(c => { c.namaSekolah = cfg.namaSekolah; });
+          aggregatedColleagues = aggregatedColleagues.concat(result.colleagues);
+          console.log(`[SuperAdmin] Tenant ${cfg.namaSekolah} berhasil ditarik: ${result.colleagues.length} guru.`);
+        } else {
+          console.error(`[SuperAdmin] Gagal tarik data tenant ${cfg.namaSekolah}: ${result.error}`);
+        }
+      });
+      await Promise.all(promises);
+      return res.json({ success: true, colleagues: aggregatedColleagues });
+    } else {
+      const targetSchoolId = schoolId || process.env.DEFAULT_SCHOOL_ID;
+      const schools = await getActiveSchools();
+      const schoolRow = schools.find(s => s.school_id === targetSchoolId || (s.schools && s.schools.id === targetSchoolId));
+      
+      let cfg;
+      if (schoolRow) {
+        cfg = buildTenantCfg(schoolRow);
+      } else {
+        // Fallback jika tidak ada di scheduler cache
+        cfg = buildTenantCfg({ schools: loadConfig() });
+      }
+
+      const session = await ensureTenantSession(cfg);
+      if (!session.success) return res.json({ success: false, error: session.error, needLogin: true });
+
+      const force = req.query.force === 'true';
+      const result = await fetchColleaguesAttendance(session.cookie, req.query.day, req.query.month, req.query.year, force, 0, cfg);
+      if (result.success && result.colleagues) {
+         result.colleagues.forEach(c => { c.namaSekolah = cfg.namaSekolah; });
+      }
+      return res.json(result);
+    }
+  } catch (e) {
+    return res.json({ success: false, error: e.message });
+  }
 });
 
 // ─── API: Debug – Raw HTML from ePresensi (inspect table structure) ───────────
@@ -1238,8 +1353,8 @@ async function sendToAllRecipients(token, messageTemplate, targetOverride = null
 }
 
 // ─── Shared Scheduler Logic (Reusable for cron & manual trigger) ─────────────
-async function runSchedulerLogic(type = 'pagi') {
-  const config = loadConfig();
+async function runSchedulerLogic(type = 'pagi', cfg = null) {
+  const config = cfg || loadConfig();
   const gateway = config.waGateway || 'baileys';
   if (gateway !== 'fonnte' && !waSock) {
     throw new Error('WhatsApp Web belum terhubung. Scan QR Code terlebih dahulu.');
@@ -1248,11 +1363,11 @@ async function runSchedulerLogic(type = 'pagi') {
     throw new Error('Token Fonnte belum dikonfigurasi.');
   }
 
-  const session = await ensureValidSession();
+  const session = await ensureTenantSession(config);
   if (!session.success) throw new Error('Gagal login ke ePresensi. Cek konfigurasi akun.');
 
   const day = new Date().getDate();
-  const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, true);
+  const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, true, 0, config);
   if (!colleaguesRes.success) throw new Error('Gagal mengambil data presensi rekan guru.');
 
   // Ambil semua guru yang tidak sedang libur/cuti
@@ -1261,7 +1376,7 @@ async function runSchedulerLogic(type = 'pagi') {
 
   if (targets_raw.length === 0) {
     const msg = `${labelWaktu}: Tidak ada guru target (semua libur).`;
-    addLog({ type: 'info', message: msg });
+    addLog({ type: 'info', message: msg, school: config.namaSekolah });
     return { success: true, sent: 0, total: 0, message: msg };
   }
 
@@ -1284,7 +1399,7 @@ async function runSchedulerLogic(type = 'pagi') {
 
   if (targets.length === 0) {
     const msg = `${labelWaktu}: Ada ${targets_raw.length} guru target, tapi nomor WA belum terdaftar di sistem.`;
-    addLog({ type: 'info', message: msg });
+    addLog({ type: 'info', message: msg, school: config.namaSekolah });
     return { success: true, sent: 0, total: 0, message: msg };
   }
 
@@ -1458,6 +1573,23 @@ app.post('/api/admin/schools', requireSuperAdmin, async (req, res) => {
     return res.json({ success: false, error: 'name, email, password wajib diisi.' });
   }
 
+  let final_unit = null;
+  let final_opd = null;
+
+  if (epresensi_username && epresensi_password) {
+    const loginCheck = await doLogin(epresensi_username, epresensi_password);
+    if (!loginCheck.success) {
+      return res.json({ success: false, error: 'Gagal verifikasi ePresensi: ' + loginCheck.error });
+    }
+    
+    if (!loginCheck.profile?.unitCode || !loginCheck.profile?.opdCode) {
+      return res.json({ success: false, error: 'Gagal mendeteksi Kode Unit & OPD di ePresensi. Pastikan akun tersebut valid.' });
+    }
+    
+    final_unit = loginCheck.profile.unitCode;
+    final_opd = loginCheck.profile.opdCode;
+  }
+
   // 1. Buat user Supabase Auth
   const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
     email, password, email_confirm: true
@@ -1469,7 +1601,7 @@ app.post('/api/admin/schools', requireSuperAdmin, async (req, res) => {
     name, npsn, email, plan: plan || 'free',
     epresensi_username, epresensi_password,
     wa_gateway: wa_gateway || 'fonnte', fonnte_token, wa_number,
-    unit_code, opd_code
+    unit_code: final_unit, opd_code: final_opd
   }).select().single();
   if (schoolErr) return res.json({ success: false, error: schoolErr.message });
 
@@ -1557,12 +1689,7 @@ app.post('/api/scheduler/run-now', requireAppAuth, async (req, res) => {
 // ─── API Routes ───────────────────────────────────────────────────────────────
 
 // Colleagues Endpoint (Monitoring Semua Rekan Guru Hari Ini)
-app.get('/api/colleagues', async (req, res) => {
-  const session = await ensureValidSession();
-  if (!session.success) return res.json({ success: false, error: session.error, needLogin: true });
-  const result = await fetchColleaguesAttendance(session.cookie, req.query.day, req.query.month, req.query.year);
-  res.json(result);
-});
+
 
 // Send Notification Specifically to Colleagues Who Have NOT Checked In Today
 app.post('/api/send-unabsent', async (req, res) => {
@@ -1681,22 +1808,34 @@ app.post('/api/auth/app-login', authLimiter, async (req, res) => {
   }
 
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    // Hindari menggunakan global supabase client untuk login, karena akan menimpa service_role key dengan user token.
+    const authClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+    const { data, error } = await authClient.auth.signInWithPassword({ email, password });
 
     if (error || !data.session) {
       console.error('[Login] Supabase error:', error?.message);
       return res.status(401).json({ success: false, error: 'Email atau password salah. Silakan periksa kembali.' });
     }
 
-    const { data: roleData } = await supabase.from('user_roles').select('*').eq('user_id', data.user.id).single();
+    // Gunakan global supabase client (service_role) untuk bypass RLS
+    const { data: roleRows, error: roleError } = await supabase.from('user_roles').select('*').eq('user_id', data.user.id).limit(1);
     
+    if (roleError) {
+      console.error('[DEBUG LOGIN] roleError:', roleError.message);
+    }
+    const roleData = roleRows && roleRows.length > 0 ? roleRows[0] : null;
+    const role = roleData?.role || 'school_admin';
+    const schoolId = role === 'super_admin' ? null : (roleData?.school_id || process.env.DEFAULT_SCHOOL_ID);
+
+    console.log(`[DEBUG LOGIN] email: ${email}, userId: ${data.user.id}, roleData:`, roleData, `assigned role: ${role}`);
+
     addLog(null, { type: 'info', message: '🔓 Berhasil masuk ke dashboard aplikasi.' });
     
     res.json({ 
       success: true, 
       token: data.session.access_token,
-      role: roleData?.role || 'school_admin',
-      schoolId: roleData?.school_id || process.env.DEFAULT_SCHOOL_ID
+      role: role,
+      schoolId: schoolId
     });
   } catch (err) {
     console.error('[Login] Server error:', err);

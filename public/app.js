@@ -19,6 +19,21 @@ window.fetch = async function (url, options = {}) {
   return response;
 };
 
+// Helper untuk fetch dan parse JSON otomatis
+window.apiFetch = async function(url, options = {}) {
+  const opts = { ...options };
+  if (opts.body && typeof opts.body === 'string') {
+    opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  }
+  try {
+    const res = await fetch(url, opts);
+    return await res.json();
+  } catch (err) {
+    console.error('[apiFetch Error]', err);
+    return { success: false, error: err.message };
+  }
+};
+
 // ─── App Gatekeeper Security Elements ───────────────────────────────────────
 const appGatekeeperScreen        = document.getElementById('appGatekeeperScreen');
 const mainAppWrapper             = document.getElementById('mainAppWrapper');
@@ -113,9 +128,26 @@ if (gatekeeperForm) {
 function applyRoleUI(role) {
   role = role || localStorage.getItem('epresensi_user_role') || 'school_admin';
   const navSA = document.getElementById('navSuperAdmin');
+  window.isSuperAdmin = (role === 'super_admin');
 
   if (role === 'super_admin') {
     if (navSA) navSA.style.display = '';
+    // Ubah nama sekolah di topbar menjadi Super Admin
+    const tbName = document.getElementById('topbarSchoolName');
+    if (tbName) tbName.textContent = 'PANEL SUPER ADMIN';
+    
+    // Tampilkan badge di sidebar
+    const roleBadge = document.getElementById('sidebarRoleBadge');
+    if (roleBadge) roleBadge.style.display = 'inline-block';
+    const sidebarBrand = document.getElementById('sidebarBrandSubtitle');
+    if (sidebarBrand) sidebarBrand.textContent = 'Multi-Tenant System';
+
+    // Sembunyikan referensi SMKN 3 Magelang di panel lain
+    const monitoringDesc = document.getElementById('monitoringPanelDesc');
+    if (monitoringDesc) monitoringDesc.textContent = 'Daftar presensi real-time seluruh guru & staf.';
+    const templateAlert = document.getElementById('templateAlertText');
+    if (templateAlert) templateAlert.innerHTML = 'Tombol <strong>Unduh Template</strong> otomatis menyiapkan file Excel yang sudah terisi nama-nama Guru. Anda tinggal mengisi nomor WA dan meng-import ulang!';
+    
     // Auto switch ke tab Super Admin setelah DOM siap
     setTimeout(() => {
       const saTab = document.querySelector('[data-tab="superadmin"]');
@@ -126,6 +158,28 @@ function applyRoleUI(role) {
     }, 300);
   } else {
     if (navSA) navSA.style.display = 'none';
+    const tbName = document.getElementById('topbarSchoolName');
+    if (tbName && tbName.textContent === 'PANEL SUPER ADMIN') {
+       tbName.textContent = 'SMKN 3 MAGELANG';
+    }
+    
+    // Sembunyikan badge di sidebar
+    const roleBadge = document.getElementById('sidebarRoleBadge');
+    if (roleBadge) roleBadge.style.display = 'none';
+    const sidebarBrand = document.getElementById('sidebarBrandSubtitle');
+    if (sidebarBrand && sidebarBrand.textContent === 'Multi-Tenant System') {
+      sidebarBrand.textContent = 'SMKN 3 MAGELANG';
+    }
+
+    // Kembalikan referensi SMKN 3 Magelang di panel lain
+    const monitoringDesc = document.getElementById('monitoringPanelDesc');
+    if (monitoringDesc && monitoringDesc.textContent === 'Daftar presensi real-time seluruh guru & staf.') {
+      monitoringDesc.textContent = 'Daftar presensi real-time seluruh guru & staf SMKN 3 Magelang.';
+    }
+    const templateAlert = document.getElementById('templateAlertText');
+    if (templateAlert && templateAlert.innerHTML.includes('terisi nama-nama Guru')) {
+      templateAlert.innerHTML = 'Tombol <strong>Unduh Template</strong> otomatis menyiapkan file Excel yang sudah terisi seluruh <strong>98 Nama Guru SMKN 3 Magelang</strong>. Anda tinggal mengisi nomor WA dan meng-import ulang!';
+    }
   }
 }
 // Jalankan on page load
@@ -1005,8 +1059,8 @@ let selectedChartDay = null;
 function applyColleaguesData(data) {
   colleagues = data.colleagues || [];
   const total = colleagues.length;
-  const hadir = data.hadirCount || 0;
-  const belum = data.belumCount || 0;
+  const hadir = colleagues.filter(c => c.isHadir).length;
+  const belum = total - hadir;
   
   // Count Izin (termasuk Dinas Luar & Tugas Luar) dan Sakit untuk hari yang dipilih
   const izinCount = colleagues.filter(c => c.status && (
@@ -1055,8 +1109,13 @@ function renderMonthlyAnalytics(colleaguesList) {
   const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   const monthName = monthNames[currentMonthIdx];
 
+  const schoolLabel = window.isSuperAdmin ? 'Total Semua Sekolah' : 'Sekolah Anda';
   if (monthlyAnalyticsSubtitle) {
-    monthlyAnalyticsSubtitle.textContent = `Rekapitulasi presensi bulan ${monthName} ${currentYear} (${totalTeachers} Rekan Guru SMKN 3 Magelang)`;
+    monthlyAnalyticsSubtitle.textContent = `Rekapitulasi presensi bulan ${monthName} ${currentYear} (${totalTeachers} Rekan Guru — ${schoolLabel})`;
+  }
+  const monthlyAnalyticsTitle = document.getElementById('monthlyAnalyticsTitle');
+  if (monthlyAnalyticsTitle) {
+    monthlyAnalyticsTitle.textContent = `Rekapitulasi & Analisis Presensi 1 Bulan (${totalTeachers} Rekan Guru)`;
   }
 
   // 1. Accumulate month totals across all teachers
@@ -1309,7 +1368,7 @@ async function loadColleagues(force = false) {
     applyColleaguesData(data);
 
     if (force) {
-      showToast('✅ Data presensi 98 guru berhasil diperbarui!', 'success');
+      showToast(`✅ Data presensi ${colleagues.length} guru berhasil diperbarui!`, 'success');
     }
   } catch (err) {
     if (!hasRenderedFromCache && colleaguesTableBody) {
@@ -1401,7 +1460,7 @@ function renderColleaguesTable() {
           <div class="teacher-avatar-wrap">
             ${getTeacherAvatar(c.nama)}
             <a href="javascript:void(0)" class="teacher-link" onclick="openTeacherHistory('${c.nip}', '${escapeHtml(c.nama)}')">
-              <strong>${escapeHtml(c.nama)}</strong>
+              <strong>${escapeHtml(c.nama)}</strong>${window.isSuperAdmin && c.namaSekolah ? `<span style="font-size: 0.75rem; color: var(--purple-400); font-weight: 600; margin-left: 6px;">(${escapeHtml(c.namaSekolah)})</span>` : ''}
               <small>Lihat Riwayat 1 Bulan &rarr;</small>
             </a>
           </div>
@@ -2596,12 +2655,16 @@ if (formAddSchoolAccount) {
 checkAppAuth();
 initSelectOptions();
 buildDateStrip();      // render modern date strip on load
-loadSchoolAccounts();
-loadStatus();
-loadConfig();
-loadRecipients();
-loadColleagues();
-loadLogs();
+
+const currentInitRole = localStorage.getItem('epresensi_user_role') || 'school_admin';
+if (currentInitRole !== 'super_admin') {
+  loadSchoolAccounts();
+  loadStatus();
+  loadConfig();
+  loadRecipients();
+  loadColleagues();
+  loadLogs();
+}
 loadGraphStats();
 
 // ─── Super Admin Module ────────────────────────────────────────────────────────
@@ -2707,8 +2770,6 @@ loadGraphStats();
             epresensi_username:  document.getElementById('saasSchoolEpUser')?.value.trim(),
             epresensi_password:  document.getElementById('saasSchoolEpPass')?.value.trim(),
             fonnte_token:        document.getElementById('saasSchoolFonnte')?.value.trim(),
-            unit_code:           document.getElementById('saasSchoolUnit')?.value.trim(),
-            opd_code:            document.getElementById('saasSchoolOpd')?.value.trim(),
             pagi_hour:   parseInt(pagiParts[0]) || 7,
             pagi_minute: parseInt(pagiParts[1]) || 30,
             pulang_hour:   parseInt(pulangParts[0]) || 18,

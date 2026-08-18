@@ -66,7 +66,8 @@
         </div>
         <div class="brand-info">
           <div class="brand-title">ePresensi <span class="gradient-text">Jateng</span></div>
-          <div class="brand-subtitle">SMKN 3 MAGELANG</div>
+          <div class="brand-subtitle" id="sidebarBrandSubtitle">SMKN 3 MAGELANG</div>
+          <div id="sidebarRoleBadge" style="display: none; background: var(--accent-purple); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-top: 4px; display: inline-block; font-weight: bold;">SUPER ADMIN</div>
         </div>
       </div>
 
@@ -247,7 +248,7 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Monitoring Presensi Rekan Guru</h2>
-                <p class="panel-desc">Daftar presensi real-time seluruh guru & staf SMKN 3 Magelang.</p>
+                <p class="panel-desc" id="monitoringPanelDesc">Daftar presensi real-time seluruh guru & staf SMKN 3 Magelang.</p>
               </div>
               <div class="panel-actions">
                 <button class="modern-btn btn-purple" id="btnQuickSendUnabsent">
@@ -265,7 +266,7 @@
                 <div class="analytics-title-wrap">
                   <div class="analytics-icon-badge">📊</div>
                   <div>
-                    <h3 class="analytics-title">Rekapitulasi & Analisis Presensi 1 Bulan (98 Rekan Guru)</h3>
+                    <h3 class="analytics-title" id="monthlyAnalyticsTitle">Rekapitulasi & Analisis Presensi 1 Bulan</h3>
                     <p class="analytics-subtitle" id="monthlyAnalyticsSubtitle">Statistik akumulasi & grafik harian kehadiran, alpha (belum absen), izin/cuti, dan sakit</p>
                   </div>
                 </div>
@@ -473,7 +474,7 @@
 
             <div class="info-alert">
               <span class="alert-icon">💡</span>
-              <div class="alert-text">
+              <div class="alert-text" id="templateAlertText">
                 Tombol <strong>Unduh Template</strong> otomatis menyiapkan file Excel yang sudah terisi seluruh <strong>98 Nama Guru SMKN 3 Magelang</strong>. Anda tinggal mengisi nomor WA dan meng-import ulang!
               </div>
             </div>
@@ -836,8 +837,6 @@
                   <div class="form-item"><label class="form-label">NIP ePresensi</label><input class="custom-input" id="saasSchoolEpUser" placeholder="NIP guru admin"></div>
                   <div class="form-item"><label class="form-label">Password ePresensi</label><input class="custom-input" type="password" id="saasSchoolEpPass" placeholder="Password ePresensi" autocomplete="new-password"></div>
                   <div class="form-item"><label class="form-label">Fonnte Token</label><input class="custom-input" id="saasSchoolFonnte" placeholder="Token API Fonnte"></div>
-                  <div class="form-item"><label class="form-label">Kode Unit</label><input class="custom-input" id="saasSchoolUnit" placeholder="F208007700"></div>
-                  <div class="form-item"><label class="form-label">Kode OPD</label><input class="custom-input" id="saasSchoolOpd" placeholder="F200000000"></div>
                   <div class="form-item"><label class="form-label">Plan</label>
                     <select class="custom-input" id="saasSchoolPlan">
                       <option value="free">Free</option>
@@ -1182,7 +1181,7 @@
   <!-- Cache buster: update versi setiap kali ada perubahan penting -->
   <script>
     (function() {
-      var APP_VERSION = 'v20260818c';
+      var APP_VERSION = 'v20260818h';
       var storedVer = localStorage.getItem('epresensi_app_version');
       if (storedVer !== APP_VERSION) {
         // Hapus semua cache presensi harian dari localStorage
@@ -1194,6 +1193,6 @@
       }
     })();
   </script>
-  <script src="app.js?v=20260818c"></script>
+  <script src="app.js?v=20260818h"></script>
 </body>
 </html>
