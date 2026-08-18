@@ -47,6 +47,27 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
+// ─── Auto-Timestamp untuk semua log CMD ────────────────────────────────────────
+// Setiap baris log otomatis diberi [HH:MM:SS WIB] agar mudah deteksi stuck/idle
+(function patchConsoleWithTimestamp() {
+  const _origLog   = console.log.bind(console);
+  const _origWarn  = console.warn.bind(console);
+  const _origError = console.error.bind(console);
+
+  function ts() {
+    return new Date().toLocaleTimeString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      hour12: false,
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }) + ' WIB';
+  }
+
+  console.log   = (...a) => _origLog  (`[${ts()}]`, ...a);
+  console.warn  = (...a) => _origWarn (`[${ts()}] ⚠️`, ...a);
+  console.error = (...a) => _origError(`[${ts()}] ❌`, ...a);
+})();
+
+
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
@@ -302,6 +323,7 @@ let waSock = null;
 let waQrCodeDataUrl = null;
 let waConnectionStatus = 'disconnected'; // 'disconnected' | 'qr_ready' | 'connecting' | 'connected'
 let waConnectedUser = null;
+let waDisconnectedAt = null; // timestamp disconnect, untuk hitung durasi downtime
 
 async function initBaileys() {
   try {
@@ -336,6 +358,7 @@ async function initBaileys() {
         waConnectionStatus = 'disconnected';
         waConnectedUser = null;
         waQrCodeDataUrl = null;
+        waDisconnectedAt = Date.now(); // catat waktu disconnect untuk alert
 
         console.log(`[WhatsApp Web] Terputus (Status: ${statusCode || 'unknown'}). Reconnect: ${shouldReconnect}`);
 
@@ -357,6 +380,20 @@ async function initBaileys() {
         };
         console.log(`[WhatsApp Web] ✅ Terhubung: +${cleanNumber}`);
         addLog({ type: 'info', message: `📱 WhatsApp Web (Baileys) Terhubung: +${cleanNumber}` });
+
+        // ── Alert admin jika tadi disconnect > 5 menit ─────────────────────
+        if (waDisconnectedAt) {
+          const downMs = Date.now() - waDisconnectedAt;
+          waDisconnectedAt = null;
+          const downMin = Math.round(downMs / 60000);
+          if (downMin >= 5) {
+            const globalCfg = loadConfig();
+            const adminNo = globalCfg.waAdminNumber || '085868733378';
+            const alertMsg = `⚠️ *ePresensi Notif — Alert*\n\nWhatsApp sempat terputus selama *${downMin} menit* dan baru saja terhubung kembali.\n\nJika ada jadwal notifikasi yang terlewat selama periode tersebut, silakan kirim ulang manual dari dashboard.\n\n_Pesan otomatis sistem_`;
+            sendWhatsApp(adminNo, alertMsg).catch(() => {});
+            console.warn(`[WA Alert] WhatsApp terputus ${downMin} menit — notifikasi admin dikirim ke ${adminNo}`);
+          }
+        }
       }
     });
   } catch (err) {
@@ -374,7 +411,19 @@ function loadConfig() {
     try {
       data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
     } catch (e) {
-      console.error('Error reading config.json:', e.message);
+      console.error('Error reading config.json (korup):', e.message);
+      // Auto-restore dari backup jika ada
+      const bakFile = CONFIG_FILE + '.bak';
+      if (fs.existsSync(bakFile)) {
+        try {
+          data = JSON.parse(fs.readFileSync(bakFile, 'utf8'));
+          console.warn('[Config] ⚠️ config.json korup, berhasil restore dari config.json.bak');
+          // Tulis ulang config dari backup
+          fs.writeFileSync(CONFIG_FILE, JSON.stringify(data, null, 2), 'utf8');
+        } catch (e2) {
+          console.error('[Config] ❌ Backup juga gagal dibaca:', e2.message);
+        }
+      }
     }
   }
 
@@ -419,11 +468,16 @@ function loadConfig() {
 
 function saveConfig(cfg) {
   try {
+    // Backup file lama sebelum overwrite
+    if (fs.existsSync(CONFIG_FILE)) {
+      try { fs.copyFileSync(CONFIG_FILE, CONFIG_FILE + '.bak'); } catch (e) {}
+    }
     const tempFile = `${CONFIG_FILE}.tmp`;
     fs.writeFileSync(tempFile, JSON.stringify(cfg, null, 2), 'utf8');
     fs.renameSync(tempFile, CONFIG_FILE);
   } catch (e) {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+    console.error('[Config] Error saveConfig:', e.message);
+    try { fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8'); } catch(e2) {}
   }
 }
 
@@ -447,6 +501,28 @@ function addLog(entry) {
     fs.renameSync(tempFile, LOG_FILE);
   } catch (e) {
     console.error('Error saving log:', e.message);
+  }
+}
+
+// ─── Log Notifikasi ke Supabase (Persistent History) ─────────────────────────
+// Menyimpan setiap pengiriman WA ke tabel notification_logs di Supabase
+// agar riwayat tidak hilang saat server restart
+async function logNotificationToSupabase({ school_id, type, nama, nomor, status, error_msg = null, gateway = 'baileys', message = null }) {
+  try {
+    await supabase.from('notification_logs').insert({
+      school_id: school_id || null,
+      type:      type     || 'manual',
+      nama:      nama     || '',
+      nomor:     nomor    || '',
+      status:    status,           // 'sent' | 'failed'
+      error_msg: error_msg,
+      gateway:   gateway,
+      message:   message ? message.substring(0, 500) : null, // truncate panjang
+      created_at: new Date().toISOString()
+    });
+  } catch (e) {
+    // Jangan crash kalau Supabase error — log ke console saja
+    console.error('[NotifLog] Gagal simpan ke Supabase:', e.message);
   }
 }
 
@@ -1352,6 +1428,24 @@ async function sendWhatsApp(targetOrToken, messageOrTarget, tokenOrMessage = nul
   }
 }
 
+// ─── Retry Wrapper untuk Kirim WA (3x, Exponential Backoff) ──────────────────
+// Mencegah pesan hilang karena timeout sesaat / WA sedang reconnect
+async function sendWhatsAppWithRetry(target, message, tokenOverride = null, maxRetry = 3) {
+  let lastResult = null;
+  for (let attempt = 1; attempt <= maxRetry; attempt++) {
+    lastResult = await sendWhatsApp(target, message, tokenOverride);
+    if (lastResult.success) return lastResult;
+
+    if (attempt < maxRetry) {
+      const delayMs = 2000 * Math.pow(2, attempt - 1); // 2s, 4s, 8s
+      console.warn(`[WA Retry] Gagal (attempt ${attempt}/${maxRetry}) ke ${target} — coba lagi dalam ${delayMs/1000}s: ${lastResult.error}`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+  console.error(`[WA Retry] \u274c Semua ${maxRetry} percobaan gagal untuk ${target}: ${lastResult?.error}`);
+  return lastResult;
+}
+
 async function sendToAllRecipients(token, messageTemplate, targetOverride = null, config = null) {
   let query = supabase.from('recipients').select('*').eq('aktif', true);
   if (config && config.schoolId) query = query.eq('school_id', config.schoolId);
@@ -1393,8 +1487,9 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
   if (session.success) {
     // Mode normal: cek siapa yang sudah/belum absen
     const day = new Date().getDate();
-    // forceRefresh=false → gunakan cache dari monitoring jika masih valid (30 menit)
-    const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, false, 0, config);
+    // forceRefresh=true → SELALU ambil data terbaru dari ePresensi saat scheduler jalan
+    // (penting: agar guru yang absen detik-detik terakhir sebelum jam notif tetap terdata)
+    const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, true, 0, config);
     if (colleaguesRes.success) {
       const targets_raw = colleaguesRes.colleagues.filter(c => !c.status.includes('Libur'));
       let q = supabase.from('recipients').select('*').eq('aktif', true);
@@ -1428,15 +1523,20 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
     addLog({ type: 'warning', message: `${labelWaktu}: Tidak bisa cek ePresensi — fallback ke mode kirim semua penerima.`, school: config.namaSekolah });
     let q = supabase.from('recipients').select('*').eq('aktif', true);
     const validSchoolId = config.schoolId && config.schoolId !== 'local' ? config.schoolId : null;
-    console.log(`[Scheduler DEBUG] schoolId saat query: ${validSchoolId || 'semua sekolah'}`);
+    console.log(`[Scheduler DEBUG] schoolId saat query: ${validSchoolId || 'semua sekolah'} (sekolah: ${config.namaSekolah})`);
     if (validSchoolId) q = q.eq('school_id', validSchoolId);
     const { data, error } = await q;
     if (error) console.error('[Scheduler] Error query recipients:', error.message);
-    console.log(`[Scheduler DEBUG] Recipients dari DB: ${data ? data.length : 0}`);
+    const recipientCount = data ? data.length : 0;
+    console.log(`[Scheduler DEBUG] Recipients dari DB: ${recipientCount} (sekolah: ${config.namaSekolah})`);
+    if (recipientCount === 0) {
+      console.warn(`[Scheduler] ⚠️ PENTING: Tabel 'recipients' kosong untuk school_id=${validSchoolId || 'semua'}.`);
+      console.warn(`[Scheduler] ⚠️ Silakan import/tambah data penerima WA guru di menu Penerima WA pada dashboard.`);
+    }
     const allRecipients = data || [];
     if (allRecipients.length === 0) {
-      const msg = `${labelWaktu}: Tidak ada penerima WA terdaftar.`;
-      addLog({ type: 'info', message: msg, school: config.namaSekolah });
+      const msg = `${labelWaktu}: Tidak ada penerima WA terdaftar di tabel recipients (school_id: ${validSchoolId || 'semua'}). Silakan import data penerima WA di dashboard.`;
+      addLog({ type: 'warning', message: msg, school: config.namaSekolah });
       return { success: true, sent: 0, total: 0, message: msg };
     }
     // Semua dianggap belum absen (isHadir = false)
@@ -1465,9 +1565,35 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
     else if (type === 'siang')  template = t.isHadir ? msgSiangSudah  : msgBelumSiang;
     else                        template = t.isHadir ? msgPulangSudah : msgBelumPulang;
     const msg = template.replace(/\{nama\}/gi, t.nama);
-    const sRes = await sendWhatsApp(config.fonnteToken, t.nomor, msg);
-    if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
+
+    // Gunakan retry (3x) agar tidak ada pesan hilang karena timeout sesaat
+    const sRes = await sendWhatsAppWithRetry(t.nomor, msg, config.fonnteToken || null);
+
+    if (sRes.success) {
+      sentCount++;
+      logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg });
+    }
+
+    // Simpan ke Supabase (tidak crash walau gagal)
+    logNotificationToSupabase({
+      school_id: config.schoolId || null,
+      type,
+      nama:      t.nama,
+      nomor:     t.nomor,
+      status:    sRes.success ? 'sent' : 'failed',
+      error_msg: sRes.success ? null : (sRes.error || 'unknown'),
+      gateway:   sRes.gateway || 'baileys',
+      message:   msg
+    });
+
     await new Promise(r => setTimeout(r, 1000));
+  }
+
+  // Invalidate cache absensi setelah kirim selesai
+  // agar manual trigger berikutnya selalu dapat data fresh
+  if (config.schoolId) {
+    const cacheKeysToDelete = Object.keys(colleagueCache).filter(k => k.startsWith(config.unitCode || ''));
+    cacheKeysToDelete.forEach(k => delete colleagueCache[k]);
   }
 
   const summaryMsg = `${labelWaktu}: Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru (Laporan Status).`;
@@ -1477,8 +1603,10 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
 
 // ─── Scheduler (Master 1-Menit, Multi-Tenant, Cache 5 Menit) ──────────────────
 let masterCron = null;
+let schedulerRunning = false;   // guard: cegah cron berjalan ganda
 let schoolsCache = null;        // cache hasil query Supabase
 let schoolsCacheExpiry = 0;     // timestamp expiry cache
+let schoolsCacheLastLog = 0;    // timestamp terakhir kali log "Loaded"
 
 async function getActiveSchools() {
   // Gunakan cache 5 menit agar tidak query Supabase setiap menit
@@ -1500,7 +1628,11 @@ async function getActiveSchools() {
     if (!error && data && data.length > 0) {
       schoolsCache = data;
       schoolsCacheExpiry = Date.now() + 5 * 60_000; // cache 5 menit
-      console.log(`[Scheduler] Loaded ${data.length} sekolah dari Supabase: ${data.map(r=>r.schools?.name).join(', ')}`);
+      // Log hanya saat cache baru diisi (setiap 5 menit), bukan setiap menit
+      if (Date.now() - schoolsCacheLastLog > 4 * 60_000) {
+        console.log(`[Scheduler] Loaded ${data.length} sekolah dari Supabase: ${data.map(r=>r.schools?.name).join(', ')}`);
+        schoolsCacheLastLog = Date.now();
+      }
       return data;
     }
     if (error) console.error('[Scheduler] Error query school_configs:', error.message);
@@ -1562,43 +1694,56 @@ function buildTenantCfg(row) {
 }
 
 function setupScheduler() {
-  if (masterCron) { masterCron.stop(); masterCron = null; }
+  // ── Guard: hentikan cron lama sebelum buat yang baru ──
+  if (masterCron) {
+    masterCron.stop();
+    masterCron = null;
+    console.log('[Scheduler] Cron lama dihentikan, memulai ulang...');
+  }
 
   masterCron = cron.schedule('* * * * *', async () => {
-    const now = new Date();
-    const wib = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-    const H = wib.getHours();
-    const M = wib.getMinutes();
+    // Guard: cegah eksekusi ganda jika tick sebelumnya masih berjalan
+    if (schedulerRunning) return;
+    schedulerRunning = true;
 
-    const schools = await getActiveSchools();
-    if (!schools.length) return;
+    try {
+      const now = new Date();
+      const wib = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+      const H = wib.getHours();
+      const M = wib.getMinutes();
 
-    for (const row of schools) {
-      const cfg = buildTenantCfg(row);
+      const schools = await getActiveSchools();
+      if (!schools.length) return;
 
-      // Cek jadwal Pagi
-      if (H === cfg.pagiHour && M === cfg.pagiMinute) {
-        console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
-        runSchedulerLogic('pagi', cfg).catch(e =>
-          console.error(`[Scheduler] Pagi error (${cfg.namaSekolah}):`, e.message)
-        );
+      for (const row of schools) {
+        const cfg = buildTenantCfg(row);
+
+        // Cek jadwal Pagi
+        if (H === cfg.pagiHour && M === cfg.pagiMinute) {
+          console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+          runSchedulerLogic('pagi', cfg).catch(e =>
+            console.error(`[Scheduler] Pagi error (${cfg.namaSekolah}):`, e.message)
+          );
+        }
+
+        // Cek jadwal Siang
+        if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) {
+          console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+          runSchedulerLogic('siang', cfg).catch(e =>
+            console.error(`[Scheduler] Siang error (${cfg.namaSekolah}):`, e.message)
+          );
+        }
+
+        // Cek jadwal Pulang
+        if (H === cfg.pulangHour && M === cfg.pulangMinute) {
+          console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+          runSchedulerLogic('pulang', cfg).catch(e =>
+            console.error(`[Scheduler] Pulang error (${cfg.namaSekolah}):`, e.message)
+          );
+        }
       }
-
-      // Cek jadwal Siang
-      if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) {
-        console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
-        runSchedulerLogic('siang', cfg).catch(e =>
-          console.error(`[Scheduler] Siang error (${cfg.namaSekolah}):`, e.message)
-        );
-      }
-
-      // Cek jadwal Pulang
-      if (H === cfg.pulangHour && M === cfg.pulangMinute) {
-        console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
-        runSchedulerLogic('pulang', cfg).catch(e =>
-          console.error(`[Scheduler] Pulang error (${cfg.namaSekolah}):`, e.message)
-        );
-      }
+    } finally {
+      schedulerRunning = false;
     }
   });
 
@@ -2122,7 +2267,14 @@ app.post('/api/config', async (req, res) => {
       });
   }
 
-  setupScheduler();
+  // Hanya restart cron jika ada perubahan pada setting jadwal scheduler
+  const schedulerFields = ['schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute',
+    'schedulerSiangEnabled','siangHour','siangMinute','schedulerPulangEnabled','pulangHour','pulangMinute'];
+  const schedulerChanged = schedulerFields.some(k => req.body[k] !== undefined && req.body[k] !== '');
+  if (schedulerChanged) {
+    console.log('[Config] Setting jadwal berubah — memulai ulang scheduler...');
+    setupScheduler();
+  }
   res.json({ success: true });
 });
 
@@ -2595,12 +2747,40 @@ app.use((err, req, res, next) => {
   }
 });
 
+// ─── Health Check Endpoint ─────────────────────────────────────────────────────
+// GET /health → status server, WA, uptime
+// Bisa dimonitor gratis oleh UptimeRobot (ping tiap 5 menit)
+app.get('/health', (req, res) => {
+  const uptimeSec = Math.floor(process.uptime());
+  const uptimeStr = `${Math.floor(uptimeSec/3600)}j ${Math.floor((uptimeSec%3600)/60)}m ${uptimeSec%60}s`;
+  const wibTime   = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+
+  res.json({
+    status:       'ok',
+    service:      'ePresensi Notif',
+    version:      SERVER_VERSION,
+    uptime:       uptimeStr,
+    uptime_sec:   uptimeSec,
+    time_wib:     wibTime,
+    whatsapp: {
+      status:     waConnectionStatus,
+      number:     waConnectedUser?.number || null,
+      name:       waConnectedUser?.name   || null,
+    },
+    scheduler: {
+      active:     !!masterCron,
+      running:    schedulerRunning,
+    },
+    memory_mb:    Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
+  });
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => console.log(`
 ╔════════════════════════════════════════╗
 ║   ePresensi Notif — Fonnte WA          ║
 ║   http://localhost:${PORT}                 ║
+║   Health: http://localhost:${PORT}/health  ║
 ╚════════════════════════════════════════╝`));
-
 
 
