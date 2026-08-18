@@ -1,4 +1,33 @@
-// ─── Authenticated Fetch Interceptor (Security Layer) ─────────────────────────
+// ─── 🔄 Version Check — Deteksi Update Server Otomatis ──────────────────────
+(function initVersionCheck() {
+  let knownVersion = null;
+  const banner = document.getElementById('updateBanner');
+
+  async function checkVersion() {
+    try {
+      // Gunakan XMLHttpRequest langsung agar bypass interceptor token
+      const res = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api/version');
+        xhr.onload = () => resolve({ json: () => JSON.parse(xhr.responseText) });
+        xhr.onerror = reject;
+        xhr.send();
+      });
+      const data = res.json();
+      if (!knownVersion) {
+        knownVersion = data.version;
+      } else if (data.version !== knownVersion) {
+        if (banner) banner.classList.add('visible');
+      }
+    } catch (_) { /* server mungkin restart, diam saja */ }
+  }
+
+  // Cek setiap 60 detik
+  checkVersion();
+  setInterval(checkVersion, 60000);
+})();
+
+// ─── 🔐 Authenticated Fetch Interceptor (Security Layer) ─────────────────────
 const originalFetch = window.fetch;
 window.fetch = async function (url, options = {}) {
   const token = localStorage.getItem('epresensi_app_token');
@@ -145,9 +174,9 @@ function applyRoleUI(role) {
     // Sembunyikan referensi SMKN 3 Magelang di panel lain
     const monitoringDesc = document.getElementById('monitoringPanelDesc');
     if (monitoringDesc) monitoringDesc.textContent = 'Daftar presensi real-time seluruh guru & staf.';
-    const templateAlert = document.getElementById('templateAlertText');
-    if (templateAlert) templateAlert.innerHTML = 'Tombol <strong>Unduh Template</strong> otomatis menyiapkan file Excel yang sudah terisi nama-nama Guru. Anda tinggal mengisi nomor WA dan meng-import ulang!';
-    
+    const templateAlertName = document.getElementById('templateAlertSchoolName');
+    if (templateAlertName) templateAlertName.textContent = 'Sekolah';
+
     // Auto switch ke tab Super Admin setelah DOM siap
     setTimeout(() => {
       const saTab = document.querySelector('[data-tab="superadmin"]');
@@ -176,10 +205,8 @@ function applyRoleUI(role) {
     if (monitoringDesc && monitoringDesc.textContent === 'Daftar presensi real-time seluruh guru & staf.') {
       monitoringDesc.textContent = 'Daftar presensi real-time seluruh guru & staf SMKN 3 Magelang.';
     }
-    const templateAlert = document.getElementById('templateAlertText');
-    if (templateAlert && templateAlert.innerHTML.includes('terisi nama-nama Guru')) {
-      templateAlert.innerHTML = 'Tombol <strong>Unduh Template</strong> otomatis menyiapkan file Excel yang sudah terisi seluruh <strong>98 Nama Guru SMKN 3 Magelang</strong>. Anda tinggal mengisi nomor WA dan meng-import ulang!';
-    }
+    const templateAlertName = document.getElementById('templateAlertSchoolName');
+    if (templateAlertName) templateAlertName.textContent = 'SMKN 3 Magelang';
   }
 }
 // Jalankan on page load
@@ -327,7 +354,15 @@ if (btnDownloadTemplate) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'template_98_guru_smkn3_magelang.xlsx';
+      
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'template_guru.xlsx';
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match && match.length > 1) filename = match[1];
+      }
+      
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -375,6 +410,10 @@ const cfgSchedulerPagiEnabled     = document.getElementById('cfgSchedulerPagiEna
 const cfgPagiHour                 = document.getElementById('cfgPagiHour');
 const cfgPagiMinute               = document.getElementById('cfgPagiMinute');
 
+const cfgSchedulerSiangEnabled    = document.getElementById('cfgSchedulerSiangEnabled');
+const cfgSiangHour                = document.getElementById('cfgSiangHour');
+const cfgSiangMinute              = document.getElementById('cfgSiangMinute');
+
 const cfgSchedulerPulangEnabled   = document.getElementById('cfgSchedulerPulangEnabled');
 const cfgPulangHour               = document.getElementById('cfgPulangHour');
 const cfgPulangMinute             = document.getElementById('cfgPulangMinute');
@@ -384,10 +423,14 @@ const testLoginFeedback           = document.getElementById('testLoginFeedback')
 
 const cfgMessagePagi              = document.getElementById('cfgMessagePagi');
 const cfgMessagePagiSudah         = document.getElementById('cfgMessagePagiSudah');
+const cfgMessageSiang             = document.getElementById('cfgMessageSiang');
+const cfgMessageSiangSudah        = document.getElementById('cfgMessageSiangSudah');
 const cfgMessagePulang            = document.getElementById('cfgMessagePulang');
 const cfgMessagePulangSudah       = document.getElementById('cfgMessagePulangSudah');
 const whatsappPreviewPagi         = document.getElementById('whatsappPreviewPagi');
 const whatsappPreviewPagiSudah    = document.getElementById('whatsappPreviewPagiSudah');
+const whatsappPreviewSiang        = document.getElementById('whatsappPreviewSiang');
+const whatsappPreviewSiangSudah   = document.getElementById('whatsappPreviewSiangSudah');
 const whatsappPreviewPulang       = document.getElementById('whatsappPreviewPulang');
 const whatsappPreviewPulangSudah  = document.getElementById('whatsappPreviewPulangSudah');
 const btnSaveTemplate             = document.getElementById('btnSaveTemplate');
@@ -533,7 +576,7 @@ window.updateDateStripFromChart = function(day) {
 // ─── Init Options (Hour/Minute selects for scheduler) ─────────────────────────
 function initSelectOptions() {
   // Populate Pagi & Pulang Hour & Minute Selects
-  [cfgPagiHour, cfgPulangHour].forEach(sel => {
+  [cfgPagiHour, cfgSiangHour, cfgPulangHour].forEach(sel => {
     if (!sel) return;
     sel.innerHTML = '';
     for (let i = 0; i < 24; i++) {
@@ -544,10 +587,10 @@ function initSelectOptions() {
     }
   });
 
-  [cfgPagiMinute, cfgPulangMinute].forEach(sel => {
+  [cfgPagiMinute, cfgSiangMinute, cfgPulangMinute].forEach(sel => {
     if (!sel) return;
     sel.innerHTML = '';
-    for (let i = 0; i < 60; i += 5) {
+    for (let i = 0; i < 60; i++) {
       const opt = document.createElement('option');
       opt.value = i;
       opt.textContent = `${String(i).padStart(2, '0')} Menit`;
@@ -606,6 +649,10 @@ window.switchNavTab = function(tabName) {
     dashboardSidebar.classList.remove('mobile-open');
     sidebarBackdrop?.classList.remove('show');
   }
+  // Load data saat masuk ke tab tertentu
+  if (targetTab === 'template') loadConfig();
+  if (targetTab === 'recipients') loadRecipients();
+  if (targetTab === 'logs') loadLogs();
 };
 
 document.querySelectorAll('.tab-item').forEach(btn => {
@@ -658,6 +705,13 @@ setInterval(updateCountdown, 1000);
 
 // ─── Load Status & Config ─────────────────────────────────────────────────────
 async function loadStatus() {
+  // Super Admin tidak punya akun ePresensi pribadi — tampilkan status khusus
+  if (window.isSuperAdmin) {
+    if (statusValue) statusValue.textContent = 'Super Admin';
+    if (hudPersonalStatus) hudPersonalStatus.textContent = '⚡ Super Admin';
+    if (hudPersonalTime) hudPersonalTime.textContent = 'Kelola semua sekolah';
+  }
+
   try {
     const res = await fetch('/api/status');
     const data = await res.json();
@@ -792,6 +846,9 @@ async function loadConfig() {
     const res = await fetch('/api/config');
     config = await res.json();
 
+    // Pastikan dropdown options sudah ada sebelum set nilai
+    initSelectOptions();
+
     if (cfgUsername) cfgUsername.value = config.username || '';
     if (cfgFonnteToken && config.fonnteToken) cfgFonnteToken.value = config.fonnteToken;
     if (cfgSchedulerEnabled) cfgSchedulerEnabled.checked = config.schedulerEnabled !== false;
@@ -799,17 +856,23 @@ async function loadConfig() {
     switchWaGatewayUI(config.waGateway || 'baileys');
 
     if (cfgSchedulerPagiEnabled) cfgSchedulerPagiEnabled.checked = config.schedulerPagiEnabled !== false;
-    if (cfgPagiHour) cfgPagiHour.value = config.pagiHour ?? 7;
-    if (cfgPagiMinute) cfgPagiMinute.value = config.pagiMinute ?? 30;
+    if (cfgPagiHour) cfgPagiHour.value = String(config.pagiHour ?? 7);
+    if (cfgPagiMinute) cfgPagiMinute.value = String(config.pagiMinute ?? 30);
+
+    if (cfgSchedulerSiangEnabled) cfgSchedulerSiangEnabled.checked = config.schedulerSiangEnabled !== false;
+    if (cfgSiangHour) cfgSiangHour.value = String(config.siangHour ?? 15);
+    if (cfgSiangMinute) cfgSiangMinute.value = String(config.siangMinute ?? 30);
 
     if (cfgSchedulerPulangEnabled) cfgSchedulerPulangEnabled.checked = config.schedulerPulangEnabled !== false;
-    if (cfgPulangHour) cfgPulangHour.value = config.pulangHour ?? 18;
-    if (cfgPulangMinute) cfgPulangMinute.value = config.pulangMinute ?? 0;
-    
-    if (cfgMessagePagi && config.messagePagi) cfgMessagePagi.value = config.messagePagi;
-    if (cfgMessagePagiSudah && config.messagePagiSudah) cfgMessagePagiSudah.value = config.messagePagiSudah;
-    if (cfgMessagePulang && config.messagePulang) cfgMessagePulang.value = config.messagePulang;
-    if (cfgMessagePulangSudah && config.messagePulangSudah) cfgMessagePulangSudah.value = config.messagePulangSudah;
+    if (cfgPulangHour) cfgPulangHour.value = String(config.pulangHour ?? 18);
+    if (cfgPulangMinute) cfgPulangMinute.value = String(config.pulangMinute ?? 0);
+
+    if (cfgMessagePagi) cfgMessagePagi.value = config.messagePagi || '';
+    if (cfgMessagePagiSudah) cfgMessagePagiSudah.value = config.messagePagiSudah || '';
+    if (cfgMessageSiang) cfgMessageSiang.value = config.messageSiang || '';
+    if (cfgMessageSiangSudah) cfgMessageSiangSudah.value = config.messageSiangSudah || '';
+    if (cfgMessagePulang) cfgMessagePulang.value = config.messagePulang || '';
+    if (cfgMessagePulangSudah) cfgMessagePulangSudah.value = config.messagePulangSudah || '';
     updateMessagePreviews();
   } catch (err) {
     console.error('Error loadConfig:', err);
@@ -1087,6 +1150,12 @@ function applyColleaguesData(data) {
 
   if (hudColleaguePercent) hudColleaguePercent.textContent = `${percentage}%`;
   if (hudColleagueFraction) hudColleagueFraction.textContent = `${hadir} / ${total} Guru Hadir`;
+  
+  const btnDownloadTemplate = document.getElementById('btnDownloadTemplate');
+  if (btnDownloadTemplate) btnDownloadTemplate.innerHTML = `📥 Unduh Template (${total} Guru)`;
+  
+  const templateAlertCount = document.getElementById('templateAlertCount');
+  if (templateAlertCount) templateAlertCount.textContent = total;
   
   updateDonutChart(percentage);
   renderMonthlyAnalytics(colleagues);
@@ -1701,10 +1770,13 @@ async function loadRecipients() {
 }
 
 function renderRecipientsTable() {
+  const thAsal = document.getElementById('thAsalSekolah');
+  if (thAsal) thAsal.style.display = window.isSuperAdmin ? '' : 'none';
+
   if (recipients.length === 0) {
     recipientsTableBody.innerHTML = `
       <tr>
-        <td colspan="6" class="table-empty">
+        <td colspan="${window.isSuperAdmin ? '7' : '6'}" class="table-empty">
           Belum ada nomor guru terdaftar. Silakan import Excel atau tambah manual.
         </td>
       </tr>`;
@@ -1726,6 +1798,7 @@ function renderRecipientsTable() {
         </div>
       </td>
       <td class="font-mono">${r.nomor}</td>
+      ${window.isSuperAdmin ? `<td><span class="badge" style="background: rgba(147, 51, 234, 0.2); color: #d8b4fe; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;">${r.schools ? escapeHtml(r.schools.name) : 'Tidak Terikat'}</span></td>` : ''}
       <td>
         <label class="custom-switch" style="transform: scale(0.8);">
           <input type="checkbox" ${r.aktif !== false ? 'checked' : ''} onchange="toggleRecipientActive('${r.id}', this.checked)">
@@ -1888,14 +1961,20 @@ if (addRecipientModal) {
 if (addRecipientForm) {
   addRecipientForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const nama = document.getElementById('manualNama').value.trim();
+    const namaVal = document.getElementById('manualNama').value.trim();
     const nomor = document.getElementById('manualNomor').value.trim();
+
+    let school_id = null;
+    if (window.isSuperAdmin && typeof colleagues !== 'undefined') {
+      const c = colleagues.find(x => x.nama.toLowerCase() === namaVal.toLowerCase());
+      if (c && c.school_id) school_id = c.school_id;
+    }
 
     try {
       const res = await fetch('/api/recipients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nama, nomor })
+        body: JSON.stringify({ nama: namaVal, nomor, school_id })
       });
       const data = await res.json();
       if (!data.success) {
@@ -2011,6 +2090,9 @@ if (configForm) {
       schedulerPagiEnabled: cfgSchedulerPagiEnabled ? cfgSchedulerPagiEnabled.checked : true,
       pagiHour: parseInt(cfgPagiHour?.value ?? 7),
       pagiMinute: parseInt(cfgPagiMinute?.value ?? 30),
+      schedulerSiangEnabled: cfgSchedulerSiangEnabled ? cfgSchedulerSiangEnabled.checked : true,
+      siangHour: parseInt(cfgSiangHour?.value ?? 15),
+      siangMinute: parseInt(cfgSiangMinute?.value ?? 30),
       schedulerPulangEnabled: cfgSchedulerPulangEnabled ? cfgSchedulerPulangEnabled.checked : true,
       pulangHour: parseInt(cfgPulangHour?.value ?? 18),
       pulangMinute: parseInt(cfgPulangMinute?.value ?? 0),
@@ -2136,6 +2218,8 @@ function updateMessagePreviews() {
 
 if (cfgMessagePagi) cfgMessagePagi.addEventListener('input', updateMessagePreviews);
 if (cfgMessagePagiSudah) cfgMessagePagiSudah.addEventListener('input', updateMessagePreviews);
+if (cfgMessageSiang) cfgMessageSiang.addEventListener('input', updateMessagePreviews);
+if (cfgMessageSiangSudah) cfgMessageSiangSudah.addEventListener('input', updateMessagePreviews);
 if (cfgMessagePulang) cfgMessagePulang.addEventListener('input', updateMessagePreviews);
 if (cfgMessagePulangSudah) cfgMessagePulangSudah.addEventListener('input', updateMessagePreviews);
 
@@ -2148,6 +2232,8 @@ if (btnSaveTemplate) {
         body: JSON.stringify({
           messagePagi: cfgMessagePagi?.value || '',
           messagePagiSudah: cfgMessagePagiSudah?.value || '',
+          messageSiang: cfgMessageSiang?.value || '',
+          messageSiangSudah: cfgMessageSiangSudah?.value || '',
           messagePulang: cfgMessagePulang?.value || '',
           messagePulangSudah: cfgMessagePulangSudah?.value || ''
         })
@@ -2717,7 +2803,7 @@ loadGraphStats();
         const schedulerBadge = cfg.scheduler_enabled !== false
           ? '<span style="color:#10b981;">Aktif</span>'
           : '<span style="color:#ef4444;">Nonaktif</span>';
-        const jam = `${String(cfg.pagi_hour??7).padStart(2,'0')}:${String(cfg.pagi_minute??30).padStart(2,'0')} / ${String(cfg.pulang_hour??18).padStart(2,'0')}:${String(cfg.pulang_minute??0).padStart(2,'0')}`;
+        const jam = `${String(cfg.pagi_hour??7).padStart(2,'0')}:${String(cfg.pagi_minute??30).padStart(2,'0')} / ${String(cfg.siang_hour??15).padStart(2,'0')}:${String(cfg.siang_minute??30).padStart(2,'0')} / ${String(cfg.pulang_hour??18).padStart(2,'0')}:${String(cfg.pulang_minute??0).padStart(2,'0')}`;
         return `<tr>
           <td class="font-mono">${i+1}</td>
           <td><strong>${s.name}</strong><br><span style="font-size:.75rem;opacity:.6;">${s.npsn||'-'}</span></td>
@@ -2756,6 +2842,7 @@ loadGraphStats();
       if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
 
       const pagiParts   = (document.getElementById('saasSchoolPagi')?.value || '07:30').split(':');
+      const siangParts  = (document.getElementById('saasSchoolSiang')?.value || '15:30').split(':');
       const pulangParts = (document.getElementById('saasSchoolPulang')?.value || '18:00').split(':');
 
       try {
@@ -2770,8 +2857,10 @@ loadGraphStats();
             epresensi_username:  document.getElementById('saasSchoolEpUser')?.value.trim(),
             epresensi_password:  document.getElementById('saasSchoolEpPass')?.value.trim(),
             fonnte_token:        document.getElementById('saasSchoolFonnte')?.value.trim(),
-            pagi_hour:   parseInt(pagiParts[0]) || 7,
-            pagi_minute: parseInt(pagiParts[1]) || 30,
+            pagi_hour:     parseInt(pagiParts[0]) || 7,
+            pagi_minute:   parseInt(pagiParts[1]) || 30,
+            siang_hour:    parseInt(siangParts[0]) || 15,
+            siang_minute:  parseInt(siangParts[1]) || 30,
             pulang_hour:   parseInt(pulangParts[0]) || 18,
             pulang_minute: parseInt(pulangParts[1]) || 0,
           })
@@ -2811,4 +2900,5 @@ loadGraphStats();
     }
   };
 })();
+
 

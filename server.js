@@ -16,6 +16,15 @@ const { exec } = require('child_process');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const { createClient } = require('@supabase/supabase-js');
 
+// ─── Default WhatsApp Templates ───────────────────────────────────────────────
+const DEF_MSG_PAGI = "Halo {nama}! 👋\n\nPengingat presensi pagi:\nAnda tercatat:\n\n██████████████████\n██  B E L U M  ██\n██████████████████\n\nmelakukan absen pagi / masuk hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! 🏃💨\n\nE-PRESENSI SINAGA";
+const DEF_MSG_PAGI_SUDAH = "Halo {nama}! 👋\n\nTerima kasih, Anda tercatat:\n\n██████████████████\n██  S U D A H  ██\n██████████████████\n\nmelakukan presensi pagi / masuk hari ini di ePresensi Jateng. Selamat bertugas! 🏢✨\n\nE-PRESENSI SINAGA";
+const DEF_MSG_SIANG = "Halo {nama}! 👋\n\nPengingat presensi siang:\nAnda tercatat:\n\n██████████████████\n██  B E L U M  ██\n██████████████████\n\nmelakukan absen siang hari ini di ePresensi Jateng.\n\nSegera lakukan presensi siang sekarang ya! 🏃💨\n\nE-PRESENSI SINAGA";
+const DEF_MSG_SIANG_SUDAH = "Halo {nama}! 👋\n\nTerima kasih, Anda tercatat:\n\n██████████████████\n██  S U D A H  ██\n██████████████████\n\nmelakukan presensi siang hari ini di ePresensi Jateng. Selamat bertugas kembali! 🏢✨\n\nE-PRESENSI SINAGA";
+const DEF_MSG_PULANG = "Halo {nama}! 👋\n\nPengingat presensi pulang:\nAnda tercatat:\n\n██████████████████\n██  B E L U M  ██\n██████████████████\n\nmelakukan absen pulang hari ini di ePresensi Jateng.\n\nJangan lupa lakukan presensi pulang sebelum batas waktu berakhir! 🏃💨\n\nE-PRESENSI SINAGA";
+const DEF_MSG_PULANG_SUDAH = "Halo {nama}! 👋\n\nTerima kasih, Anda tercatat:\n\n██████████████████\n██  S U D A H  ██\n██████████████████\n\nmelakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\nE-PRESENSI SINAGA";
+const DEF_MSG = "Halo {nama}! 👋\n\nPengingat presensi:\nAnda belum melakukan absen hari ini di ePresensi Jateng. Segera absen sekarang! 🏃💨";
+
 // ─── Initialize Supabase ──────────────────────────────────────────────────────
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -25,6 +34,10 @@ if (!supabaseUrl || !supabaseKey) {
 }
 console.log('[DEBUG INIT] Supabase URL:', supabaseUrl, 'Key Prefix:', supabaseKey.substring(0, 15));
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// ─── Server Version (timestamp saat server start) ────────────────────────────
+const SERVER_VERSION = Date.now().toString();
+console.log(`[Server] Version token: ${SERVER_VERSION}`);
 
 // ─── Global Process Error Handlers (Anti-Crash Guard) ─────────────────────────
 process.on('uncaughtException', (err) => {
@@ -267,6 +280,7 @@ app.use('/api', (req, res, next) => {
   if (
     req.path === '/auth/app-login' ||
     req.path === '/status' ||
+    req.path === '/version' ||
     req.path === '/graph/stats'
   ) {
     return next();
@@ -387,11 +401,13 @@ function loadConfig() {
     schedulerPulangEnabled: data.schedulerPulangEnabled !== false,
     pulangHour: data.pulangHour ?? 18,
     pulangMinute: data.pulangMinute ?? 0,
-    messagePagi: data.messagePagi || 'Halo *{nama}*! 👋\n\nPengingat presensi pagi:\nAnda tercatat belum melakukan *absen pagi / masuk* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! ⏰\n\n_Pesan otomatis ePresensi_',
-    messagePagiSudah: data.messagePagiSudah || 'Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pagi / masuk hari ini di ePresensi Jateng. Selamat bertugas! 🏢✨\n\n_Pesan otomatis ePresensi_',
-    messagePulang: data.messagePulang || 'Halo *{nama}*! 👋\n\nPengingat presensi pulang:\nAnda tercatat belum melakukan *absen pulang* hari ini di ePresensi Jateng.\n\nJangan lupa lakukan presensi pulang sebelum batas waktu berakhir! 🏢⏰\n\n_Pesan otomatis ePresensi_',
-    messagePulangSudah: data.messagePulangSudah || 'Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\n_Pesan otomatis ePresensi_',
-    message: data.message || 'Halo *{nama}*! 👋\n\nPengingat presensi:\nAnda belum melakukan *absen* hari ini di ePresensi Jateng. Segera absen sekarang! ⏰',
+    messagePagi: data.messagePagi || DEF_MSG_PAGI,
+    messagePagiSudah: data.messagePagiSudah || DEF_MSG_PAGI_SUDAH,
+    messageSiang: data.messageSiang || DEF_MSG_SIANG,
+    messageSiangSudah: data.messageSiangSudah || DEF_MSG_SIANG_SUDAH,
+    messagePulang: data.messagePulang || DEF_MSG_PULANG,
+    messagePulangSudah: data.messagePulangSudah || DEF_MSG_PULANG_SUDAH,
+    message: data.message || DEF_MSG,
     appPassword,
     namaSekolah: data.namaSekolah || 'SMKN 3 MAGELANG',
     unitCode: data.unitCode || 'F208007700',
@@ -435,24 +451,7 @@ function addLog(entry) {
 }
 
 // ─── Recipients (Safe Atomic Storage) ─────────────────────────────────────────
-function loadRecipients() {
-  if (!fs.existsSync(RECIPIENTS_FILE)) return [];
-  try {
-    return JSON.parse(fs.readFileSync(RECIPIENTS_FILE, 'utf8'));
-  } catch (e) {
-    return [];
-  }
-}
-
-function saveRecipients(list) {
-  try {
-    const tempFile = `${RECIPIENTS_FILE}.tmp`;
-    fs.writeFileSync(tempFile, JSON.stringify(list, null, 2), 'utf8');
-    fs.renameSync(tempFile, RECIPIENTS_FILE);
-  } catch (e) {
-    fs.writeFileSync(RECIPIENTS_FILE, JSON.stringify(list, null, 2), 'utf8');
-  }
-}
+// RECIPIENTS FUNCTIONS DELETED - MIGRATED TO SUPABASE
 
 // ─── ePresensi Auth ───────────────────────────────────────────────────────────
 const BASE_URL    = 'https://presensi.bkd.jatengprov.go.id';
@@ -615,6 +614,7 @@ async function doLogin(username, password) {
 }
 
 const tenantSessions = {};
+const failedAuthNotified = new Map(); // Mencegah spam notifikasi (per sekolah)
 
 async function ensureTenantSession(cfg, forceFresh = false) {
   const schoolId = cfg.schoolId;
@@ -662,6 +662,21 @@ async function ensureTenantSession(cfg, forceFresh = false) {
          return { success: true, cookie: allCookies };
       }
     }
+    
+    // Gagal login! (Misal: Password diubah / salah)
+    const now = Date.now();
+    const lastNotified = failedAuthNotified.get(schoolId) || 0;
+    // Kirim notifikasi maksimal 1x setiap 24 jam per sekolah
+    if (now - lastNotified > 24 * 60 * 60 * 1000) {
+       failedAuthNotified.set(schoolId, now);
+       const globalCfg = loadConfig();
+       const waTarget = globalCfg.waAdminNumber || '085868733378';
+       const msg = `🚨 *Peringatan Sistem ePresensi*\n\nGagal menarik data presensi untuk sekolah *${cfg.namaSekolah || 'SaaS Tenant'}*.\nKemungkinan password ePresensi telah diubah atau kredensial salah.\n\nMohon segera koordinasi dengan admin sekolah terkait untuk memperbarui password di Dashboard Epresensi Sinaga.`;
+       if (globalCfg.fonnteToken) {
+         sendWhatsApp(globalCfg.fonnteToken, waTarget, msg).catch(e => console.error('[Alert] Gagal kirim WA ke SuperAdmin:', e));
+       }
+    }
+
     return { success: false, error: `Login ePresensi gagal (HTTP ${status})` };
   } catch (err) {
     return { success: false, error: err.message };
@@ -776,7 +791,7 @@ function parseAttendanceHTML(html) {
 }
 
 // ─── Colleague Cache Layer (5 Menit TTL) ──────────────────────────────────────
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 menit — cukup lama untuk cache dipakai scheduler
 let colleagueCache = {};
 
 async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth = null, targetYear = null, forceRefresh = false, retryCount = 0, cfg = null) {
@@ -1126,7 +1141,10 @@ app.get('/api/colleagues', requireAppAuth, async (req, res) => {
         const result = await fetchColleaguesAttendance(session.cookie, req.query.day, req.query.month, req.query.year, force, 0, cfg);
         
         if (result.success && result.colleagues) {
-          result.colleagues.forEach(c => { c.namaSekolah = cfg.namaSekolah; });
+          result.colleagues.forEach(c => { 
+            c.namaSekolah = cfg.namaSekolah; 
+            c.school_id = cfg.schoolId;
+          });
           aggregatedColleagues = aggregatedColleagues.concat(result.colleagues);
           console.log(`[SuperAdmin] Tenant ${cfg.namaSekolah} berhasil ditarik: ${result.colleagues.length} guru.`);
         } else {
@@ -1334,8 +1352,12 @@ async function sendWhatsApp(targetOrToken, messageOrTarget, tokenOrMessage = nul
   }
 }
 
-async function sendToAllRecipients(token, messageTemplate, targetOverride = null) {
-  const recipients = loadRecipients().filter(r => r.aktif !== false);
+async function sendToAllRecipients(token, messageTemplate, targetOverride = null, config = null) {
+  let query = supabase.from('recipients').select('*').eq('aktif', true);
+  if (config && config.schoolId) query = query.eq('school_id', config.schoolId);
+  const { data } = await query;
+  const recipients = data || [];
+  
   const results    = [];
   const targets = targetOverride ? [{ nama: 'Admin', nomor: targetOverride }, ...recipients] : recipients;
 
@@ -1363,60 +1385,85 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
     throw new Error('Token Fonnte belum dikonfigurasi.');
   }
 
+  let labelWaktu = type === 'pagi' ? '🌅 Pagi' : type === 'siang' ? '☀️ Siang' : '🌇 Pulang';
+  let targets = [];
+
+  // ── Coba ambil data absensi dari ePresensi ──────────────────────────────────
   const session = await ensureTenantSession(config);
-  if (!session.success) throw new Error('Gagal login ke ePresensi. Cek konfigurasi akun.');
-
-  const day = new Date().getDate();
-  const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, true, 0, config);
-  if (!colleaguesRes.success) throw new Error('Gagal mengambil data presensi rekan guru.');
-
-  // Ambil semua guru yang tidak sedang libur/cuti
-  let targets_raw = colleaguesRes.colleagues.filter(c => !c.status.includes('Libur'));
-  let labelWaktu = type === 'pagi' ? '🌅 Pagi' : '🌆 Pulang';
-
-  if (targets_raw.length === 0) {
-    const msg = `${labelWaktu}: Tidak ada guru target (semua libur).`;
-    addLog({ type: 'info', message: msg, school: config.namaSekolah });
-    return { success: true, sent: 0, total: 0, message: msg };
-  }
-
-  const registered = loadRecipients().filter(r => r.aktif !== false);
-  const targets = [];
-  for (const guru of targets_raw) {
-    const cleanGuru = guru.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const found = registered.find(r => {
-      const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return cleanGuru.includes(cleanR) || cleanR.includes(cleanGuru);
-    });
-    if (found && found.nomor) {
-      targets.push({ 
-        nama: guru.nama, 
-        nomor: found.nomor,
-        isHadir: type === 'pagi' ? guru.isHadir : !!guru.jamPulang
-      });
+  if (session.success) {
+    // Mode normal: cek siapa yang sudah/belum absen
+    const day = new Date().getDate();
+    // forceRefresh=false → gunakan cache dari monitoring jika masih valid (30 menit)
+    const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, false, 0, config);
+    if (colleaguesRes.success) {
+      const targets_raw = colleaguesRes.colleagues.filter(c => !c.status.includes('Libur'));
+      let q = supabase.from('recipients').select('*').eq('aktif', true);
+      const validSchoolId = config && config.schoolId && config.schoolId !== 'local' ? config.schoolId : null;
+      if (validSchoolId) q = q.eq('school_id', validSchoolId);
+      const { data } = await q;
+      const registered = data || [];
+      for (const guru of targets_raw) {
+        const cleanGuru = guru.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const found = registered.find(r => {
+          const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanGuru.includes(cleanR) || cleanR.includes(cleanGuru);
+        });
+        if (found && found.nomor) {
+          targets.push({
+            nama: guru.nama,
+            nomor: found.nomor,
+            isHadir: type === 'pagi' ? guru.isHadir : (type === 'siang' ? !!guru.jamSiang : !!guru.jamPulang)
+          });
+        }
+      }
+      addLog({ type: 'info', message: `${labelWaktu}: Mode normal (ePresensi) — ${targets.length} target ditemukan.`, school: config.namaSekolah });
+    } else {
+      // Gagal ambil data, fallback ke semua penerima
+      session.success = false;
     }
   }
 
+  // ── Fallback: kirim ke SEMUA penerima terdaftar (tanpa cek status absen) ────
+  if (!session.success || targets.length === 0) {
+    addLog({ type: 'warning', message: `${labelWaktu}: Tidak bisa cek ePresensi — fallback ke mode kirim semua penerima.`, school: config.namaSekolah });
+    let q = supabase.from('recipients').select('*').eq('aktif', true);
+    const validSchoolId = config.schoolId && config.schoolId !== 'local' ? config.schoolId : null;
+    console.log(`[Scheduler DEBUG] schoolId saat query: ${validSchoolId || 'semua sekolah'}`);
+    if (validSchoolId) q = q.eq('school_id', validSchoolId);
+    const { data, error } = await q;
+    if (error) console.error('[Scheduler] Error query recipients:', error.message);
+    console.log(`[Scheduler DEBUG] Recipients dari DB: ${data ? data.length : 0}`);
+    const allRecipients = data || [];
+    if (allRecipients.length === 0) {
+      const msg = `${labelWaktu}: Tidak ada penerima WA terdaftar.`;
+      addLog({ type: 'info', message: msg, school: config.namaSekolah });
+      return { success: true, sent: 0, total: 0, message: msg };
+    }
+    // Semua dianggap belum absen (isHadir = false)
+    targets = allRecipients.map(r => ({ nama: r.nama, nomor: r.nomor, isHadir: false }));
+  }
+
   if (targets.length === 0) {
-    const msg = `${labelWaktu}: Ada ${targets_raw.length} guru target, tapi nomor WA belum terdaftar di sistem.`;
+    const msg = `${labelWaktu}: Tidak ada guru target.`;
     addLog({ type: 'info', message: msg, school: config.namaSekolah });
     return { success: true, sent: 0, total: 0, message: msg };
   }
 
   let sentCount = 0;
-  const defaultMsgPagiSudah = "Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pagi / masuk hari ini di ePresensi Jateng. Selamat bertugas! 🏢✨\n\n_Pesan otomatis ePresensi_";
-  const defaultMsgPulangSudah = "Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat *SUDAH* melakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\n_Pesan otomatis ePresensi_";
-
-  const msgPagiSudah   = config.messagePagiSudah   || defaultMsgPagiSudah;
-  const msgPulangSudah = config.messagePulangSudah  || defaultMsgPulangSudah;
-  const msgBelumPagi   = config.messagePagi   || config.message;
-  const msgBelumPulang = config.messagePulang || config.message;
+  const msgPagiSudah   = config.messagePagiSudah   || DEF_MSG_PAGI_SUDAH;
+  const msgSiangSudah  = config.messageSiangSudah  || DEF_MSG_SIANG_SUDAH;
+  const msgPulangSudah = config.messagePulangSudah || DEF_MSG_PULANG_SUDAH;
+  
+  const msgBelumPagi   = config.messagePagi   || DEF_MSG_PAGI;
+  const msgBelumSiang  = config.messageSiang  || DEF_MSG_SIANG;
+  const msgBelumPulang = config.messagePulang || DEF_MSG_PULANG;
 
   const logsArr = [];
   for (const t of targets) {
     let template = '';
-    if (type === 'pagi')   template = t.isHadir ? msgPagiSudah   : msgBelumPagi;
-    else                   template = t.isHadir ? msgPulangSudah  : msgBelumPulang;
+    if (type === 'pagi')        template = t.isHadir ? msgPagiSudah   : msgBelumPagi;
+    else if (type === 'siang')  template = t.isHadir ? msgSiangSudah  : msgBelumSiang;
+    else                        template = t.isHadir ? msgPulangSudah : msgBelumPulang;
     const msg = template.replace(/\{nama\}/gi, t.nama);
     const sRes = await sendWhatsApp(config.fonnteToken, t.nomor, msg);
     if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
@@ -1443,18 +1490,21 @@ async function getActiveSchools() {
     const { data, error } = await supabase
       .from('school_configs')
       .select(`
-        scheduler_enabled, pagi_hour, pagi_minute, pulang_hour, pulang_minute,
-        message_pagi, message_pagi_sudah, message_pulang, message_pulang_sudah,
+        scheduler_enabled, scheduler_siang_enabled, pagi_hour, pagi_minute, siang_hour, siang_minute, pulang_hour, pulang_minute,
+        message_pagi, message_pagi_sudah, message_siang, message_siang_sudah, message_pulang, message_pulang_sudah,
         school_id,
-        schools!inner(id, name, epresensi_username, epresensi_password, fonnte_token, wa_gateway, wa_number, unit_code, opd_code, plan)
+        schools!inner(id, name, epresensi_username, epresensi_password, fonnte_token, wa_gateway, unit_code, opd_code, plan)
       `)
       .eq('scheduler_enabled', true);
 
     if (!error && data && data.length > 0) {
       schoolsCache = data;
       schoolsCacheExpiry = Date.now() + 5 * 60_000; // cache 5 menit
+      console.log(`[Scheduler] Loaded ${data.length} sekolah dari Supabase: ${data.map(r=>r.schools?.name).join(', ')}`);
       return data;
     }
+    if (error) console.error('[Scheduler] Error query school_configs:', error.message);
+    else console.warn('[Scheduler] school_configs kosong, fallback ke config lokal');
   } catch(e) {
     console.error('[Scheduler] Gagal ambil data sekolah dari Supabase:', e.message);
   }
@@ -1493,16 +1543,21 @@ function buildTenantCfg(row) {
     authMode:           loc.authMode || 'auto',
     schedulerEnabled:        true,
     schedulerPagiEnabled:    true,
+    schedulerSiangEnabled:   row.scheduler_siang_enabled ?? loc.schedulerSiangEnabled ?? true,
     schedulerPulangEnabled:  true,
     pagiHour:    row.pagi_hour   ?? 7,
     pagiMinute:  row.pagi_minute ?? 30,
+    siangHour:   row.siang_hour  ?? loc.siangHour ?? 15,
+    siangMinute: row.siang_minute ?? loc.siangMinute ?? 30,
     pulangHour:  row.pulang_hour  ?? 18,
     pulangMinute: row.pulang_minute ?? 0,
-    messagePagi:        row.message_pagi        || loc.messagePagi        || '',
-    messagePagiSudah:   row.message_pagi_sudah  || loc.messagePagiSudah  || '',
-    messagePulang:      row.message_pulang       || loc.messagePulang      || '',
-    messagePulangSudah: row.message_pulang_sudah || loc.messagePulangSudah || '',
-    message:            loc.message || '',
+    messagePagi:        row.message_pagi        || loc.messagePagi        || DEF_MSG_PAGI,
+    messagePagiSudah:   row.message_pagi_sudah  || loc.messagePagiSudah   || DEF_MSG_PAGI_SUDAH,
+    messageSiang:       row.message_siang       || loc.messageSiang       || DEF_MSG_SIANG,
+    messageSiangSudah:  row.message_siang_sudah || loc.messageSiangSudah  || DEF_MSG_SIANG_SUDAH,
+    messagePulang:      row.message_pulang       || loc.messagePulang      || DEF_MSG_PULANG,
+    messagePulangSudah: row.message_pulang_sudah || loc.messagePulangSudah || DEF_MSG_PULANG_SUDAH,
+    message:            loc.message || DEF_MSG,
   };
 }
 
@@ -1526,6 +1581,14 @@ function setupScheduler() {
         console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
         runSchedulerLogic('pagi', cfg).catch(e =>
           console.error(`[Scheduler] Pagi error (${cfg.namaSekolah}):`, e.message)
+        );
+      }
+
+      // Cek jadwal Siang
+      if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) {
+        console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+        runSchedulerLogic('siang', cfg).catch(e =>
+          console.error(`[Scheduler] Siang error (${cfg.namaSekolah}):`, e.message)
         );
       }
 
@@ -1567,7 +1630,7 @@ app.post('/api/admin/schools', requireSuperAdmin, async (req, res) => {
           epresensi_username, epresensi_password,
           wa_gateway, fonnte_token, wa_number,
           unit_code, opd_code,
-          pagi_hour, pagi_minute, pulang_hour, pulang_minute } = req.body;
+          pagi_hour, pagi_minute, siang_hour, siang_minute, pulang_hour, pulang_minute } = req.body;
 
   if (!name || !email || !password) {
     return res.json({ success: false, error: 'name, email, password wajib diisi.' });
@@ -1609,7 +1672,9 @@ app.post('/api/admin/schools', requireSuperAdmin, async (req, res) => {
   await supabase.from('school_configs').insert({
     school_id: school.id,
     scheduler_enabled: true,
+    scheduler_siang_enabled: true,
     pagi_hour: pagi_hour ?? 7, pagi_minute: pagi_minute ?? 30,
+    siang_hour: siang_hour ?? 15, siang_minute: siang_minute ?? 30,
     pulang_hour: pulang_hour ?? 18, pulang_minute: pulang_minute ?? 0
   });
 
@@ -1639,8 +1704,8 @@ app.put('/api/admin/schools/:id', requireSuperAdmin, async (req, res) => {
 
   // Update school_configs jika ada jadwal
   const cfgUpdates = {};
-  ['scheduler_enabled','pagi_hour','pagi_minute','pulang_hour','pulang_minute',
-   'message_pagi','message_pagi_sudah','message_pulang','message_pulang_sudah']
+  ['scheduler_enabled','scheduler_siang_enabled','pagi_hour','pagi_minute','siang_hour','siang_minute','pulang_hour','pulang_minute',
+   'message_pagi','message_pagi_sudah','message_siang','message_siang_sudah','message_pulang','message_pulang_sudah']
     .forEach(k => { if (req.body[k] !== undefined) cfgUpdates[k] = req.body[k]; });
 
   if (Object.keys(cfgUpdates).length > 0) {
@@ -1710,7 +1775,10 @@ app.post('/api/send-unabsent', async (req, res) => {
   }
 
   // Cocokkan dengan nomor WA di daftar penerima (recipients.json)
-  const registeredRecipients = loadRecipients().filter(r => r.aktif !== false);
+  let q = supabase.from('recipients').select('*').eq('aktif', true);
+  if (config && config.schoolId) q = q.eq('school_id', config.schoolId);
+  const { data } = await q;
+  const registeredRecipients = data || [];
   const targets = [];
   const unmatched = [];
 
@@ -1926,89 +1994,7 @@ app.post('/api/accounts/login', async (req, res) => {
     cfg.accounts.push(accData);
   }
 
-  saveConfig(cfg);
-  colleagueCache = {};
 
-  addLog({
-    type: 'info',
-    message: `🏫 Berhasil menambahkan & beralih ke profil: ${cfg.namaSekolah} (${cfg.username})`
-  });
-
-  res.json({
-    success: true,
-    message: `Berhasil login ke ${cfg.namaSekolah}!`,
-    account: accData
-  });
-});
-
-app.post('/api/accounts/switch', async (req, res) => {
-  const { username } = req.body;
-  if (!username) return res.json({ success: false, error: 'Username akun diperlukan.' });
-
-  const cfg = loadConfig();
-  const acc = (cfg.accounts || []).find(a => a.username === username || a.id === username);
-  if (!acc) return res.json({ success: false, error: 'Akun sekolah tidak ditemukan di daftar tersimpan.' });
-
-  // Update current active credentials
-  cfg.username = acc.username;
-  cfg.password = acc.password;
-  cfg.namaSekolah = acc.namaSekolah;
-  cfg.unitCode = acc.unitCode;
-  cfg.opdCode = acc.opdCode;
-  cfg.namaUser = acc.namaUser;
-  saveConfig(cfg);
-  colleagueCache = {}; // Flush cache
-
-  // Re-login to get fresh session cookie
-  const loginRes = await doLogin(acc.username, acc.password);
-  if (!loginRes.success) {
-    return res.json({ success: false, error: `Gagal re-login: ${loginRes.error}` });
-  }
-
-  addLog({
-    type: 'info',
-    message: `🔄 Beralih ke profil sekolah: ${acc.namaSekolah} (${acc.username})`
-  });
-
-  res.json({
-    success: true,
-    message: `Berhasil beralih ke ${acc.namaSekolah}!`,
-    account: acc
-  });
-});
-
-app.delete('/api/accounts/:username', (req, res) => {
-  const targetUsername = req.params.username;
-  const cfg = loadConfig();
-  if (!cfg.accounts) cfg.accounts = [];
-
-  const initialCount = cfg.accounts.length;
-  cfg.accounts = cfg.accounts.filter(a => a.username !== targetUsername && a.id !== targetUsername);
-
-  // If the deleted account was the currently active one
-  if (cfg.username === targetUsername) {
-    if (cfg.accounts.length > 0) {
-      // Auto-switch to the first available account
-      const fallback = cfg.accounts[0];
-      cfg.username = fallback.username;
-      cfg.password = fallback.password;
-      cfg.namaSekolah = fallback.namaSekolah;
-      cfg.unitCode = fallback.unitCode;
-      cfg.opdCode = fallback.opdCode;
-      cfg.namaUser = fallback.namaUser;
-      // Note: session will need to be re-established on next request, 
-      // but for now config is safely swapped.
-    } else {
-      // Log out completely
-      cfg.username = '';
-      cfg.password = '';
-      cfg.namaSekolah = '';
-      cfg.unitCode = '';
-      cfg.opdCode = '';
-      cfg.namaUser = '';
-    }
-    colleagueCache = {}; // Flush cache
-  }
 
   saveConfig(cfg);
   res.json({ success: true, count: cfg.accounts.length, switched: cfg.username !== targetUsername });
@@ -2056,39 +2042,86 @@ app.post('/api/wa/logout', async (req, res) => {
 
 // Config
 app.get('/api/config', (req, res) => {
-  const cfg = loadConfig();
+  const cfg = req.tenantCfg || loadConfig();
   res.json({
     authMode: cfg.authMode || 'auto', username: cfg.username || '',
     usernameSet: !!cfg.username, passwordSet: !!cfg.password,
     cookieSet: !!cfg.cookie, cookieExpiry: cfg.cookieExpiry,
     waGateway: cfg.waGateway || 'baileys',
-    fonnteSet: !!cfg.fonnteToken, waNumberSet: !!cfg.waNumber,
-    schedulerEnabled: cfg.schedulerEnabled !== false,
-    schedulerPagiEnabled: cfg.schedulerPagiEnabled !== false,
-    pagiHour: cfg.pagiHour ?? 7, pagiMinute: cfg.pagiMinute ?? 30,
+    fonnteSet: !!cfg.fonnteToken, fonnteToken: cfg.fonnteToken || '',
+    waNumber: cfg.waNumber || '', waNumberSet: !!cfg.waNumber,
+    schedulerEnabled:      cfg.schedulerEnabled !== false,
+    schedulerPagiEnabled:  cfg.schedulerPagiEnabled !== false,
+    pagiHour:   cfg.pagiHour   ?? 7,
+    pagiMinute: cfg.pagiMinute ?? 30,
+    schedulerSiangEnabled: cfg.schedulerSiangEnabled !== false,
+    siangHour:   cfg.siangHour   ?? 15,
+    siangMinute: cfg.siangMinute ?? 30,
     schedulerPulangEnabled: cfg.schedulerPulangEnabled !== false,
-    pulangHour: cfg.pulangHour ?? 18, pulangMinute: cfg.pulangMinute ?? 0,
-    message: cfg.message || '',
-    messagePagi: cfg.messagePagi || '',
-    messagePagiSudah: cfg.messagePagiSudah || '',
-    messagePulang: cfg.messagePulang || '',
+    pulangHour:   cfg.pulangHour   ?? 18,
+    pulangMinute: cfg.pulangMinute ?? 0,
+    message:            cfg.message            || '',
+    messagePagi:        cfg.messagePagi        || '',
+    messagePagiSudah:   cfg.messagePagiSudah   || '',
+    messageSiang:       cfg.messageSiang       || '',
+    messageSiangSudah:  cfg.messageSiangSudah  || '',
+    messagePulang:      cfg.messagePulang      || '',
     messagePulangSudah: cfg.messagePulangSudah || '',
+    testModeSudahAbsen: cfg.testModeSudahAbsen || false,
   });
 });
 
-app.post('/api/config', (req, res) => {
+app.post('/api/config', async (req, res) => {
   const current = loadConfig();
   const allowed = [
     'authMode','username','password','cookie','waGateway','fonnteToken','waNumber',
-    'schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute',
+    'schedulerEnabled',
+    'schedulerPagiEnabled','pagiHour','pagiMinute',
+    'schedulerSiangEnabled','siangHour','siangMinute',
     'schedulerPulangEnabled','pulangHour','pulangMinute',
-    'message','messagePagi','messagePagiSudah','messagePulang','messagePulangSudah','testModeSudahAbsen'
+    'message','messagePagi','messagePagiSudah','messageSiang','messageSiangSudah','messagePulang','messagePulangSudah','testModeSudahAbsen'
   ];
   const updated = { ...current };
   for (const key of allowed) {
     if (req.body[key] !== undefined && req.body[key] !== '') updated[key] = req.body[key];
   }
   saveConfig(updated);
+
+  // ── Sinkronkan jadwal ke Supabase school_configs ─────────────────────────────
+  const schoolId = req.schoolId || req.user?.schoolId;
+  const syncData = {
+    scheduler_enabled:       updated.schedulerEnabled !== false,
+    scheduler_siang_enabled: updated.schedulerSiangEnabled !== false,
+    pagi_hour:    Number(updated.pagiHour ?? 7),
+    pagi_minute:  Number(updated.pagiMinute ?? 30),
+    siang_hour:   Number(updated.siangHour ?? 15),
+    siang_minute: Number(updated.siangMinute ?? 30),
+    pulang_hour:  Number(updated.pulangHour ?? 18),
+    pulang_minute:Number(updated.pulangMinute ?? 0),
+    message_pagi:        updated.messagePagi || null,
+    message_pagi_sudah:  updated.messagePagiSudah || null,
+    message_siang:       updated.messageSiang || null,
+    message_siang_sudah: updated.messageSiangSudah || null,
+    message_pulang:      updated.messagePulang || null,
+    message_pulang_sudah:updated.messagePulangSudah || null,
+  };
+
+  if (schoolId) {
+    // Admin sekolah → update sekolah sendiri saja
+    supabase.from('school_configs').update(syncData).eq('school_id', schoolId)
+      .then(({ error }) => {
+        if (error) console.error('[Config] Gagal sync ke Supabase:', error.message);
+        else { schoolsCache = null; console.log(`[Config] Jadwal sync untuk schoolId: ${schoolId}`); }
+      });
+  } else {
+    // Super Admin → update SEMUA sekolah (tidak pakai null)
+    supabase.from('school_configs').update(syncData).not('school_id', 'is', null)
+      .then(({ error }) => {
+        if (error) console.error('[Config] Gagal sync semua sekolah:', error.message);
+        else { schoolsCache = null; console.log('[Config] Jadwal sync ke semua sekolah.'); }
+      });
+  }
+
   setupScheduler();
   res.json({ success: true });
 });
@@ -2119,7 +2152,7 @@ app.post('/api/send-now', async (req, res) => {
   const cfg = loadConfig();
   if (!cfg.fonnteToken) return res.json({ success: false, error: 'Token Fonnte belum diset.' });
   const template = req.body.message || cfg.message;
-  const result = await sendToAllRecipients(cfg.fonnteToken, template, cfg.waNumber || null);
+  const result = await sendToAllRecipients(cfg.fonnteToken, template, cfg.waNumber || null, cfg);
   addLog({
     type: result.success ? 'sent' : 'error',
     message: result.success ? `✅ WA terkirim ke ${result.successCount}/${result.totalCount} guru` : `❌ Gagal: ${result.error || ''}`,
@@ -2140,7 +2173,7 @@ app.post('/api/check-and-send', async (req, res) => {
   let sendResult = null;
   if (!data.hasAbsenPagi) {
     if (!cfg.fonnteToken) return res.json({ success: true, attendance: data, waSent: false, notAbsent: true, error: 'Token Fonnte belum diset.' });
-    sendResult = await sendToAllRecipients(cfg.fonnteToken, cfg.message, cfg.waNumber || null);
+    sendResult = await sendToAllRecipients(cfg.fonnteToken, cfg.message, cfg.waNumber || null, cfg);
     addLog({
       type: sendResult.success ? 'sent' : 'error',
       message: sendResult.success ? `✅ WA terkirim ke ${sendResult.successCount}/${sendResult.totalCount} guru` : `❌ Gagal kirim WA`,
@@ -2208,18 +2241,44 @@ app.post('/api/graph/refresh', (req, res) => {
 });
 
 // Dynamic Excel Template with all 98 Teachers from SMKN 3 Magelang
-app.get('/api/recipients/template', async (req, res) => {
+app.get('/api/recipients/template', requireAppAuth, async (req, res) => {
   try {
-    const session = await ensureValidSession();
+    const role = req.userRole;
     let teachers = [];
-    if (session.success) {
-      const colleaguesRes = await fetchColleaguesAttendance(session.cookie);
-      if (colleaguesRes.success && colleaguesRes.colleagues) {
-        teachers = colleaguesRes.colleagues;
+
+    if (role === 'super_admin') {
+      const { data: allSchools } = await supabase.from('schools').select('*');
+      if (allSchools && allSchools.length > 0) {
+        const promises = allSchools.map(async (schoolData) => {
+          const cfg = buildTenantCfg({ schools: schoolData });
+          const session = await ensureTenantSession(cfg);
+          if (session.success) {
+            const colleaguesRes = await fetchColleaguesAttendance(session.cookie, null, null, null, false, 0, cfg);
+            if (colleaguesRes.success && colleaguesRes.colleagues) {
+              colleaguesRes.colleagues.forEach(c => { c.namaSekolah = cfg.namaSekolah; });
+              teachers = teachers.concat(colleaguesRes.colleagues);
+            }
+          }
+        });
+        await Promise.all(promises);
+      }
+    } else {
+      const cfg = req.tenantCfg || loadConfig();
+      const session = await ensureTenantSession(cfg);
+      if (session.success) {
+        const colleaguesRes = await fetchColleaguesAttendance(session.cookie, null, null, null, false, 0, cfg);
+        if (colleaguesRes.success && colleaguesRes.colleagues) {
+          teachers = colleaguesRes.colleagues;
+        }
       }
     }
 
-    const existingRecipients = loadRecipients();
+    let query = supabase.from('recipients').select('*');
+    if (req.userRole !== 'super_admin') {
+      query = query.eq('school_id', req.schoolId);
+    }
+    const { data: dbData } = await query;
+    const existingRecipients = dbData || [];
     const phoneMap = new Map();
     existingRecipients.forEach(r => {
       if (r.nama && r.nomor) {
@@ -2235,24 +2294,25 @@ app.get('/api/recipients/template', async (req, res) => {
         'No': t.no || (idx + 1),
         'NIP': String(t.nip || ''),
         'Nama Guru': t.nama || '',
-        'Nomor WhatsApp': phone
+        'Nomor WhatsApp': phone,
+        ...(role === 'super_admin' ? { 'Asal Sekolah': t.namaSekolah || '' } : {})
       };
     });
 
     if (data.length === 0) {
-      data.push(
-        { 'No': 1, 'NIP': '199601042025211042', 'Nama Guru': 'KRIDO BAHTIAR, S.Kom', 'Nomor WhatsApp': '' },
-        { 'No': 2, 'NIP': '199301072025212071', 'Nama Guru': 'ANGRAKIT JANUARTI MURTININGRUM', 'Nomor WhatsApp': '' }
-      );
+      data.push({ 'No': 1, 'NIP': '199601042025211042', 'Nama Guru': 'KRIDO BAHTIAR, S.Kom', 'Nomor WhatsApp': '' });
     }
 
     const ws = XLSX.utils.json_to_sheet(data);
-    ws['!cols'] = [{ wch: 6 }, { wch: 24 }, { wch: 42 }, { wch: 22 }];
+    const cols = [{ wch: 6 }, { wch: 24 }, { wch: 42 }, { wch: 22 }];
+    if (role === 'super_admin') cols.push({ wch: 30 });
+    ws['!cols'] = cols;
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Guru SMKN 3');
+    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Guru');
 
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    res.setHeader('Content-Disposition', 'attachment; filename="template_98_guru_smkn3_magelang.xlsx"');
+    const fileName = role === 'super_admin' ? 'template_semua_guru.xlsx' : 'template_guru.xlsx';
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(buffer);
   } catch (err) {
@@ -2261,49 +2321,105 @@ app.get('/api/recipients/template', async (req, res) => {
 });
 
 // Recipients CRUD
-app.get('/api/recipients', (req, res) => res.json(loadRecipients()));
+app.get('/api/recipients', async (req, res) => {
+  try {
+    let query = supabase.from('recipients').select('*, schools(name)');
+    if (req.userRole !== 'super_admin') {
+      query = query.eq('school_id', req.schoolId);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    console.error('GET /api/recipients error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-app.post('/api/recipients', (req, res) => {
-  const { nama, nomor } = req.body;
+app.post('/api/recipients', async (req, res) => {
+  const { nama, nomor, school_id } = req.body;
   if (!nama || !nomor) return res.json({ success: false, error: 'Nama dan nomor WA diperlukan.' });
-  const list = loadRecipients();
   const clean = String(nomor).replace(/[^0-9]/g, '');
-  if (list.find(r => r.nomor === clean)) return res.json({ success: false, error: 'Nomor WhatsApp sudah terdaftar.' });
-  const newEntry = { id: String(Date.now()), nama: nama.trim(), nomor: clean, aktif: true };
-  list.push(newEntry);
-  saveRecipients(list);
-  res.json({ success: true, data: newEntry });
-});
-
-app.put('/api/recipients/:id', (req, res) => {
-  const list = loadRecipients();
-  const targetId = String(req.params.id);
-  const idx = list.findIndex(r => String(r.id) === targetId);
-  if (idx === -1) return res.json({ success: false, error: 'Penerima tidak ditemukan.' });
   
-  if (req.body.nama) list[idx].nama = req.body.nama.trim();
-  if (req.body.nomor) list[idx].nomor = String(req.body.nomor).replace(/[^0-9]/g, '');
-  if (req.body.aktif !== undefined) list[idx].aktif = !!req.body.aktif;
+  const targetSchoolId = req.userRole === 'super_admin' ? (school_id || null) : req.schoolId;
+  if (!targetSchoolId) return res.json({ success: false, error: 'Asal sekolah tidak diketahui.' });
   
-  saveRecipients(list);
-  res.json({ success: true, data: list[idx] });
+  try {
+    const { data: existing } = await supabase.from('recipients').select('id').eq('nomor', clean).eq('school_id', targetSchoolId).limit(1);
+    if (existing && existing.length > 0) return res.json({ success: false, error: 'Nomor WhatsApp sudah terdaftar di sekolah ini.' });
+    
+    const { data, error } = await supabase.from('recipients').insert({
+      nama: nama.trim(),
+      nomor: clean,
+      aktif: true,
+      school_id: targetSchoolId
+    }).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('POST /api/recipients error:', err);
+    res.json({ success: false, error: err.message });
+  }
 });
 
-app.delete('/api/recipients/:id', (req, res) => {
-  const targetId = String(req.params.id);
-  const list = loadRecipients();
-  const newList = list.filter(r => String(r.id) !== targetId);
-  saveRecipients(newList);
-  res.json({ success: true, count: newList.length });
+app.put('/api/recipients/:id', async (req, res) => {
+  const targetId = req.params.id;
+  try {
+    if (req.userRole !== 'super_admin') {
+      const { data: existing } = await supabase.from('recipients').select('school_id').eq('id', targetId).single();
+      if (!existing || existing.school_id !== req.schoolId) return res.json({ success: false, error: 'Penerima tidak ditemukan atau akses ditolak.' });
+    }
+    
+    const updates = {};
+    if (req.body.nama) updates.nama = req.body.nama.trim();
+    if (req.body.nomor) updates.nomor = String(req.body.nomor).replace(/[^0-9]/g, '');
+    if (req.body.aktif !== undefined) updates.aktif = !!req.body.aktif;
+    
+    const { data, error } = await supabase.from('recipients').update(updates).eq('id', targetId).select().single();
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('PUT /api/recipients/:id error:', err);
+    res.json({ success: false, error: err.message });
+  }
 });
 
-app.delete('/api/recipients', (req, res) => {
-  saveRecipients([]);
-  res.json({ success: true });
+app.delete('/api/recipients/:id', async (req, res) => {
+  const targetId = req.params.id;
+  try {
+    if (req.userRole !== 'super_admin') {
+      const { data: existing } = await supabase.from('recipients').select('school_id').eq('id', targetId).single();
+      if (!existing || existing.school_id !== req.schoolId) return res.json({ success: false, error: 'Penerima tidak ditemukan atau akses ditolak.' });
+    }
+    const { error } = await supabase.from('recipients').delete().eq('id', targetId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/recipients/:id error:', err);
+    res.json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/recipients', async (req, res) => {
+  try {
+    let query = supabase.from('recipients').delete();
+    if (req.userRole !== 'super_admin') {
+      query = query.eq('school_id', req.schoolId);
+    } else {
+      if (!req.query.school_id) return res.json({ success: false, error: 'Tentukan school_id untuk Super Admin (atau hapus satu-satu).' });
+      query = query.eq('school_id', req.query.school_id);
+    }
+    const { error } = await query;
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/recipients error:', err);
+    res.json({ success: false, error: err.message });
+  }
 });
 
 // Import Excel
-app.post('/api/recipients/import', upload.single('file'), (req, res) => {
+app.post('/api/recipients/import', upload.single('file'), async (req, res) => {
   if (!req.file) return res.json({ success: false, error: 'File tidak ditemukan.' });
   try {
     const workbook  = XLSX.read(req.file.buffer, { type: 'buffer' });
@@ -2313,15 +2429,11 @@ app.post('/api/recipients/import', upload.single('file'), (req, res) => {
 
     const firstRow = rows[0];
     const keys     = Object.keys(firstRow);
-
-    // 1. Precise Column Matching
     const noIndexRegex = /^(no|no\.|no_urut|nomor urut)$/i;
 
-    // Detect Nama Column
     let namaKey = keys.find(k => /nama/i.test(k));
     if (!namaKey) namaKey = keys.find(k => !noIndexRegex.test(k.trim()) && !/nip/i.test(k)) || keys[0];
 
-    // Detect WA / Phone Number Column (Must NOT be the 'No' index column!)
     let nomorKey = keys.find(k => /whatsapp|wa|hp|handphone|ponsel|telepon|telp|phone/i.test(k));
     if (!nomorKey) {
       nomorKey = keys.find(k => /nomor|kontak/i.test(k) && !noIndexRegex.test(k.trim()));
@@ -2329,17 +2441,31 @@ app.post('/api/recipients/import', upload.single('file'), (req, res) => {
     if (!nomorKey) {
       nomorKey = keys[keys.length - 1]; // Fallback to last column
     }
+    
+    // Auto-infer Asal Sekolah (Super Admin)
+    let asalSekolahKey = keys.find(k => /asal sekolah|sekolah/i.test(k));
+    let allSchools = [];
+    if (req.userRole === 'super_admin' && asalSekolahKey) {
+       const { data } = await supabase.from('schools').select('id, name');
+       if (data) allSchools = data;
+    }
 
-    const existing = loadRecipients();
     const added = [];
     const updated = [];
     const skipped = [];
+
+    // Fetch existing records for this tenant (or all if super admin)
+    const query = supabase.from('recipients').select('*');
+    if (req.userRole !== 'super_admin') {
+      query.eq('school_id', req.schoolId);
+    }
+    const { data: existingRecords } = await query;
+    const existing = existingRecords || [];
 
     for (const row of rows) {
       const rawNama  = String(row[namaKey]  || '').trim();
       let rawNomor   = String(row[nomorKey] || '').replace(/[^0-9]/g, '');
 
-      // Normalize phone number (e.g. 85868733378 -> 085868733378)
       if (rawNomor.startsWith('8')) {
         rawNomor = '0' + rawNomor;
       } else if (rawNomor.startsWith('628')) {
@@ -2350,38 +2476,43 @@ app.post('/api/recipients/import', upload.single('file'), (req, res) => {
         skipped.push({ nama: rawNama, nomor: rawNomor, reason: 'Nomor WA kosong atau kurang dari 9 digit' });
         continue;
       }
+      
+      let targetSchoolId = req.schoolId;
+      if (req.userRole === 'super_admin') {
+         if (asalSekolahKey && row[asalSekolahKey]) {
+            const rawAsal = String(row[asalSekolahKey]).trim().toLowerCase();
+            const matched = allSchools.find(s => s.name.toLowerCase() === rawAsal);
+            if (matched) targetSchoolId = matched.id;
+         }
+      }
+      
+      if (!targetSchoolId) {
+         skipped.push({ nama: rawNama, nomor: rawNomor, reason: 'Asal Sekolah tidak dikenali / Akses ditolak' });
+         continue;
+      }
 
-      // Check if existing by name or phone
       const cleanRawName = rawNama.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const existingIdx = existing.findIndex(r => {
+      const existingRecord = existing.find(r => {
         const cleanExName = (r.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        return r.nomor === rawNomor || cleanExName === cleanRawName;
+        return (r.nomor === rawNomor || cleanExName === cleanRawName) && r.school_id === targetSchoolId;
       });
 
-      if (existingIdx !== -1) {
-        // Update existing contact
-        existing[existingIdx].nama = rawNama;
-        existing[existingIdx].nomor = rawNomor;
-        existing[existingIdx].aktif = true;
-        updated.push(existing[existingIdx]);
+      if (existingRecord) {
+        await supabase.from('recipients').update({ nama: rawNama, nomor: rawNomor, aktif: true }).eq('id', existingRecord.id);
+        updated.push(existingRecord);
       } else {
-        // Add new contact
-        const entry = { id: String(Date.now() + Math.floor(Math.random() * 10000)), nama: rawNama, nomor: rawNomor, aktif: true };
-        existing.push(entry);
-        added.push(entry);
+        await supabase.from('recipients').insert({ nama: rawNama, nomor: rawNomor, aktif: true, school_id: targetSchoolId });
+        added.push({ nama: rawNama, nomor: rawNomor });
       }
     }
 
-    saveRecipients(existing);
-    const totalProcessed = added.length + updated.length;
     addLog({ type: 'info', message: `📥 Import Excel: ${added.length} baru, ${updated.length} diperbarui (${skipped.length} dilewati)` });
     res.json({
       success: true,
-      added: totalProcessed,
+      added: added.length + updated.length,
       newAdded: added.length,
       updated: updated.length,
-      skipped: skipped.length,
-      totalNow: existing.length
+      skipped: skipped.length
     });
   } catch (err) {
     res.json({ success: false, error: `Gagal baca Excel: ${err.message}` });
@@ -2393,7 +2524,12 @@ app.get('/api/logs', (req, res) => res.json(loadLogs()));
 app.delete('/api/logs', (req, res) => { fs.writeFileSync(LOG_FILE, JSON.stringify([])); res.json({ success: true }); });
 
 // Status
-app.get('/api/status', (req, res) => {
+// ─── Version Check Endpoint ────────────────────────────────────────────────────
+app.get('/api/version', (req, res) => {
+  res.json({ version: SERVER_VERSION });
+});
+
+app.get('/api/status', requireAppAuth, async (req, res) => {
   const cfg = loadConfig();
   const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
   
@@ -2438,7 +2574,12 @@ app.get('/api/status', (req, res) => {
     usernameSet: !!cfg.username, passwordSet: !!cfg.password,
     cookieSet: !!cfg.cookie, cookieValid: cfg.cookie && (!cookieExpiry || cookieExpiry > now),
     cookieExpiry: cfg.cookieExpiry, fonnteSet: !!cfg.fonnteToken, waNumberSet: !!cfg.waNumber,
-    recipientCount: loadRecipients().filter(r => r.aktif !== false).length,
+    recipientCount: (await (async () => {
+      let q = supabase.from('recipients').select('*', { count: 'exact', head: true }).eq('aktif', true);
+      if (req.userRole !== 'super_admin') q = q.eq('school_id', req.schoolId);
+      const { count } = await q;
+      return count || 0;
+    })()),
   });
 });
 
@@ -2460,3 +2601,6 @@ app.listen(PORT, () => console.log(`
 ║   ePresensi Notif — Fonnte WA          ║
 ║   http://localhost:${PORT}                 ║
 ╚════════════════════════════════════════╝`));
+
+
+

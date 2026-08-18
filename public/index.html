@@ -11,6 +11,27 @@
   <link rel="icon" type="image/jpeg" href="logo.jpg">
   <link rel="shortcut icon" href="logo.jpg">
 </head>
+
+  <!-- ─── Update Notification Banner ──────────────────────────────────────── -->
+  <style>
+    #updateBanner {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      color: #fff; padding: 10px 20px; text-align: center;
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+      align-items: center; justify-content: center; gap: 12px;
+    }
+    #updateBanner.visible { display: flex !important; }
+  </style>
+  <div id="updateBanner">
+    <span>🔄</span>
+    <span><strong>Ada pembaruan sistem tersedia!</strong> Klik di sini untuk memuat versi terbaru.</span>
+    <button onclick="window.location.reload(true)" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.5); color:#fff; padding:4px 14px; border-radius:20px; cursor:pointer; font-size:13px; font-weight:600;">Refresh Sekarang ↻</button>
+    <button onclick="document.getElementById('updateBanner').classList.remove('visible')" style="background:transparent; border:none; color:rgba(255,255,255,0.7); cursor:pointer; font-size:20px; margin-left:4px; line-height:1;">×</button>
+  </div>
+
   <!-- ─── 00. Landing / Gatekeeper Access Screen ──────────────────────────── -->
   <div class="gatekeeper-screen" id="appGatekeeperScreen">
     <div class="gatekeeper-box">
@@ -460,7 +481,8 @@
               </div>
               <div class="panel-actions">
                 <button type="button" id="btnDownloadTemplate" class="modern-btn btn-glass btn-sm">
-                  📥 Unduh Template (98 Guru)
+                  📥 Unduh Template
+
                 </button>
                 <label for="excelFileInput" class="modern-btn btn-purple btn-sm cursor-pointer">
                   📤 Import Excel
@@ -475,7 +497,7 @@
             <div class="info-alert">
               <span class="alert-icon">💡</span>
               <div class="alert-text" id="templateAlertText">
-                Tombol <strong>Unduh Template</strong> otomatis menyiapkan file Excel yang sudah terisi seluruh <strong>98 Nama Guru SMKN 3 Magelang</strong>. Anda tinggal mengisi nomor WA dan meng-import ulang!
+                Tombol <strong>Unduh Template</strong> otomatis menyiapkan file Excel yang sudah terisi seluruh <strong><span id="templateAlertCount">...</span> Nama Guru <span id="templateAlertSchoolName">SMKN 3 Magelang</span></strong>. Anda tinggal mengisi nomor WA dan meng-import ulang!
               </div>
             </div>
 
@@ -490,6 +512,7 @@
                     <th width="44">No</th>
                     <th>Nama Guru / Penerima</th>
                     <th width="160">Nomor WhatsApp</th>
+                    <th id="thAsalSekolah" style="display:none;">Asal Sekolah</th>
                     <th width="85">Status</th>
                     <th width="180" class="text-center">Aksi</th>
                   </tr>
@@ -635,11 +658,35 @@
                 </div>
               </div>
 
-              <!-- Jadwal 2: Sore / Pulang -->
+              <!-- Jadwal 2: Siang -->
               <div class="schedule-box mb-4" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                   <div>
-                    <strong style="color: var(--indigo-400);">🌆 2. Jadwal Sore (Absen Pulang)</strong>
+                    <strong style="color: var(--yellow-400);">☀️ 2. Jadwal Siang (Absen Siang)</strong>
+                    <div class="text-muted text-sm">Cek rekan yang belum absen siang</div>
+                  </div>
+                  <label class="custom-switch">
+                    <input type="checkbox" id="cfgSchedulerSiangEnabled" checked>
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="form-grid-small">
+                  <div class="form-item">
+                    <label class="form-label">Jam (WIB)</label>
+                    <select id="cfgSiangHour" class="custom-select font-mono"></select>
+                  </div>
+                  <div class="form-item">
+                    <label class="form-label">Menit</label>
+                    <select id="cfgSiangMinute" class="custom-select font-mono"></select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Jadwal 3: Sore / Pulang -->
+              <div class="schedule-box mb-4" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <div>
+                    <strong style="color: var(--indigo-400);">🌇 3. Jadwal Sore (Absen Pulang)</strong>
                     <div class="text-muted text-sm">Cek rekan yang belum absen pulang</div>
                   </div>
                   <label class="custom-switch">
@@ -751,6 +798,31 @@
 
             <div class="form-divider" style="margin: 24px 0;"></div>
 
+            <!-- Template 1.5: Pesan Siang -->
+            <div class="template-section mb-5">
+              <h4 style="color: var(--blue-400); margin-bottom: 8px;">🏙️ Template Pesan Siang (Belum Absen)</h4>
+              <div class="form-item">
+                <textarea id="cfgMessageSiang" class="custom-textarea" rows="4" placeholder="Format pesan siang..."></textarea>
+                <span class="form-hint">Variabel <code>{nama}</code> akan otomatis diganti nama rekan guru.</span>
+              </div>
+              <div class="preview-container mb-4">
+                <div class="preview-title">📱 Preview Pesan Siang:</div>
+                <div class="whatsapp-card" id="whatsappPreviewSiang"></div>
+              </div>
+              
+              <h4 style="color: var(--emerald-400); margin-bottom: 8px;">✅ Template Pesan Siang (Sudah Absen)</h4>
+              <div class="form-item">
+                <textarea id="cfgMessageSiangSudah" class="custom-textarea" rows="4" placeholder="Format pesan sudah absen siang..."></textarea>
+                <span class="form-hint">Variabel <code>{nama}</code> akan otomatis diganti nama rekan guru.</span>
+              </div>
+              <div class="preview-container">
+                <div class="preview-title">📱 Preview (Sudah Absen Siang):</div>
+                <div class="whatsapp-card" id="whatsappPreviewSiangSudah"></div>
+              </div>
+            </div>
+
+            <div class="form-divider" style="margin: 24px 0;"></div>
+
             <!-- Template 2: Pesan Pulang -->
             <div class="template-section mb-4">
               <h4 style="color: var(--indigo-400); margin-bottom: 8px;">🌆 Template Pesan Pulang (Belum Absen)</h4>
@@ -844,6 +916,7 @@
                     </select>
                   </div>
                   <div class="form-item"><label class="form-label">Jam Pagi (HH:mm)</label><input class="custom-input" id="saasSchoolPagi" placeholder="07:30" value="07:30"></div>
+                  <div class="form-item"><label class="form-label">Jam Siang (HH:mm)</label><input class="custom-input" id="saasSchoolSiang" placeholder="15:30" value="15:30"></div>
                   <div class="form-item"><label class="form-label">Jam Pulang (HH:mm)</label><input class="custom-input" id="saasSchoolPulang" placeholder="18:00" value="18:00"></div>
                 </div>
                 <div id="formAddSchoolError" class="feedback-error" style="margin-top:12px;"></div>
