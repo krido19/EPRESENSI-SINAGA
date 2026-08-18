@@ -1008,17 +1008,22 @@ function applyColleaguesData(data) {
   const hadir = data.hadirCount || 0;
   const belum = data.belumCount || 0;
   
-  // Count Izin and Sakit for selected day
-  const izinCount = colleagues.filter(c => c.status && (c.status.includes('Izin') || c.status.includes('Cuti'))).length;
+  // Count Izin (termasuk Dinas Luar & Tugas Luar) dan Sakit untuk hari yang dipilih
+  const izinCount = colleagues.filter(c => c.status && (
+    c.status.includes('Izin') || c.status.includes('Cuti') ||
+    c.status === 'Dinas Luar' || c.status === 'Tugas Luar'
+  )).length;
   const sakitCount = colleagues.filter(c => c.status && c.status.includes('Sakit')).length;
+  // belumCount murni: tidak hadir, bukan Libur, bukan Izin/Cuti, bukan Sakit
+  const belumMurniCount = colleagues.filter(c => !c.isHadir && c.status === 'Belum Absen').length;
 
   // Update Chips Counts
   if (countAllChip) countAllChip.textContent = total;
   if (countHadirChip) countHadirChip.textContent = hadir;
-  if (countBelumChip) countBelumChip.textContent = belum;
+  if (countBelumChip) countBelumChip.textContent = belumMurniCount;
   if (countIzinChip) countIzinChip.textContent = izinCount;
   if (countSakitChip) countSakitChip.textContent = sakitCount;
-  if (unabsentBadgeCount) unabsentBadgeCount.textContent = belum;
+  if (unabsentBadgeCount) unabsentBadgeCount.textContent = belumMurniCount;
 
   // Update Progress Bar & HUD Metrics
   const percentage = total > 0 ? parseFloat(((hadir / total) * 100).toFixed(1)) : 0;
@@ -1327,8 +1332,13 @@ function renderColleaguesTable() {
     if (!matchSearch) return false;
 
     if (activeFilter === 'hadir') return c.isHadir;
-    if (activeFilter === 'belum') return !c.isHadir && !c.status.includes('Libur');
-    if (activeFilter === 'izin') return c.status && (c.status.includes('Izin') || c.status.includes('Cuti'));
+    // belum: hanya status "Belum Absen" murni, exclude Sakit, Izin, Cuti, Dinas Luar, Tugas Luar, Libur
+    if (activeFilter === 'belum') return !c.isHadir && c.status === 'Belum Absen';
+    // izin: termasuk Dinas Luar & Tugas Luar
+    if (activeFilter === 'izin') return c.status && (
+      c.status.includes('Izin') || c.status.includes('Cuti') ||
+      c.status === 'Dinas Luar' || c.status === 'Tugas Luar'
+    );
     if (activeFilter === 'sakit') return c.status && c.status.includes('Sakit');
     
     // Monthly Filters
@@ -1359,10 +1369,10 @@ function renderColleaguesTable() {
       badgeClass = 'badge-status badge-status-hadir';
     } else if (c.status.includes('Libur')) {
       badgeClass = 'badge-status badge-status-libur';
-    } else if (c.status.includes('Izin') || c.status.includes('Cuti')) {
+    } else if (c.status.includes('Izin') || c.status.includes('Cuti') || c.status === 'Dinas Luar' || c.status === 'Tugas Luar') {
       badgeClass = 'badge-status badge-status-izin';
     } else if (c.status.includes('Sakit')) {
-      badgeClass = 'badge-status badge-status-izin';
+      badgeClass = 'badge-status badge-status-sakit';
     } else {
       badgeClass = 'badge-status badge-status-belum';
     }

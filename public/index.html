@@ -1179,6 +1179,21 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast-notification"></div>
 
-  <script src="app.js"></script>
+  <!-- Cache buster: update versi setiap kali ada perubahan penting -->
+  <script>
+    (function() {
+      var APP_VERSION = 'v20260818c';
+      var storedVer = localStorage.getItem('epresensi_app_version');
+      if (storedVer !== APP_VERSION) {
+        // Hapus semua cache presensi harian dari localStorage
+        Object.keys(localStorage).forEach(function(k) {
+          if (k.startsWith('epresensi_cache_day_')) localStorage.removeItem(k);
+        });
+        localStorage.setItem('epresensi_app_version', APP_VERSION);
+        console.log('[Cache] Versi baru ' + APP_VERSION + ' - cache presensi dihapus.');
+      }
+    })();
+  </script>
+  <script src="app.js?v=20260818c"></script>
 </body>
 </html>

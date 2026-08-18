@@ -910,17 +910,25 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
         curJamPulang = allMatches.length > 1 ? allMatches[allMatches.length - 1] : '-';
       }
 
-      // Find the explicit status code from the hidden input for this date:
-      // id="202608_199012222014022002-s_10"
-      const statusInputId = `${year}${month}_${nip}-s_${dStr}`;
-      const statusRegex = new RegExp(`id=["']${statusInputId}["'][^>]*value=["']([^"']+)["']`, 'i');
-      const statusMatch = rowHtml.match(statusRegex);
+      // Find the explicit status code from the hidden input for this date
+      const id1 = `${year}${month}_${nip}-s_${dStr}`;
+      const id2 = `${year}${month}_${nip}-s_${d}`;
+      const id3 = `${year}${month}_${nip}_s_${dStr}`;
+      const id4 = `${year}${month}_${nip}_s_${d}`;
 
-      if (statusMatch) {
-        const code = statusMatch[1].toUpperCase();
-        
-        if (['H', 'T', 'TAM', 'TAP', 'HB'].includes(code)) {
-          curStatus = (code === 'T' || code === 'TAM' || code === 'TAP') ? 'Terlambat' : 'Hadir';
+      let code = null;
+      for (const sid of [id1, id2, id3, id4]) {
+        const esc = sid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const m = rowHtml.match(new RegExp(`id=["']${esc}["'][^>]*value=["']([^"']+)["']`, 'i'))
+               || rowHtml.match(new RegExp(`value=["']([^"']+)["'][^>]*id=["']${esc}["']`, 'i'));
+        if (m) { code = m[1].toUpperCase(); break; }
+      }
+
+      if (code) {
+        if (['H', 'T', 'TAM', 'TAP', 'TAPT', 'HB'].includes(code)) {
+          // TAP = Tidak Absen Pulang (Tapi check-in tepat waktu = Hadir)
+          // TAPT = Tidak Absen Pulang Terlambat (Check-in terlambat = Terlambat)
+          curStatus = (code === 'T' || code === 'TAM' || code === 'TAPT') ? 'Terlambat' : 'Hadir';
           curIsHadir = true;
           totalHadir++;
         } else if (code === 'HBN') {
@@ -937,13 +945,15 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
           totalIzin++;
         } else if (code === 'OFF') {
           curStatus = 'Libur (OFF)';
-        } else if (code === 'A' || code === 'HAPUS') {
+        } else if (code === 'A' || code === 'HAPUS' || code === 'TK') {
           // Alpha / Belum Absen
           curStatus = 'Belum Absen';
           // Only count as Belum Absen if it's past or today
           if (parseInt(year) < now.getFullYear() || parseInt(month) < (now.getMonth() + 1) || (parseInt(month) === (now.getMonth() + 1) && d <= now.getDate())) {
             totalBelum++;
           }
+        } else {
+          curStatus = `Unknown: ${code}`;
         }
       } else {
         // Fallback if hidden input not found
@@ -1001,7 +1011,8 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   });
 
   const hadirCount = colleagues.filter(c => c.isHadir).length;
-  const belumCount = colleagues.length - hadirCount;
+  // belumCount hanya status "Belum Absen" murni
+  const belumCount = colleagues.filter(c => !c.isHadir && c.status === 'Belum Absen').length;
 
   const resultData = {
     success: true,

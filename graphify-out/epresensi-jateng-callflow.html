@@ -60,24 +60,24 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 <div class="container">
 
 <h1>EPRESENSI-SINAGA — Complete Call Flow &amp; Architecture Documentation</h1>
-<p class="subtitle">Generated from graphify knowledge graph: 362 nodes, 419 edges, 15 communities. Commit: 5ea4961</p>
+<p class="subtitle">Generated from graphify knowledge graph: 485 nodes, 510 edges, 45 communities. Commit: 7e8dd07</p>
 
 <div class="nav">
     <a href="#overview">Architecture Overview</a>
+    <a href="#extract-pipeline">Extraction Pipeline</a>
     <a href="#build-graph">Graph Build</a>
     <a href="#ingest-cache-update">Ingestion &amp; Updates</a>
+    <a href="#serve-api">Serving API</a>
     <a href="#app-js">app.js</a>
     <a href="#server-js">server.js</a>
     <a href="#fitur-utama-aplikasi">✨ Fitur Utama Aplikasi</a>
     <a href="#escapehtml">escapeHtml</a>
-    <a href="#formatwahtml">formatWaHtml</a>
-    <a href="#workflows-graphify-md">workflows/graphify.md</a>
-    <a href="#deploy-vps-sh">deploy_vps.sh</a>
-    <a href="#template-daftar-guru-50673033-md">template_daftar_guru_50673033.md</a>
-    <a href="#applytheme">applyTheme</a>
-    <a href="#loadstatus">loadStatus</a>
-    <a href="#sw-js">sw.js</a>
-    <a href="#rules-graphify-md">rules/graphify.md</a>
+    <a href="#fix-auth-js">fix_auth.js</a>
+    <a href="#fix-login-handler-js">fix_login_handler.js</a>
+    <a href="#fix-mastercron-js">fix_mastercron.js</a>
+    <a href="#fix-scheduler-js">fix_scheduler.js</a>
+    <a href="#migrate-to-supabase-js">migrate_to_supabase.js</a>
+    <a href="#fix-appjs-head-js">fix_appjs_head.js</a>
     <a href="#other">Other</a>
 </div>
 
@@ -88,41 +88,38 @@ hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
 
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
+    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>5 nodes</small>")
+    class EXTRACT_PIPELINE_5F350230 module;
     BUILD_GRAPH_321CBB04("Graph Build<br/><small>31 nodes</small>")
     class BUILD_GRAPH_321CBB04 module;
     INGEST_CACHE_UPDATE_FF457338("Ingestion &amp; Updates<br/><small>9 nodes</small>")
     class INGEST_CACHE_UPDATE_FF457338 module;
-    APP_JS_CC08AAF7("app.js<br/><small>200 nodes</small>")
+    SERVE_API_35EC8E86("Serving API<br/><small>7 nodes</small>")
+    class SERVE_API_35EC8E86 module;
+    APP_JS_CC08AAF7("app.js<br/><small>208 nodes</small>")
     class APP_JS_CC08AAF7 module;
-    SERVER_JS_B7773C1D("server.js<br/><small>53 nodes</small>")
+    SERVER_JS_B7773C1D("server.js<br/><small>59 nodes</small>")
     class SERVER_JS_B7773C1D module;
     FITUR_UTAMA_APLIKASI_DB645210("✨ Fitur Utama Aplikasi<br/><small>29 nodes</small>")
     class FITUR_UTAMA_APLIKASI_DB645210 module;
-    ESCAPEHTML_EA4401A2("escapeHtml<br/><small>20 nodes</small>")
+    ESCAPEHTML_EA4401A2("escapeHtml<br/><small>25 nodes</small>")
     class ESCAPEHTML_EA4401A2 module;
-    FORMATWAHTML_74106C95("formatWaHtml<br/><small>5 nodes</small>")
-    class FORMATWAHTML_74106C95 module;
-    WORKFLOWS_GRAPHIFY_MD_C6A40BAC("workflows/graphify.md<br/><small>2 nodes</small>")
-    class WORKFLOWS_GRAPHIFY_MD_C6A40BAC module;
-    DEPLOY_VPS_SH_CC73807F("deploy_vps.sh<br/><small>2 nodes</small>")
-    class DEPLOY_VPS_SH_CC73807F module;
-    TEMPLATE_DAFTAR_GURU_50673033_MD_D95705B3("template_daftar_guru_50673033.md<br/><small>2 nodes</small>")
-    class TEMPLATE_DAFTAR_GURU_50673033_MD_D95705B3 module;
-    APPLYTHEME_F61CBE02("applyTheme<br/><small>2 nodes</small>")
-    class APPLYTHEME_F61CBE02 module;
-    LOADSTATUS_A42A86A3("loadStatus<br/><small>2 nodes</small>")
-    class LOADSTATUS_A42A86A3 module;
-    SW_JS_36209973("sw.js<br/><small>2 nodes</small>")
-    class SW_JS_36209973 module;
-    RULES_GRAPHIFY_MD_3459230E("rules/graphify.md<br/><small>2 nodes</small>")
-    class RULES_GRAPHIFY_MD_3459230E module;
-    OTHER_D0941E68("Other<br/><small>1 nodes</small>")
+    FIX_AUTH_JS_7545E9A3("fix_auth.js<br/><small>5 nodes</small>")
+    class FIX_AUTH_JS_7545E9A3 module;
+    FIX_LOGIN_HANDLER_JS_390954A7("fix_login_handler.js<br/><small>5 nodes</small>")
+    class FIX_LOGIN_HANDLER_JS_390954A7 module;
+    FIX_MASTERCRON_JS_B4166DBB("fix_mastercron.js<br/><small>5 nodes</small>")
+    class FIX_MASTERCRON_JS_B4166DBB module;
+    FIX_SCHEDULER_JS_755AF152("fix_scheduler.js<br/><small>5 nodes</small>")
+    class FIX_SCHEDULER_JS_755AF152 module;
+    MIGRATE_TO_SUPABASE_JS_BC0CAE38("migrate_to_supabase.js<br/><small>5 nodes</small>")
+    class MIGRATE_TO_SUPABASE_JS_BC0CAE38 module;
+    FIX_APPJS_HEAD_JS_3A024EDE("fix_appjs_head.js<br/><small>4 nodes</small>")
+    class FIX_APPJS_HEAD_JS_3A024EDE module;
+    OTHER_D0941E68("Other<br/><small>83 nodes</small>")
     class OTHER_D0941E68 module;
-    APP_JS_CC08AAF7 -->|contains x17| ESCAPEHTML_EA4401A2
-    APP_JS_CC08AAF7 -->|contains x3| FORMATWAHTML_74106C95
-    APP_JS_CC08AAF7 -->|contains x2| APPLYTHEME_F61CBE02
-    APP_JS_CC08AAF7 -->|contains| LOADSTATUS_A42A86A3
-    FORMATWAHTML_74106C95 -->|calls| ESCAPEHTML_EA4401A2
+    APP_JS_CC08AAF7 -->|contains x20| ESCAPEHTML_EA4401A2
+    APP_JS_CC08AAF7 -->|contains x3| OTHER_D0941E68
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -139,30 +136,130 @@ flowchart LR
     <h4>Architecture Layers</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
-      <tr><td>Graph Build</td><td>31</td><td><code>2</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>9</td><td><code>4</code></td></tr><tr><td>app.js</td><td>200</td><td><code>0</code></td></tr><tr><td>server.js</td><td>53</td><td><code>1</code></td></tr><tr><td>✨ Fitur Utama Aplikasi</td><td>29</td><td><code>5</code></td></tr><tr><td>escapeHtml</td><td>20</td><td><code>3</code></td></tr><tr><td>formatWaHtml</td><td>5</td><td><code>13</code></td></tr><tr><td>workflows/graphify.md</td><td>2</td><td><code>10</code></td></tr><tr><td>deploy_vps.sh</td><td>2</td><td><code>11</code></td></tr><tr><td>template_daftar_guru_50673033.md</td><td>2</td><td><code>14</code></td></tr><tr><td>applyTheme</td><td>2</td><td><code>6</code></td></tr><tr><td>loadStatus</td><td>2</td><td><code>7</code></td></tr><tr><td>sw.js</td><td>2</td><td><code>8</code></td></tr><tr><td>rules/graphify.md</td><td>2</td><td><code>9</code></td></tr><tr><td>Other</td><td>1</td><td><code>12</code></td></tr>
+      <tr><td>Extraction Pipeline</td><td>5</td><td><code>13</code></td></tr><tr><td>Graph Build</td><td>31</td><td><code>2</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>9</td><td><code>4</code></td></tr><tr><td>Serving API</td><td>7</td><td><code>21, 26</code></td></tr><tr><td>app.js</td><td>208</td><td><code>0</code></td></tr><tr><td>server.js</td><td>59</td><td><code>1</code></td></tr><tr><td>✨ Fitur Utama Aplikasi</td><td>29</td><td><code>5</code></td></tr><tr><td>escapeHtml</td><td>25</td><td><code>3</code></td></tr><tr><td>fix_auth.js</td><td>5</td><td><code>15</code></td></tr><tr><td>fix_login_handler.js</td><td>5</td><td><code>16</code></td></tr><tr><td>fix_mastercron.js</td><td>5</td><td><code>17</code></td></tr><tr><td>fix_scheduler.js</td><td>5</td><td><code>18</code></td></tr><tr><td>migrate_to_supabase.js</td><td>5</td><td><code>19</code></td></tr><tr><td>fix_appjs_head.js</td><td>4</td><td><code>20</code></td></tr><tr><td>Other</td><td>83</td><td><code>22, 23, 24, 25, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 10, 11, 14, 6, 7, 8, 9, 12</code></td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Core Flow</h4>
-    <div class="arrow-chain">Graph Build -&gt; Ingestion &amp; Updates -&gt; app.js -&gt; escapeHtml -&gt; server.js -&gt; ✨ Fitur Utama Aplikasi -&gt; formatWaHtml</div>
+    <div class="arrow-chain">Extraction Pipeline -&gt; Graph Build -&gt; Ingestion &amp; Updates -&gt; Serving API -&gt; app.js -&gt; escapeHtml -&gt; server.js</div>
   </div>
 </div>
 <div class="grid">
   <div class="card">
     <h4>Graph Report Highlights</h4>
     <ul>
-      <li>362 nodes · 419 edges · 15 communities (8 shown, 7 thin omitted)</li>
-      <li>Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.5)</li>
+      <li>485 nodes · 510 edges · 45 communities (15 shown, 30 thin omitted)</li>
+      <li>Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.5)</li>
       <li>Token cost: 0 input · 0 output</li>
       <li>1. `fetch` - 8 edges</li>
-      <li>2. `loadConfig()` - 8 edges</li>
-      <li>3. `runSchedulerLogic()` - 8 edges</li>
+      <li>2. `runSchedulerLogic()` - 8 edges</li>
+      <li>3. `✨ Fitur Utama Aplikasi` - 8 edges</li>
     </ul>
   </div>
 </div>
 <hr>
-<!-- ====== 2. Graph Build ====== -->
-<h2 id="build-graph">2. Graph Build</h2>
+<!-- ====== 2. Extraction Pipeline ====== -->
+<h2 id="extract-pipeline">2. Extraction Pipeline</h2>
+<p>Extraction Pipeline groups implementation around debug, parserjs, createclient, supabase, mostly in debug_parser.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Extraction Pipeline (5 nodes, 4 edges)
+    debug_parser_7e5029a5("debug_parser.js")
+    debug_parser_createclient_d582ef58("createClient<br/><small>debug_parser.js</small>")
+    debug_parser_fs_2c5d7da3("fs<br/><small>debug_parser.js</small>")
+    debug_parser_main_37e05897("main()<br/><small>debug_parser.js</small>")
+    debug_parser_supabase_d53cba12("supabase<br/><small>debug_parser.js</small>")
+    debug_parser_7e5029a5 -->|contains| debug_parser_createclient_d582ef58
+    debug_parser_7e5029a5 -->|contains| debug_parser_fs_2c5d7da3
+    debug_parser_7e5029a5 -->|contains| debug_parser_main_37e05897
+    debug_parser_7e5029a5 -->|contains| debug_parser_supabase_d53cba12
+    class debug_parser_7e5029a5 module;
+    class debug_parser_createclient_d582ef58 entry;
+    class debug_parser_fs_2c5d7da3 function;
+    class debug_parser_main_37e05897 function;
+    class debug_parser_supabase_d53cba12 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>debug_parser.js</code><br><small style="color:var(--muted)">debug_parser.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>debug_parser.js node in debug_parser.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">debug_parser.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in debug_parser.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>{ createClient }</code><br><small style="color:var(--muted)">debug_parser.js</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ createClient } node in debug_parser.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>supabase</code><br><small style="color:var(--muted)">debug_parser.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>supabase node in debug_parser.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">debug_parser.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main() node in debug_parser.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>debug_parser.js</code></td><td>5 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 3. Graph Build ====== -->
+<h2 id="build-graph">3. Graph Build</h2>
 <p>Graph Build groups implementation around packagejson, node, whiskeysockets, baileys, mostly in package.json. This section covers 31 nodes and 30 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -493,8 +590,8 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 3. Ingestion & Updates ====== -->
-<h2 id="ingest-cache-update">3. Ingestion &amp; Updates</h2>
+<!-- ====== 4. Ingestion & Updates ====== -->
+<h2 id="ingest-cache-update">4. Ingestion &amp; Updates</h2>
 <p>Ingestion &amp; Updates groups implementation around manifestjson, public, name, color, mostly in public/manifest.json. This section covers 9 nodes and 8 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -637,14 +734,140 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 4. app.js ====== -->
-<h2 id="app-js">4. app.js</h2>
-<p>app.js groups implementation around appjs, public, appgatekeeperscreen, mainappwrapper, mostly in public/app.js. This section covers 200 nodes and 199 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 5. Serving API ====== -->
+<h2 id="serve-api">5. Serving API</h2>
+<p>Serving API groups implementation around apijs, refactor, add, superadmin, mostly in refactor_api.js, add_superadmin_api.js. This section covers 7 nodes and 5 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: app.js (200 nodes, 199 edges)
+    %% Section: Serving API (7 nodes, 5 edges)
+    subgraph serve_api_refactor_api_js_5be852aa["refactor_api.js"]
+        refactor_api_c61813d7("refactor_api.js")
+        refactor_api_content_1946c0ef("content<br/><small>refactor_api.js</small>")
+        refactor_api_fs_2cb0253d("fs<br/><small>refactor_api.js</small>")
+        refactor_api_rationale_87_a699380a("TODO: Fetch from Supabase synchronously...<br/><small>refactor_api.js</small>")
+    end
+    subgraph serve_api_add_superadmin_api_js_6a5e7530["add_superadmin_api.js"]
+        add_superadmin_api_90329a92("add_superadmin_api.js")
+        add_superadmin_api_content_66e2e736("content<br/><small>add_superadmin_api.js</small>")
+        add_superadmin_api_fs_6ec29bf9("fs<br/><small>add_superadmin_api.js</small>")
+    end
+    add_superadmin_api_90329a92 -->|contains| add_superadmin_api_content_66e2e736
+    add_superadmin_api_90329a92 -->|contains| add_superadmin_api_fs_6ec29bf9
+    refactor_api_c61813d7 -->|contains| refactor_api_content_1946c0ef
+    refactor_api_c61813d7 -->|contains| refactor_api_fs_2cb0253d
+    refactor_api_c61813d7 -->|explains| refactor_api_rationale_87_a699380a
+    class refactor_api_c61813d7 api;
+    class refactor_api_content_1946c0ef function;
+    class refactor_api_fs_2cb0253d function;
+    class refactor_api_rationale_87_a699380a concept;
+    class add_superadmin_api_90329a92 api;
+    class add_superadmin_api_content_66e2e736 function;
+    class add_superadmin_api_fs_6ec29bf9 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>refactor_api.js</code><br><small style="color:var(--muted)">refactor_api.js</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>refactor_api.js node in refactor_api.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">refactor_api.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in refactor_api.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>content</code><br><small style="color:var(--muted)">refactor_api.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in refactor_api.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>TODO: Fetch from Supabase synchronously? No, express routes should be refactored</code><br><small style="color:var(--muted)">refactor_api.js</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for TODO: Fetch from Supabase synchronously? No, express routes should be refactored.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>add_superadmin_api.js</code><br><small style="color:var(--muted)">add_superadmin_api.js</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>add_superadmin_api.js node in add_superadmin_api.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">add_superadmin_api.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in add_superadmin_api.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>content</code><br><small style="color:var(--muted)">add_superadmin_api.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in add_superadmin_api.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>refactor_api.js</code></td><td>4 nodes</td></tr>
+<tr><td><code>add_superadmin_api.js</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4, explains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. app.js ====== -->
+<h2 id="app-js">6. app.js</h2>
+<p>app.js groups implementation around appjs, public, appgatekeeperscreen, mainappwrapper, mostly in public/app.js. This section covers 208 nodes and 207 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: app.js (208 nodes, 207 edges)
     public_app_fd8505ea("app.js")
     public_app_activedaypopup_a328dc1b("activeDayPopup<br/><small>public/app.js</small>")
     public_app_addaccountfeedback_64a28c96("addAccountFeedback<br/><small>public/app.js</small>")
@@ -652,6 +875,7 @@ flowchart LR
     public_app_addrecipientmodal_7442eee3("addRecipientModal<br/><small>public/app.js</small>")
     public_app_analyticschartbody_aaa05871("analyticsChartBody<br/><small>public/app.js</small>")
     public_app_appgatekeeperscreen_57514b80("appGatekeeperScreen<br/><small>public/app.js</small>")
+    public_app_applyroleui_05e5a8ac("applyRoleUI()<br/><small>public/app.js</small>")
     public_app_avatar_gradients_d18a92b6("AVATAR_GRADIENTS<br/><small>public/app.js</small>")
     public_app_batchcountbtn_600cc950("batchCountBtn<br/><small>public/app.js</small>")
     public_app_batchcounttag_53284d86("batchCountTag<br/><small>public/app.js</small>")
@@ -662,13 +886,13 @@ flowchart LR
     public_app_btncancelmodal_75d09438("btnCancelModal<br/><small>public/app.js</small>")
     public_app_btncheckandsend_d0169473("btnCheckAndSend<br/><small>public/app.js</small>")
     public_app_btncheckonly_a3396f95("btnCheckOnly<br/><small>public/app.js</small>")
-    public_app_btnclearallrecipients_34be0418("btnClearAllRecipients<br/><small>public/app.js</small>")
     public_app_fd8505ea -->|contains| public_app_activedaypopup_a328dc1b
     public_app_fd8505ea -->|contains| public_app_addaccountfeedback_64a28c96
     public_app_fd8505ea -->|contains| public_app_addrecipientform_ff2a7582
     public_app_fd8505ea -->|contains| public_app_addrecipientmodal_7442eee3
     public_app_fd8505ea -->|contains| public_app_analyticschartbody_aaa05871
     public_app_fd8505ea -->|contains| public_app_appgatekeeperscreen_57514b80
+    public_app_fd8505ea -->|contains| public_app_applyroleui_05e5a8ac
     public_app_fd8505ea -->|contains| public_app_avatar_gradients_d18a92b6
     public_app_fd8505ea -->|contains| public_app_batchcountbtn_600cc950
     public_app_fd8505ea -->|contains| public_app_batchcounttag_53284d86
@@ -679,8 +903,7 @@ flowchart LR
     public_app_fd8505ea -->|contains| public_app_btncancelmodal_75d09438
     public_app_fd8505ea -->|contains| public_app_btncheckandsend_d0169473
     public_app_fd8505ea -->|contains| public_app_btncheckonly_a3396f95
-    public_app_fd8505ea -->|contains| public_app_btnclearallrecipients_34be0418
-    %% Omitted for readability: 182 nodes, 0 edges
+    %% Omitted for readability: 190 nodes, 0 edges
     class public_app_fd8505ea module;
     class public_app_activedaypopup_a328dc1b function;
     class public_app_addaccountfeedback_64a28c96 function;
@@ -688,6 +911,7 @@ flowchart LR
     class public_app_addrecipientmodal_7442eee3 function;
     class public_app_analyticschartbody_aaa05871 function;
     class public_app_appgatekeeperscreen_57514b80 function;
+    class public_app_applyroleui_05e5a8ac function;
     class public_app_avatar_gradients_d18a92b6 klass;
     class public_app_batchcountbtn_600cc950 function;
     class public_app_batchcounttag_53284d86 function;
@@ -698,7 +922,6 @@ flowchart LR
     class public_app_btncancelmodal_75d09438 function;
     class public_app_btncheckandsend_d0169473 function;
     class public_app_btncheckonly_a3396f95 function;
-    class public_app_btnclearallrecipients_34be0418 function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -754,6 +977,14 @@ flowchart LR
 </tr>
 <tr>
   <td>5</td>
+  <td><code>gatekeeperInputEmail</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>gatekeeperInputEmail node in public/app.js.</td>
+</tr>
+<tr>
+  <td>6</td>
   <td><code>gatekeeperInputPassword</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -761,7 +992,7 @@ flowchart LR
   <td>gatekeeperInputPassword node in public/app.js.</td>
 </tr>
 <tr>
-  <td>6</td>
+  <td>7</td>
   <td><code>btnToggleGatekeeperEye</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -769,7 +1000,7 @@ flowchart LR
   <td>btnToggleGatekeeperEye node in public/app.js.</td>
 </tr>
 <tr>
-  <td>7</td>
+  <td>8</td>
   <td><code>gatekeeperErrorMsg</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -777,7 +1008,7 @@ flowchart LR
   <td>gatekeeperErrorMsg node in public/app.js.</td>
 </tr>
 <tr>
-  <td>8</td>
+  <td>9</td>
   <td><code>btnSubmitGatekeeper</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -785,7 +1016,7 @@ flowchart LR
   <td>btnSubmitGatekeeper node in public/app.js.</td>
 </tr>
 <tr>
-  <td>9</td>
+  <td>10</td>
   <td><code>btnLogoutApp</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -793,7 +1024,7 @@ flowchart LR
   <td>btnLogoutApp node in public/app.js.</td>
 </tr>
 <tr>
-  <td>10</td>
+  <td>11</td>
   <td><code>changeAppPasswordForm</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -801,7 +1032,7 @@ flowchart LR
   <td>changeAppPasswordForm node in public/app.js.</td>
 </tr>
 <tr>
-  <td>11</td>
+  <td>12</td>
   <td><code>currentAppPasswordInput</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -809,7 +1040,7 @@ flowchart LR
   <td>currentAppPasswordInput node in public/app.js.</td>
 </tr>
 <tr>
-  <td>12</td>
+  <td>13</td>
   <td><code>newAppPasswordInput</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -817,7 +1048,7 @@ flowchart LR
   <td>newAppPasswordInput node in public/app.js.</td>
 </tr>
 <tr>
-  <td>13</td>
+  <td>14</td>
   <td><code>checkAppAuth()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -825,7 +1056,15 @@ flowchart LR
   <td>checkAppAuth() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>14</td>
+  <td>15</td>
+  <td><code>applyRoleUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>applyRoleUI() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>16</td>
   <td><code>config</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -833,7 +1072,7 @@ flowchart LR
   <td>Reads, resolves, or persists project configuration.</td>
 </tr>
 <tr>
-  <td>15</td>
+  <td>17</td>
   <td><code>recipients</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -841,7 +1080,7 @@ flowchart LR
   <td>recipients node in public/app.js.</td>
 </tr>
 <tr>
-  <td>16</td>
+  <td>18</td>
   <td><code>colleagues</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -849,7 +1088,7 @@ flowchart LR
   <td>colleagues node in public/app.js.</td>
 </tr>
 <tr>
-  <td>17</td>
+  <td>19</td>
   <td><code>logs</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -857,7 +1096,7 @@ flowchart LR
   <td>logs node in public/app.js.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>20</td>
   <td><code>todayDateBadge</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -865,7 +1104,7 @@ flowchart LR
   <td>todayDateBadge node in public/app.js.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>21</td>
   <td><code>statusValue</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -873,7 +1112,7 @@ flowchart LR
   <td>statusValue node in public/app.js.</td>
 </tr>
 <tr>
-  <td>20</td>
+  <td>22</td>
   <td><code>jamMasukVal</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -881,7 +1120,7 @@ flowchart LR
   <td>jamMasukVal node in public/app.js.</td>
 </tr>
 <tr>
-  <td>21</td>
+  <td>23</td>
   <td><code>jamPulangVal</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -889,7 +1128,7 @@ flowchart LR
   <td>jamPulangVal node in public/app.js.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>24</td>
   <td><code>headerStatusBadge</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -897,7 +1136,7 @@ flowchart LR
   <td>headerStatusBadge node in public/app.js.</td>
 </tr>
 <tr>
-  <td>23</td>
+  <td>25</td>
   <td><code>headerStatusText</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -905,7 +1144,7 @@ flowchart LR
   <td>headerStatusText node in public/app.js.</td>
 </tr>
 <tr>
-  <td>24</td>
+  <td>26</td>
   <td><code>hudPersonalStatus</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -913,7 +1152,7 @@ flowchart LR
   <td>hudPersonalStatus node in public/app.js.</td>
 </tr>
 <tr>
-  <td>25</td>
+  <td>27</td>
   <td><code>hudPersonalTime</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -921,7 +1160,7 @@ flowchart LR
   <td>hudPersonalTime node in public/app.js.</td>
 </tr>
 <tr>
-  <td>26</td>
+  <td>28</td>
   <td><code>hudColleaguePercent</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -929,7 +1168,7 @@ flowchart LR
   <td>hudColleaguePercent node in public/app.js.</td>
 </tr>
 <tr>
-  <td>27</td>
+  <td>29</td>
   <td><code>hudColleagueFraction</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -937,28 +1176,12 @@ flowchart LR
   <td>hudColleagueFraction node in public/app.js.</td>
 </tr>
 <tr>
-  <td>28</td>
+  <td>30</td>
   <td><code>hudBotTime</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
   <td>hudBotTime node in public/app.js.</td>
-</tr>
-<tr>
-  <td>29</td>
-  <td><code>hudBotCountdown</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>hudBotCountdown node in public/app.js.</td>
-</tr>
-<tr>
-  <td>30</td>
-  <td><code>hudRecipientCount</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>hudRecipientCount node in public/app.js.</td>
 </tr>
 </table>
 
@@ -967,30 +1190,30 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>public/app.js</code></td><td>200 nodes</td></tr>
+      <tr><td><code>public/app.js</code></td><td>208 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x199. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x207. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
-<!-- ====== 5. server.js ====== -->
-<h2 id="server-js">5. server.js</h2>
-<p>server.js groups implementation around serverjs, auth, express, cors, mostly in server.js. This section covers 53 nodes and 88 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 7. server.js ====== -->
+<h2 id="server-js">7. server.js</h2>
+<p>server.js groups implementation around serverjs, auth, express, cors, mostly in server.js. This section covers 59 nodes and 93 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: server.js (53 nodes, 88 edges)
+    %% Section: server.js (59 nodes, 93 edges)
     server_fetch_c1126262("fetch<br/><small>server.js</small>")
     server_loadconfig_d8e28130("loadConfig()<br/><small>server.js</small>")
-    server_addlog_f5cd7c10("addLog()<br/><small>server.js</small>")
     server_loadrecipients_71023ea3("loadRecipients()<br/><small>server.js</small>")
+    server_addlog_f5cd7c10("addLog()<br/><small>server.js</small>")
+    server_buildtenantcfg_fb369f5a("buildTenantCfg()<br/><small>server.js</small>")
     server_loadlogs_93817299("loadLogs()<br/><small>server.js</small>")
-    server_pino_71cd0ffd("pino<br/><small>server.js</small>")
     server_checkattendance_dc25efaa("checkAttendance()<br/><small>server.js</small>")
     server_detectschoolprofile_a9476665("detectSchoolProfile()<br/><small>server.js</small>")
     server_dologin_265fa0b5("doLogin()<br/><small>server.js</small>")
@@ -998,9 +1221,9 @@ flowchart LR
     server_fetchcolleaguesattendance_c30bb8b9("fetchColleaguesAttendance()<br/><small>server.js</small>")
     server_fetchloginpage_0adf9eef("fetchLoginPage()<br/><small>server.js</small>")
     server_sendwhatsapp_250e67ce("sendWhatsApp()<br/><small>server.js</small>")
+    server_pino_71cd0ffd("pino<br/><small>server.js</small>")
     server_initbaileys_56c63682("initBaileys()<br/><small>server.js</small>")
-    server_verifyauthtoken_dcb53c23("verifyAuthToken()<br/><small>server.js</small>")
-    server_requireappauth_28117415("requireAppAuth()<br/><small>server.js</small>")
+    server_getactiveschools_4149a7c0("getActiveSchools()<br/><small>server.js</small>")
     server_runschedulerlogic_23bcfc16("runSchedulerLogic()<br/><small>server.js</small>")
     server_savesessionandreturn_9db6b603("saveSessionAndReturn()<br/><small>server.js</small>")
     server_fetch_c1126262 -->|calls| server_checkattendance_dc25efaa
@@ -1011,11 +1234,10 @@ flowchart LR
     server_fetch_c1126262 -->|calls| server_fetchloginpage_0adf9eef
     server_fetch_c1126262 -->|calls| server_sendwhatsapp_250e67ce
     server_pino_71cd0ffd -->|calls| server_initbaileys_56c63682
-    server_verifyauthtoken_dcb53c23 -->|calls| server_requireappauth_28117415
-    server_requireappauth_28117415 -->|calls| server_loadconfig_d8e28130
     server_initbaileys_56c63682 -->|calls| server_addlog_f5cd7c10
     server_loadconfig_d8e28130 -->|calls| server_ensurevalidsession_3859f835
     server_loadconfig_d8e28130 -->|calls| server_fetchcolleaguesattendance_c30bb8b9
+    server_loadconfig_d8e28130 -->|calls| server_getactiveschools_4149a7c0
     server_loadconfig_d8e28130 -->|calls| server_runschedulerlogic_23bcfc16
     server_loadconfig_d8e28130 -->|calls| server_savesessionandreturn_9db6b603
     server_loadconfig_d8e28130 -->|calls| server_sendwhatsapp_250e67ce
@@ -1027,13 +1249,14 @@ flowchart LR
     server_fetchloginpage_0adf9eef -->|calls| server_dologin_265fa0b5
     server_detectschoolprofile_a9476665 -->|calls| server_savesessionandreturn_9db6b603
     server_savesessionandreturn_9db6b603 -->|calls| server_dologin_265fa0b5
-    %% Omitted for readability: 35 nodes, 5 edges
+    server_dologin_265fa0b5 -->|calls| server_ensurevalidsession_3859f835
+    %% Omitted for readability: 41 nodes, 4 edges
     class server_fetch_c1126262 function;
     class server_loadconfig_d8e28130 function;
-    class server_addlog_f5cd7c10 function;
     class server_loadrecipients_71023ea3 function;
+    class server_addlog_f5cd7c10 function;
+    class server_buildtenantcfg_fb369f5a function;
     class server_loadlogs_93817299 function;
-    class server_pino_71cd0ffd function;
     class server_checkattendance_dc25efaa function;
     class server_detectschoolprofile_a9476665 function;
     class server_dologin_265fa0b5 function;
@@ -1041,9 +1264,9 @@ flowchart LR
     class server_fetchcolleaguesattendance_c30bb8b9 function;
     class server_fetchloginpage_0adf9eef function;
     class server_sendwhatsapp_250e67ce function;
+    class server_pino_71cd0ffd function;
     class server_initbaileys_56c63682 function;
-    class server_verifyauthtoken_dcb53c23 function;
-    class server_requireappauth_28117415 function;
+    class server_getactiveschools_4149a7c0 function;
     class server_runschedulerlogic_23bcfc16 function;
     class server_savesessionandreturn_9db6b603 function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
@@ -1189,6 +1412,22 @@ flowchart LR
 </tr>
 <tr>
   <td>16</td>
+  <td><code>{ createClient }</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ createClient } node in server.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>supabase</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>supabase node in server.js.</td>
+</tr>
+<tr>
+  <td>18</td>
   <td><code>app</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1196,7 +1435,7 @@ flowchart LR
   <td>app node in server.js.</td>
 </tr>
 <tr>
-  <td>17</td>
+  <td>19</td>
   <td><code>getAppSecret()</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1204,7 +1443,7 @@ flowchart LR
   <td>getAppSecret() node in server.js.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>20</td>
   <td><code>AUTH_SECRET</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-class">Class</span></td>
   <td>External entry / no inbound edge</td>
@@ -1212,7 +1451,7 @@ flowchart LR
   <td>AUTH_SECRET node in server.js.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>21</td>
   <td><code>allowedOrigins</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1220,7 +1459,7 @@ flowchart LR
   <td>allowedOrigins node in server.js.</td>
 </tr>
 <tr>
-  <td>20</td>
+  <td>22</td>
   <td><code>rateLimitRecords</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1228,7 +1467,7 @@ flowchart LR
   <td>rateLimitRecords node in server.js.</td>
 </tr>
 <tr>
-  <td>21</td>
+  <td>23</td>
   <td><code>createRateLimiter()</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1236,7 +1475,7 @@ flowchart LR
   <td>createRateLimiter() node in server.js.</td>
 </tr>
 <tr>
-  <td>22</td>
+  <td>24</td>
   <td><code>authLimiter</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1244,7 +1483,7 @@ flowchart LR
   <td>authLimiter node in server.js.</td>
 </tr>
 <tr>
-  <td>23</td>
+  <td>25</td>
   <td><code>actionLimiter</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1252,7 +1491,7 @@ flowchart LR
   <td>actionLimiter node in server.js.</td>
 </tr>
 <tr>
-  <td>24</td>
+  <td>26</td>
   <td><code>generateAuthToken()</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1260,52 +1499,36 @@ flowchart LR
   <td>generateAuthToken() node in server.js.</td>
 </tr>
 <tr>
-  <td>25</td>
+  <td>27</td>
   <td><code>verifyAuthToken()</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
-  <td><code>requireAppAuth()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>No direct outbound edge</td>
   <td>verifyAuthToken() node in server.js.</td>
 </tr>
 <tr>
-  <td>26</td>
+  <td>28</td>
+  <td><code>authCache</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Caches analysis results or computes cache keys.</td>
+</tr>
+<tr>
+  <td>29</td>
   <td><code>requireAppAuth()</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>verifyAuthToken()</code><br><small style="color:var(--muted)">server.js</small></td>
-  <td><code>loadConfig()</code><br><small style="color:var(--muted)">server.js</small></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
   <td>requireAppAuth() node in server.js.</td>
 </tr>
 <tr>
-  <td>27</td>
+  <td>30</td>
   <td><code>upload</code><br><small style="color:var(--muted)">server.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
   <td>upload node in server.js.</td>
-</tr>
-<tr>
-  <td>28</td>
-  <td><code>CONFIG_FILE</code><br><small style="color:var(--muted)">server.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Reads, resolves, or persists project configuration.</td>
-</tr>
-<tr>
-  <td>29</td>
-  <td><code>LOG_FILE</code><br><small style="color:var(--muted)">server.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>LOG_FILE node in server.js.</td>
-</tr>
-<tr>
-  <td>30</td>
-  <td><code>RECIPIENTS_FILE</code><br><small style="color:var(--muted)">server.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>RECIPIENTS_FILE node in server.js.</td>
 </tr>
 </table>
 
@@ -1314,18 +1537,18 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>server.js</code></td><td>53 nodes</td></tr>
+      <tr><td><code>server.js</code></td><td>59 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x51, calls x36. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x56, calls x35. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
-<!-- ====== 6. ✨ Fitur Utama Aplikasi ====== -->
-<h2 id="fitur-utama-aplikasi">6. ✨ Fitur Utama Aplikasi</h2>
+<!-- ====== 8. ✨ Fitur Utama Aplikasi ====== -->
+<h2 id="fitur-utama-aplikasi">8. ✨ Fitur Utama Aplikasi</h2>
 <p>✨ Fitur Utama Aplikasi groups implementation around readmemd, baileys, guidemd, whatsapp, mostly in README.md, BAILEYS_GUIDE.md. This section covers 29 nodes and 28 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
@@ -1661,32 +1884,32 @@ flowchart LR
 </div>
 <hr>
 
-<!-- ====== 7. escapeHtml ====== -->
-<h2 id="escapehtml">7. escapeHtml</h2>
-<p>escapeHtml groups implementation around public, appjs, builddatestrip, selectdatepill, mostly in public/app.js. This section covers 20 nodes and 25 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 9. escapeHtml ====== -->
+<h2 id="escapehtml">9. escapeHtml</h2>
+<p>escapeHtml groups implementation around public, appjs, builddatestrip, selectdatepill, mostly in public/app.js. This section covers 25 nodes and 30 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: escapeHtml (20 nodes, 25 edges)
+    %% Section: escapeHtml (25 nodes, 30 edges)
     public_app_showtoast_1fb58cb9("showToast()<br/><small>public/app.js</small>")
     public_app_applycolleaguesdata_a0fd5f4e("applyColleaguesData()<br/><small>public/app.js</small>")
+    public_app_formatwahtml_a0001166("formatWaHtml()<br/><small>public/app.js</small>")
     public_app_getteacheravatar_40590ba3("getTeacherAvatar()<br/><small>public/app.js</small>")
+    public_app_switchwagatewayui_f5787664("switchWaGatewayUI()<br/><small>public/app.js</small>")
     public_app_builddatestrip_e14db3ed("buildDateStrip()<br/><small>public/app.js</small>")
-    public_app_loadschoolaccounts_1ab2d147("loadSchoolAccounts()<br/><small>public/app.js</small>")
-    public_app_rendertableskeleton_f25d5e1d("renderTableSkeleton()<br/><small>public/app.js</small>")
     public_app_selectdatepill_3ef0b0af("selectDatePill()<br/><small>public/app.js</small>")
     public_app_loadcolleagues_436c6df4("loadColleagues()<br/><small>public/app.js</small>")
     public_app_loadrecipients_e272e01c("loadRecipients()<br/><small>public/app.js</small>")
     public_app_performcheck_9cbbe3be("performCheck()<br/><small>public/app.js</small>")
     public_app_runnowscheduler_e60c5d69("runNowScheduler()<br/><small>public/app.js</small>")
     public_app_triggersendunabsent_d9defe86("triggerSendUnabsent()<br/><small>public/app.js</small>")
+    public_app_loadconfig_e212bdf6("loadConfig()<br/><small>public/app.js</small>")
+    public_app_loadwastatus_d1113a74("loadWaStatus()<br/><small>public/app.js</small>")
+    public_app_updatemessagepreviews_b39d61cb("updateMessagePreviews()<br/><small>public/app.js</small>")
     public_app_loadlogs_f48df609("loadLogs()<br/><small>public/app.js</small>")
     public_app_rendercolleaguestable_593227d6("renderColleaguesTable()<br/><small>public/app.js</small>")
     public_app_renderrecipientstable_e3a8c96f("renderRecipientsTable()<br/><small>public/app.js</small>")
-    public_app_updatedonutchart_567cdb1d("updateDonutChart()<br/><small>public/app.js</small>")
-    public_app_rendermonthlyanalytics_7ca225a5("renderMonthlyAnalytics()<br/><small>public/app.js</small>")
-    public_app_escapehtml_fb93a3ef("escapeHtml()<br/><small>public/app.js</small>")
     public_app_builddatestrip_e14db3ed -->|calls| public_app_selectdatepill_3ef0b0af
     public_app_selectdatepill_3ef0b0af -->|calls| public_app_loadcolleagues_436c6df4
     public_app_showtoast_1fb58cb9 -->|calls| public_app_loadcolleagues_436c6df4
@@ -1694,39 +1917,37 @@ flowchart LR
     public_app_showtoast_1fb58cb9 -->|calls| public_app_performcheck_9cbbe3be
     public_app_showtoast_1fb58cb9 -->|calls| public_app_runnowscheduler_e60c5d69
     public_app_showtoast_1fb58cb9 -->|calls| public_app_triggersendunabsent_d9defe86
+    public_app_switchwagatewayui_f5787664 -->|calls| public_app_loadconfig_e212bdf6
+    public_app_switchwagatewayui_f5787664 -->|calls| public_app_loadwastatus_d1113a74
+    public_app_loadconfig_e212bdf6 -->|calls| public_app_updatemessagepreviews_b39d61cb
     public_app_performcheck_9cbbe3be -->|calls| public_app_loadlogs_f48df609
     public_app_getteacheravatar_40590ba3 -->|calls| public_app_rendercolleaguestable_593227d6
     public_app_getteacheravatar_40590ba3 -->|calls| public_app_renderrecipientstable_e3a8c96f
-    public_app_updatedonutchart_567cdb1d -->|calls| public_app_applycolleaguesdata_a0fd5f4e
-    public_app_rendertableskeleton_f25d5e1d -->|calls| public_app_loadcolleagues_436c6df4
     public_app_applycolleaguesdata_a0fd5f4e -->|calls| public_app_rendercolleaguestable_593227d6
-    public_app_applycolleaguesdata_a0fd5f4e -->|calls| public_app_rendermonthlyanalytics_7ca225a5
     public_app_applycolleaguesdata_a0fd5f4e -->|calls| public_app_loadcolleagues_436c6df4
-    public_app_loadcolleagues_436c6df4 -->|calls| public_app_escapehtml_fb93a3ef
-    public_app_rendercolleaguestable_593227d6 -->|calls| public_app_escapehtml_fb93a3ef
     public_app_triggersendunabsent_d9defe86 -->|calls| public_app_loadlogs_f48df609
     public_app_loadrecipients_e272e01c -->|calls| public_app_renderrecipientstable_e3a8c96f
-    public_app_renderrecipientstable_e3a8c96f -->|calls| public_app_escapehtml_fb93a3ef
     public_app_runnowscheduler_e60c5d69 -->|calls| public_app_loadlogs_f48df609
-    %% Omitted for readability: 2 nodes, 0 edges
+    public_app_formatwahtml_a0001166 -->|calls| public_app_updatemessagepreviews_b39d61cb
+    %% Omitted for readability: 7 nodes, 0 edges
     class public_app_showtoast_1fb58cb9 function;
     class public_app_applycolleaguesdata_a0fd5f4e function;
+    class public_app_formatwahtml_a0001166 function;
     class public_app_getteacheravatar_40590ba3 function;
+    class public_app_switchwagatewayui_f5787664 function;
     class public_app_builddatestrip_e14db3ed function;
-    class public_app_loadschoolaccounts_1ab2d147 function;
-    class public_app_rendertableskeleton_f25d5e1d function;
     class public_app_selectdatepill_3ef0b0af function;
     class public_app_loadcolleagues_436c6df4 function;
     class public_app_loadrecipients_e272e01c function;
     class public_app_performcheck_9cbbe3be function;
     class public_app_runnowscheduler_e60c5d69 function;
     class public_app_triggersendunabsent_d9defe86 function;
+    class public_app_loadconfig_e212bdf6 function;
+    class public_app_loadwastatus_d1113a74 function;
+    class public_app_updatemessagepreviews_b39d61cb function;
     class public_app_loadlogs_f48df609 function;
     class public_app_rendercolleaguestable_593227d6 function;
     class public_app_renderrecipientstable_e3a8c96f function;
-    class public_app_updatedonutchart_567cdb1d function;
-    class public_app_rendermonthlyanalytics_7ca225a5 function;
-    class public_app_escapehtml_fb93a3ef function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -1774,6 +1995,30 @@ flowchart LR
 </tr>
 <tr>
   <td>4</td>
+  <td><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadWaStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>switchWaGatewayUI() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>loadWaStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>loadWaStatus() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>7</td>
   <td><code>performCheck()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>showToast()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1781,7 +2026,7 @@ flowchart LR
   <td>performCheck() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>5</td>
+  <td>8</td>
   <td><code>getTeacherAvatar()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1789,7 +2034,7 @@ flowchart LR
   <td>getTeacherAvatar() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>6</td>
+  <td>9</td>
   <td><code>updateDonutChart()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1797,7 +2042,7 @@ flowchart LR
   <td>updateDonutChart() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>7</td>
+  <td>10</td>
   <td><code>renderTableSkeleton()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1805,7 +2050,7 @@ flowchart LR
   <td>renderTableSkeleton() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>8</td>
+  <td>11</td>
   <td><code>applyColleaguesData()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>updateDonutChart()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1813,7 +2058,7 @@ flowchart LR
   <td>applyColleaguesData() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>9</td>
+  <td>12</td>
   <td><code>renderMonthlyAnalytics()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>applyColleaguesData()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1821,7 +2066,7 @@ flowchart LR
   <td>Orchestrates analysis and returns structured documentation data.</td>
 </tr>
 <tr>
-  <td>10</td>
+  <td>13</td>
   <td><code>loadColleagues()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>applyColleaguesData()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderTableSkeleton()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>selectDatePill()</code><br><small style="color:var(--muted)">public/app.js</small><br>+1 more</td>
@@ -1829,7 +2074,7 @@ flowchart LR
   <td>loadColleagues() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>11</td>
+  <td>14</td>
   <td><code>renderColleaguesTable()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>applyColleaguesData()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>getTeacherAvatar()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1837,7 +2082,7 @@ flowchart LR
   <td>renderColleaguesTable() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>12</td>
+  <td>15</td>
   <td><code>triggerSendUnabsent()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>showToast()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1845,7 +2090,7 @@ flowchart LR
   <td>triggerSendUnabsent() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>13</td>
+  <td>16</td>
   <td><code>loadRecipients()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>showToast()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1853,7 +2098,7 @@ flowchart LR
   <td>loadRecipients() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>14</td>
+  <td>17</td>
   <td><code>renderRecipientsTable()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>getTeacherAvatar()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadRecipients()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1861,7 +2106,7 @@ flowchart LR
   <td>renderRecipientsTable() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>15</td>
+  <td>18</td>
   <td><code>runNowScheduler()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>showToast()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1869,7 +2114,23 @@ flowchart LR
   <td>runNowScheduler() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>16</td>
+  <td>19</td>
+  <td><code>formatWaHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>Exports documentation data to a target format.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>formatWaHtml()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>updateMessagePreviews() node in public/app.js.</td>
+</tr>
+<tr>
+  <td>21</td>
   <td><code>loadLogs()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>performCheck()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>runNowScheduler()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>triggerSendUnabsent()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1877,7 +2138,7 @@ flowchart LR
   <td>loadLogs() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>17</td>
+  <td>22</td>
   <td><code>renderLogs()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>loadLogs()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1885,15 +2146,15 @@ flowchart LR
   <td>renderLogs() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>18</td>
+  <td>23</td>
   <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
-  <td><code>loadColleagues()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderColleaguesTable()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderLogs()</code><br><small style="color:var(--muted)">public/app.js</small><br>+1 more</td>
+  <td><code>formatWaHtml()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadColleagues()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>renderColleaguesTable()</code><br><small style="color:var(--muted)">public/app.js</small><br>+2 more</td>
   <td><code>renderSavedAccounts()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td>Exports documentation data to a target format.</td>
 </tr>
 <tr>
-  <td>19</td>
+  <td>24</td>
   <td><code>loadSchoolAccounts()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
@@ -1901,7 +2162,7 @@ flowchart LR
   <td>loadSchoolAccounts() node in public/app.js.</td>
 </tr>
 <tr>
-  <td>20</td>
+  <td>25</td>
   <td><code>renderSavedAccounts()</code><br><small style="color:var(--muted)">public/app.js</small></td>
   <td><span class="tag tag-func">Function</span></td>
   <td><code>escapeHtml()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadSchoolAccounts()</code><br><small style="color:var(--muted)">public/app.js</small></td>
@@ -1915,38 +2176,38 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>public/app.js</code></td><td>20 nodes</td></tr>
+      <tr><td><code>public/app.js</code></td><td>25 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: calls x25. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x30. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
-<!-- ====== 8. formatWaHtml ====== -->
-<h2 id="formatwahtml">8. formatWaHtml</h2>
-<p>formatWaHtml groups implementation around public, appjs, switchwagatewayui, loadwastatus, mostly in public/app.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 10. fix_auth.js ====== -->
+<h2 id="fix-auth-js">10. fix_auth.js</h2>
+<p>fix_auth.js groups implementation around fix, authjs, content, startindex, mostly in fix_auth.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: formatWaHtml (5 nodes, 4 edges)
-    public_app_switchwagatewayui_f5787664("switchWaGatewayUI()<br/><small>public/app.js</small>")
-    public_app_formatwahtml_a0001166("formatWaHtml()<br/><small>public/app.js</small>")
-    public_app_loadconfig_e212bdf6("loadConfig()<br/><small>public/app.js</small>")
-    public_app_loadwastatus_d1113a74("loadWaStatus()<br/><small>public/app.js</small>")
-    public_app_updatemessagepreviews_b39d61cb("updateMessagePreviews()<br/><small>public/app.js</small>")
-    public_app_switchwagatewayui_f5787664 -->|calls| public_app_loadconfig_e212bdf6
-    public_app_switchwagatewayui_f5787664 -->|calls| public_app_loadwastatus_d1113a74
-    public_app_loadconfig_e212bdf6 -->|calls| public_app_updatemessagepreviews_b39d61cb
-    public_app_formatwahtml_a0001166 -->|calls| public_app_updatemessagepreviews_b39d61cb
-    class public_app_switchwagatewayui_f5787664 function;
-    class public_app_formatwahtml_a0001166 function;
-    class public_app_loadconfig_e212bdf6 function;
-    class public_app_loadwastatus_d1113a74 function;
-    class public_app_updatemessagepreviews_b39d61cb function;
+    %% Section: fix_auth.js (5 nodes, 4 edges)
+    fix_auth_3655cc24("fix_auth.js")
+    fix_auth_content_85c7a7c6("content<br/><small>fix_auth.js</small>")
+    fix_auth_endindex_69ca760d("endIndex<br/><small>fix_auth.js</small>")
+    fix_auth_fs_d32bc9df("fs<br/><small>fix_auth.js</small>")
+    fix_auth_startindex_c93def51("startIndex<br/><small>fix_auth.js</small>")
+    fix_auth_3655cc24 -->|contains| fix_auth_content_85c7a7c6
+    fix_auth_3655cc24 -->|contains| fix_auth_endindex_69ca760d
+    fix_auth_3655cc24 -->|contains| fix_auth_fs_d32bc9df
+    fix_auth_3655cc24 -->|contains| fix_auth_startindex_c93def51
+    class fix_auth_3655cc24 module;
+    class fix_auth_content_85c7a7c6 function;
+    class fix_auth_endindex_69ca760d function;
+    class fix_auth_fs_d32bc9df function;
+    class fix_auth_startindex_c93def51 function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -1970,445 +2231,43 @@ flowchart LR
 </tr>
 <tr>
   <td>1</td>
-  <td><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadWaStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>switchWaGatewayUI() node in public/app.js.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>loadWaStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>loadWaStatus() node in public/app.js.</td>
-</tr>
-<tr>
-  <td>3</td>
-  <td><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>switchWaGatewayUI()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>Reads, resolves, or persists project configuration.</td>
-</tr>
-<tr>
-  <td>4</td>
-  <td><code>formatWaHtml()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>Exports documentation data to a target format.</td>
-</tr>
-<tr>
-  <td>5</td>
-  <td><code>updateMessagePreviews()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>formatWaHtml()</code><br><small style="color:var(--muted)">public/app.js</small><br><code>loadConfig()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>updateMessagePreviews() node in public/app.js.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>public/app.js</code></td><td>5 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: calls x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 9. workflows/graphify.md ====== -->
-<h2 id="workflows-graphify-md">9. workflows/graphify.md</h2>
-<p>workflows/graphify.md groups implementation around graphifymd, agents, workflows, workflow, mostly in .agents/workflows/graphify.md. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: workflows/graphify.md (2 nodes, 1 edges)
-    agents_workflows_graphify_08a1cc26("graphify.md")
-    agents_workflows_graphify_workflow_graphify_87f5fa2b("Workflow: graphify<br/><small>.agents/workflows/graphify.md</small>")
-    agents_workflows_graphify_08a1cc26 -->|contains| agents_workflows_graphify_workflow_graphify_87f5fa2b
-    class agents_workflows_graphify_08a1cc26 concept;
-    class agents_workflows_graphify_workflow_graphify_87f5fa2b concept;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>graphify.md</code><br><small style="color:var(--muted)">.agents/workflows/graphify.md</small></td>
-  <td><span class="tag tag-func">Concept</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Documentation node describing graphify.md.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>Workflow: graphify</code><br><small style="color:var(--muted)">.agents/workflows/graphify.md</small></td>
-  <td><span class="tag tag-func">Concept</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Documentation node describing Workflow: graphify.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>.agents/workflows/graphify.md</code></td><td>2 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 10. deploy_vps.sh ====== -->
-<h2 id="deploy-vps-sh">10. deploy_vps.sh</h2>
-<p>deploy_vps.sh groups implementation around deploy, vpssh, script, mostly in deploy_vps.sh. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: deploy_vps.sh (2 nodes, 1 edges)
-    deploy_vps_8685fe04("deploy_vps.sh")
-    deploy_vps_sh_entry_423d2938("deploy_vps.sh script<br/><small>deploy_vps.sh</small>")
-    deploy_vps_8685fe04 -->|contains| deploy_vps_sh_entry_423d2938
-    class deploy_vps_8685fe04 function;
-    class deploy_vps_sh_entry_423d2938 function;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>deploy_vps.sh</code><br><small style="color:var(--muted)">deploy_vps.sh</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>deploy_vps.sh node in deploy_vps.sh.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>deploy_vps.sh script</code><br><small style="color:var(--muted)">deploy_vps.sh</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>deploy_vps.sh script node in deploy_vps.sh.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>deploy_vps.sh</code></td><td>2 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 11. template_daftar_guru_50673033.md ====== -->
-<h2 id="template-daftar-guru-50673033-md">11. template_daftar_guru_50673033.md</h2>
-<p>template_daftar_guru_50673033.md groups implementation around daftar, guru, template, 50673033md, mostly in graphify-out/converted/template_daftar_guru_50673033.md. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: template_daftar_guru_50673033.md (2 nodes, 1 edges)
-    graphify_out_converted_template_daftar_guru_5067_f79ed5dd("daftar guru 50673033.md<br/><small>graphify-out/converted/template_daftar_guru_50673033.md</small>")
-    graphify_out_converted_template_daftar_guru_5067_d2100eba("Sheet: Daftar Guru<br/><small>graphify-out/converted/template_daftar_guru_50673033.md</small>")
-    graphify_out_converted_template_daftar_guru_5067_f79ed5dd -->|contains| graphify_out_converted_template_daftar_guru_5067_d2100eba
-    class graphify_out_converted_template_daftar_guru_5067_f79ed5dd concept;
-    class graphify_out_converted_template_daftar_guru_5067_d2100eba concept;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>template_daftar_guru_50673033.md</code><br><small style="color:var(--muted)">graphify-out/converted/template_daftar_guru_50673033.md</small></td>
-  <td><span class="tag tag-func">Concept</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Documentation node describing template_daftar_guru_50673033.md.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>Sheet: Daftar Guru</code><br><small style="color:var(--muted)">graphify-out/converted/template_daftar_guru_50673033.md</small></td>
-  <td><span class="tag tag-func">Concept</span></td>
-  <td>External entry / no inbound edge</td>
-  <td>No direct outbound edge</td>
-  <td>Documentation node describing Sheet: Daftar Guru.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>graphify-out/converted/template_daftar_guru_50673033.md</code></td><td>2 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 12. applyTheme ====== -->
-<h2 id="applytheme">12. applyTheme</h2>
-<p>applyTheme groups implementation around public, appjs, applytheme, inittheme, mostly in public/app.js. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: applyTheme (2 nodes, 1 edges)
-    public_app_applytheme_e781aafb("applyTheme()<br/><small>public/app.js</small>")
-    public_app_inittheme_293193f4("initTheme()<br/><small>public/app.js</small>")
-    public_app_applytheme_e781aafb -->|calls| public_app_inittheme_293193f4
-    class public_app_applytheme_e781aafb function;
-    class public_app_inittheme_293193f4 function;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>applyTheme()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>initTheme()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>applyTheme() node in public/app.js.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>initTheme()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>applyTheme()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>initTheme() node in public/app.js.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>public/app.js</code></td><td>2 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: calls x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 13. loadStatus ====== -->
-<h2 id="loadstatus">13. loadStatus</h2>
-<p>loadStatus groups implementation around public, appjs, updatecountdown, loadstatus, mostly in public/app.js. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: loadStatus (2 nodes, 1 edges)
-    public_app_updatecountdown_8997ccc2("updateCountdown()<br/><small>public/app.js</small>")
-    public_app_loadstatus_429e05d2("loadStatus()<br/><small>public/app.js</small>")
-    public_app_updatecountdown_8997ccc2 -->|calls| public_app_loadstatus_429e05d2
-    class public_app_updatecountdown_8997ccc2 function;
-    class public_app_loadstatus_429e05d2 function;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>updateCountdown()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td>External entry / no inbound edge</td>
-  <td><code>loadStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>updateCountdown() node in public/app.js.</td>
-</tr>
-<tr>
-  <td>2</td>
-  <td><code>loadStatus()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td><span class="tag tag-func">Function</span></td>
-  <td><code>updateCountdown()</code><br><small style="color:var(--muted)">public/app.js</small></td>
-  <td>No direct outbound edge</td>
-  <td>loadStatus() node in public/app.js.</td>
-</tr>
-</table>
-
-<div class="grid">
-  <div class="card">
-    <h4>Key Files</h4>
-    <table style="width:100%;font-size:0.85rem;">
-      <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>public/app.js</code></td><td>2 nodes</td></tr>
-    </table>
-  </div>
-  <div class="card">
-    <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: calls x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
-  </div>
-</div>
-<hr>
-
-<!-- ====== 14. sw.js ====== -->
-<h2 id="sw-js">14. sw.js</h2>
-<p>sw.js groups implementation around swjs, public, urls, cache, mostly in public/sw.js. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
-
-<div class="mermaid">
-%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
-flowchart LR
-    %% Section: sw.js (2 nodes, 1 edges)
-    public_sw_be7f98ee("sw.js")
-    public_sw_urls_to_cache_82752dcd("URLS_TO_CACHE<br/><small>public/sw.js</small>")
-    public_sw_be7f98ee -->|contains| public_sw_urls_to_cache_82752dcd
-    class public_sw_be7f98ee module;
-    class public_sw_urls_to_cache_82752dcd klass;
-    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
-    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
-    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
-    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
-    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
-    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
-    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
-    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
-    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
-</div>
-
-<h3>Call Details</h3>
-<table class="call-table">
-<tr>
-  <th style="width:5%">#</th>
-  <th style="width:28%">Node</th>
-  <th style="width:10%">Type</th>
-  <th style="width:17%">Caller</th>
-  <th style="width:20%">Callees</th>
-  <th style="width:20%">Description</th>
-</tr>
-<tr>
-  <td>1</td>
-  <td><code>sw.js</code><br><small style="color:var(--muted)">public/sw.js</small></td>
+  <td><code>fix_auth.js</code><br><small style="color:var(--muted)">fix_auth.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>sw.js node in public/sw.js.</td>
+  <td>fix_auth.js node in fix_auth.js.</td>
 </tr>
 <tr>
   <td>2</td>
-  <td><code>URLS_TO_CACHE</code><br><small style="color:var(--muted)">public/sw.js</small></td>
-  <td><span class="tag tag-class">Class</span></td>
+  <td><code>fs</code><br><small style="color:var(--muted)">fix_auth.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>Caches analysis results or computes cache keys.</td>
+  <td>fs node in fix_auth.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>content</code><br><small style="color:var(--muted)">fix_auth.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in fix_auth.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>startIndex</code><br><small style="color:var(--muted)">fix_auth.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>startIndex node in fix_auth.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>endIndex</code><br><small style="color:var(--muted)">fix_auth.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>endIndex node in fix_auth.js.</td>
 </tr>
 </table>
 
@@ -2417,29 +2276,38 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>public/sw.js</code></td><td>2 nodes</td></tr>
+      <tr><td><code>fix_auth.js</code></td><td>5 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
-<!-- ====== 15. rules/graphify.md ====== -->
-<h2 id="rules-graphify-md">15. rules/graphify.md</h2>
-<p>rules/graphify.md groups implementation around graphifymd, agents, rules, graphify, mostly in .agents/rules/graphify.md. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<!-- ====== 11. fix_login_handler.js ====== -->
+<h2 id="fix-login-handler-js">11. fix_login_handler.js</h2>
+<p>fix_login_handler.js groups implementation around fix, login, handlerjs, content, mostly in fix_login_handler.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: rules/graphify.md (2 nodes, 1 edges)
-    agents_rules_graphify_8193478b("graphify.md")
-    agents_rules_graphify_graphify_dd1d4f66("graphify<br/><small>.agents/rules/graphify.md</small>")
-    agents_rules_graphify_8193478b -->|contains| agents_rules_graphify_graphify_dd1d4f66
-    class agents_rules_graphify_8193478b concept;
-    class agents_rules_graphify_graphify_dd1d4f66 concept;
+    %% Section: fix_login_handler.js (5 nodes, 4 edges)
+    fix_login_handler_36821080("fix_login_handler.js")
+    fix_login_handler_content_4f96efc5("content<br/><small>fix_login_handler.js</small>")
+    fix_login_handler_endidx_8959b535("endIdx<br/><small>fix_login_handler.js</small>")
+    fix_login_handler_fs_f47cef58("fs<br/><small>fix_login_handler.js</small>")
+    fix_login_handler_startidx_f930fb21("startIdx<br/><small>fix_login_handler.js</small>")
+    fix_login_handler_36821080 -->|contains| fix_login_handler_content_4f96efc5
+    fix_login_handler_36821080 -->|contains| fix_login_handler_endidx_8959b535
+    fix_login_handler_36821080 -->|contains| fix_login_handler_fs_f47cef58
+    fix_login_handler_36821080 -->|contains| fix_login_handler_startidx_f930fb21
+    class fix_login_handler_36821080 module;
+    class fix_login_handler_content_4f96efc5 function;
+    class fix_login_handler_endidx_8959b535 function;
+    class fix_login_handler_fs_f47cef58 function;
+    class fix_login_handler_startidx_f930fb21 function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -2463,19 +2331,43 @@ flowchart LR
 </tr>
 <tr>
   <td>1</td>
-  <td><code>graphify.md</code><br><small style="color:var(--muted)">.agents/rules/graphify.md</small></td>
-  <td><span class="tag tag-func">Concept</span></td>
+  <td><code>fix_login_handler.js</code><br><small style="color:var(--muted)">fix_login_handler.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>Documentation node describing graphify.md.</td>
+  <td>fix_login_handler.js node in fix_login_handler.js.</td>
 </tr>
 <tr>
   <td>2</td>
-  <td><code>graphify</code><br><small style="color:var(--muted)">.agents/rules/graphify.md</small></td>
-  <td><span class="tag tag-func">Concept</span></td>
+  <td><code>fs</code><br><small style="color:var(--muted)">fix_login_handler.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>Documentation node describing graphify.</td>
+  <td>fs node in fix_login_handler.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>content</code><br><small style="color:var(--muted)">fix_login_handler.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in fix_login_handler.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>startIdx</code><br><small style="color:var(--muted)">fix_login_handler.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>startIdx node in fix_login_handler.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>endIdx</code><br><small style="color:var(--muted)">fix_login_handler.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>endIdx node in fix_login_handler.js.</td>
 </tr>
 </table>
 
@@ -2484,26 +2376,464 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>.agents/rules/graphify.md</code></td><td>2 nodes</td></tr>
+      <tr><td><code>fix_login_handler.js</code></td><td>5 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: contains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 12. fix_mastercron.js ====== -->
+<h2 id="fix-mastercron-js">12. fix_mastercron.js</h2>
+<p>fix_mastercron.js groups implementation around fix, mastercronjs, startidx, endidx, mostly in fix_mastercron.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: fix_mastercron.js (5 nodes, 4 edges)
+    fix_mastercron_a8834ad7("fix_mastercron.js")
+    fix_mastercron_c_dde5e755("c<br/><small>fix_mastercron.js</small>")
+    fix_mastercron_endidx_b1992cba("endIdx<br/><small>fix_mastercron.js</small>")
+    fix_mastercron_fs_d9c49915("fs<br/><small>fix_mastercron.js</small>")
+    fix_mastercron_startidx_5af85dd5("startIdx<br/><small>fix_mastercron.js</small>")
+    fix_mastercron_a8834ad7 -->|contains| fix_mastercron_c_dde5e755
+    fix_mastercron_a8834ad7 -->|contains| fix_mastercron_endidx_b1992cba
+    fix_mastercron_a8834ad7 -->|contains| fix_mastercron_fs_d9c49915
+    fix_mastercron_a8834ad7 -->|contains| fix_mastercron_startidx_5af85dd5
+    class fix_mastercron_a8834ad7 module;
+    class fix_mastercron_c_dde5e755 function;
+    class fix_mastercron_endidx_b1992cba function;
+    class fix_mastercron_fs_d9c49915 function;
+    class fix_mastercron_startidx_5af85dd5 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>fix_mastercron.js</code><br><small style="color:var(--muted)">fix_mastercron.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fix_mastercron.js node in fix_mastercron.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">fix_mastercron.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in fix_mastercron.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>c</code><br><small style="color:var(--muted)">fix_mastercron.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>c node in fix_mastercron.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>startIdx</code><br><small style="color:var(--muted)">fix_mastercron.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>startIdx node in fix_mastercron.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>endIdx</code><br><small style="color:var(--muted)">fix_mastercron.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>endIdx node in fix_mastercron.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>fix_mastercron.js</code></td><td>5 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 13. fix_scheduler.js ====== -->
+<h2 id="fix-scheduler-js">13. fix_scheduler.js</h2>
+<p>fix_scheduler.js groups implementation around fix, schedulerjs, content, startindex, mostly in fix_scheduler.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: fix_scheduler.js (5 nodes, 4 edges)
+    fix_scheduler_c9938f0e("fix_scheduler.js")
+    fix_scheduler_content_35b12103("content<br/><small>fix_scheduler.js</small>")
+    fix_scheduler_fs_69a572c1("fs<br/><small>fix_scheduler.js</small>")
+    fix_scheduler_setupendindex_c06659ad("setupEndIndex<br/><small>fix_scheduler.js</small>")
+    fix_scheduler_startindex_63470cab("startIndex<br/><small>fix_scheduler.js</small>")
+    fix_scheduler_c9938f0e -->|contains| fix_scheduler_content_35b12103
+    fix_scheduler_c9938f0e -->|contains| fix_scheduler_fs_69a572c1
+    fix_scheduler_c9938f0e -->|contains| fix_scheduler_setupendindex_c06659ad
+    fix_scheduler_c9938f0e -->|contains| fix_scheduler_startindex_63470cab
+    class fix_scheduler_c9938f0e module;
+    class fix_scheduler_content_35b12103 function;
+    class fix_scheduler_fs_69a572c1 function;
+    class fix_scheduler_setupendindex_c06659ad function;
+    class fix_scheduler_startindex_63470cab function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>fix_scheduler.js</code><br><small style="color:var(--muted)">fix_scheduler.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fix_scheduler.js node in fix_scheduler.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">fix_scheduler.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in fix_scheduler.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>content</code><br><small style="color:var(--muted)">fix_scheduler.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in fix_scheduler.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>startIndex</code><br><small style="color:var(--muted)">fix_scheduler.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>startIndex node in fix_scheduler.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>setupEndIndex</code><br><small style="color:var(--muted)">fix_scheduler.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>setupEndIndex node in fix_scheduler.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>fix_scheduler.js</code></td><td>5 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 14. migrate_to_supabase.js ====== -->
+<h2 id="migrate-to-supabase-js">14. migrate_to_supabase.js</h2>
+<p>migrate_to_supabase.js groups implementation around migrate, supabasejs, createclient, supabase, mostly in migrate_to_supabase.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: migrate_to_supabase.js (5 nodes, 4 edges)
+    migrate_to_supabase_081ff4a1("migrate_to_supabase.js")
+    migrate_to_supabase_createclient_7f7906f3("createClient<br/><small>migrate_to_supabase.js</small>")
+    migrate_to_supabase_fs_8bcb4434("fs<br/><small>migrate_to_supabase.js</small>")
+    migrate_to_supabase_runmigration_3b0becc2("runMigration()<br/><small>migrate_to_supabase.js</small>")
+    migrate_to_supabase_supabase_53a8f887("supabase<br/><small>migrate_to_supabase.js</small>")
+    migrate_to_supabase_081ff4a1 -->|contains| migrate_to_supabase_createclient_7f7906f3
+    migrate_to_supabase_081ff4a1 -->|contains| migrate_to_supabase_fs_8bcb4434
+    migrate_to_supabase_081ff4a1 -->|contains| migrate_to_supabase_runmigration_3b0becc2
+    migrate_to_supabase_081ff4a1 -->|contains| migrate_to_supabase_supabase_53a8f887
+    class migrate_to_supabase_081ff4a1 module;
+    class migrate_to_supabase_createclient_7f7906f3 entry;
+    class migrate_to_supabase_fs_8bcb4434 function;
+    class migrate_to_supabase_runmigration_3b0becc2 function;
+    class migrate_to_supabase_supabase_53a8f887 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>migrate_to_supabase.js</code><br><small style="color:var(--muted)">migrate_to_supabase.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>migrate_to_supabase.js node in migrate_to_supabase.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>{ createClient }</code><br><small style="color:var(--muted)">migrate_to_supabase.js</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ createClient } node in migrate_to_supabase.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">migrate_to_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in migrate_to_supabase.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>supabase</code><br><small style="color:var(--muted)">migrate_to_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>supabase node in migrate_to_supabase.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>runMigration()</code><br><small style="color:var(--muted)">migrate_to_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>runMigration() node in migrate_to_supabase.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>migrate_to_supabase.js</code></td><td>5 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 15. fix_appjs_head.js ====== -->
+<h2 id="fix-appjs-head-js">15. fix_appjs_head.js</h2>
+<p>fix_appjs_head.js groups implementation around fix, appjs, headjs, content, mostly in fix_appjs_head.js. This section covers 4 nodes and 3 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: fix_appjs_head.js (4 nodes, 3 edges)
+    fix_appjs_head_045f3790("fix_appjs_head.js")
+    fix_appjs_head_content_1698c04d("content<br/><small>fix_appjs_head.js</small>")
+    fix_appjs_head_fs_7f7a6b83("fs<br/><small>fix_appjs_head.js</small>")
+    fix_appjs_head_gatekeeperformidx_e9f93403("gatekeeperFormIdx<br/><small>fix_appjs_head.js</small>")
+    fix_appjs_head_045f3790 -->|contains| fix_appjs_head_content_1698c04d
+    fix_appjs_head_045f3790 -->|contains| fix_appjs_head_fs_7f7a6b83
+    fix_appjs_head_045f3790 -->|contains| fix_appjs_head_gatekeeperformidx_e9f93403
+    class fix_appjs_head_045f3790 module;
+    class fix_appjs_head_content_1698c04d function;
+    class fix_appjs_head_fs_7f7a6b83 function;
+    class fix_appjs_head_gatekeeperformidx_e9f93403 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>fix_appjs_head.js</code><br><small style="color:var(--muted)">fix_appjs_head.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fix_appjs_head.js node in fix_appjs_head.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">fix_appjs_head.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in fix_appjs_head.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>content</code><br><small style="color:var(--muted)">fix_appjs_head.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in fix_appjs_head.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>gatekeeperFormIdx</code><br><small style="color:var(--muted)">fix_appjs_head.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>gatekeeperFormIdx node in fix_appjs_head.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>fix_appjs_head.js</code></td><td>4 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
 
 <!-- ====== 16. Other ====== -->
 <h2 id="other">16. Other</h2>
-<p>Other groups implementation around ecosystemconfigjs, mostly in ecosystem.config.js. This section covers 1 nodes and 0 internal edges; the diagram shows only representative relationships to stay readable.</p>
+<p>Other groups implementation around fix, add, content, debug, mostly in setup_superadmin.js, setup_user.js, public/app.js. This section covers 83 nodes and 53 internal edges; the diagram shows only representative relationships to stay readable.</p>
 
 <div class="mermaid">
 %%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
 flowchart LR
-    %% Section: Other (1 nodes, 0 edges)
-    ecosystem_config_803395df("ecosystem.config.js")
-    class ecosystem_config_803395df module;
+    %% Section: Other (83 nodes, 53 edges)
+    subgraph other_public_app_js_01c85c4b["public/app.js"]
+        public_app_applytheme_e781aafb("applyTheme()<br/><small>public/app.js</small>")
+        public_app_updatecountdown_8997ccc2("updateCountdown()<br/><small>public/app.js</small>")
+        public_app_loadstatus_429e05d2("loadStatus()<br/><small>public/app.js</small>")
+        public_app_inittheme_293193f4("initTheme()<br/><small>public/app.js</small>")
+    end
+    subgraph other_add_debug_js_1dba1592["add_debug.js"]
+        add_debug_8c679406("add_debug.js")
+        add_debug_content_8ffd2905("content<br/><small>add_debug.js</small>")
+        add_debug_fs_0e785862("fs<br/><small>add_debug.js</small>")
+    end
+    subgraph other_add_run_now_js_5aaf701d["add_run_now.js"]
+        add_run_now_23a7c540("add_run_now.js")
+        add_run_now_content_763b076c("content<br/><small>add_run_now.js</small>")
+        add_run_now_fs_7665fba9("fs<br/><small>add_run_now.js</small>")
+    end
+    subgraph other_add_superadmin_app_js_0fdd80a3["add_superadmin_app.js"]
+        add_superadmin_app_cfb95e7b("add_superadmin_app.js")
+        add_superadmin_app_content_d92d2f29("content<br/><small>add_superadmin_app.js</small>")
+        add_superadmin_app_fs_51ae4911("fs<br/><small>add_superadmin_app.js</small>")
+    end
+    subgraph other_add_superadmin_ui_js_74263afc["add_superadmin_ui.js"]
+        add_superadmin_ui_815a8022("add_superadmin_ui.js")
+        add_superadmin_ui_content_d0f4da85("content<br/><small>add_superadmin_ui.js</small>")
+        add_superadmin_ui_fs_b483452c("fs<br/><small>add_superadmin_ui.js</small>")
+    end
+    subgraph other_debug_parser2_js_b8b62f37["debug_parser2.js"]
+        debug_parser2_ad807d35("debug_parser2.js")
+        debug_parser2_fs_fb2f840c("fs<br/><small>debug_parser2.js</small>")
+    end
+    public_app_updatecountdown_8997ccc2 -->|calls| public_app_loadstatus_429e05d2
+    public_app_applytheme_e781aafb -->|calls| public_app_inittheme_293193f4
+    %% Omitted for readability: 65 nodes, 0 edges
+    class public_app_applytheme_e781aafb function;
+    class public_app_updatecountdown_8997ccc2 function;
+    class public_app_loadstatus_429e05d2 function;
+    class public_app_inittheme_293193f4 function;
+    class add_debug_8c679406 module;
+    class add_debug_content_8ffd2905 function;
+    class add_debug_fs_0e785862 function;
+    class add_run_now_23a7c540 module;
+    class add_run_now_content_763b076c function;
+    class add_run_now_fs_7665fba9 function;
+    class add_superadmin_app_cfb95e7b module;
+    class add_superadmin_app_content_d92d2f29 function;
+    class add_superadmin_app_fs_51ae4911 function;
+    class add_superadmin_ui_815a8022 module;
+    class add_superadmin_ui_content_d0f4da85 function;
+    class add_superadmin_ui_fs_b483452c function;
+    class debug_parser2_ad807d35 module;
+    class debug_parser2_fs_fb2f840c function;
     classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
     classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
     classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
@@ -2527,11 +2857,243 @@ flowchart LR
 </tr>
 <tr>
   <td>1</td>
-  <td><code>ecosystem.config.js</code><br><small style="color:var(--muted)">ecosystem.config.js</small></td>
+  <td><code>setup_superadmin.js</code><br><small style="color:var(--muted)">setup_superadmin.js</small></td>
   <td><span class="tag tag-class">Module</span></td>
   <td>External entry / no inbound edge</td>
   <td>No direct outbound edge</td>
-  <td>Reads, resolves, or persists project configuration.</td>
+  <td>setup_superadmin.js node in setup_superadmin.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>{ createClient }</code><br><small style="color:var(--muted)">setup_superadmin.js</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ createClient } node in setup_superadmin.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>supabase</code><br><small style="color:var(--muted)">setup_superadmin.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>supabase node in setup_superadmin.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>setupSuperAdmin()</code><br><small style="color:var(--muted)">setup_superadmin.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>setupSuperAdmin() node in setup_superadmin.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>setup_user.js</code><br><small style="color:var(--muted)">setup_user.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>setup_user.js node in setup_user.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>{ createClient }</code><br><small style="color:var(--muted)">setup_user.js</small></td>
+  <td><span class="tag tag-cmd">Entry</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ createClient } node in setup_user.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>supabase</code><br><small style="color:var(--muted)">setup_user.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>supabase node in setup_user.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>setupUser()</code><br><small style="color:var(--muted)">setup_user.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>setupUser() node in setup_user.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>add_debug.js</code><br><small style="color:var(--muted)">add_debug.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>add_debug.js node in add_debug.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">add_debug.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in add_debug.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>content</code><br><small style="color:var(--muted)">add_debug.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in add_debug.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>add_run_now.js</code><br><small style="color:var(--muted)">add_run_now.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>add_run_now.js node in add_run_now.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">add_run_now.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in add_run_now.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>content</code><br><small style="color:var(--muted)">add_run_now.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in add_run_now.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>add_superadmin_app.js</code><br><small style="color:var(--muted)">add_superadmin_app.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>add_superadmin_app.js node in add_superadmin_app.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">add_superadmin_app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in add_superadmin_app.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>content</code><br><small style="color:var(--muted)">add_superadmin_app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in add_superadmin_app.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>add_superadmin_ui.js</code><br><small style="color:var(--muted)">add_superadmin_ui.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>add_superadmin_ui.js node in add_superadmin_ui.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">add_superadmin_ui.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in add_superadmin_ui.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>content</code><br><small style="color:var(--muted)">add_superadmin_ui.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>content node in add_superadmin_ui.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>debug_parser2.js</code><br><small style="color:var(--muted)">debug_parser2.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>debug_parser2.js node in debug_parser2.js.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">debug_parser2.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in debug_parser2.js.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">debug_parser2.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main() node in debug_parser2.js.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>debug_parser3.js</code><br><small style="color:var(--muted)">debug_parser3.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>debug_parser3.js node in debug_parser3.js.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">debug_parser3.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in debug_parser3.js.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">debug_parser3.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main() node in debug_parser3.js.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>debug_status_codes.js</code><br><small style="color:var(--muted)">debug_status_codes.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>debug_status_codes.js node in debug_status_codes.js.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">debug_status_codes.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in debug_status_codes.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">debug_status_codes.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main() node in debug_status_codes.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>fix_dangling.js</code><br><small style="color:var(--muted)">fix_dangling.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fix_dangling.js node in fix_dangling.js.</td>
 </tr>
 </table>
 
@@ -2540,12 +3102,19 @@ flowchart LR
     <h4>Key Files</h4>
     <table style="width:100%;font-size:0.85rem;">
       <tr><th>File</th><th>Coverage</th></tr>
-      <tr><td><code>ecosystem.config.js</code></td><td>1 nodes</td></tr>
+      <tr><td><code>public/app.js</code></td><td>4 nodes</td></tr>
+<tr><td><code>setup_superadmin.js</code></td><td>4 nodes</td></tr>
+<tr><td><code>setup_user.js</code></td><td>4 nodes</td></tr>
+<tr><td><code>add_debug.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>add_run_now.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>add_superadmin_app.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>add_superadmin_ui.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>debug_parser2.js</code></td><td>3 nodes</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Design Notes</h4>
-    <p>This section comes from graphify community clustering. Relationship summary: No high-confidence call edges detected. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x51, calls x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
   </div>
 </div>
 <hr>
@@ -2556,18 +3125,18 @@ flowchart LR
   <div class="card">
     <h4>Graph</h4>
     <table style="width:100%;font-size:0.85rem;">
-      <tr><td>Nodes</td><td>362</td></tr>
-      <tr><td>Edges</td><td>419</td></tr>
+      <tr><td>Nodes</td><td>485</td></tr>
+      <tr><td>Edges</td><td>510</td></tr>
       <tr><td>Hyperedges</td><td>0</td></tr>
-      <tr><td>Communities</td><td>15</td></tr>
+      <tr><td>Communities</td><td>45</td></tr>
       <tr><td>Documented Sections</td><td>15</td></tr>
     </table>
   </div>
   <div class="card">
     <h4>Edge Confidence</h4>
     <table style="width:100%;font-size:0.85rem;">
-      <tr><td>EXTRACTED</td><td>412</td></tr>
-      <tr><td>INFERRED</td><td>7</td></tr>
+      <tr><td>EXTRACTED</td><td>502</td></tr>
+      <tr><td>INFERRED</td><td>8</td></tr>
       <tr><td>AMBIGUOUS</td><td>0</td></tr>
     </table>
   </div>
@@ -2575,7 +3144,7 @@ flowchart LR
 
 <div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
   <p>EPRESENSI-SINAGA — Architecture Documentation</p>
-  <p>Generated: 2026-08-17 00:15 UTC · graphify callflow-html</p>
+  <p>Generated: 2026-08-18 01:53 UTC · graphify callflow-html</p>
 </div>
 
 </div><!-- .container -->

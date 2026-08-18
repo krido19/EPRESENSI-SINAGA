@@ -1,16 +1,16 @@
 # Graph Report - EPRESENSI-SINAGA  (2026-08-18)
 
 ## Corpus Check
-- 45 files · ~282,245 words
+- 45 files · ~281,913 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 485 nodes · 510 edges · 45 communities (15 shown, 30 thin omitted)
+- 484 nodes · 509 edges · 45 communities (15 shown, 30 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7e8dd07a`
+- Built from commit: `6936fa7e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -147,7 +147,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `fs`, `content`, `fs` to the rest of the system?**
   _349 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `app.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.009615384615384616 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.00966183574879227 - nodes in this community are weakly interconnected._
 - **Should `server.js` be split into smaller, more focused modules?**
   _Cohesion score 0.054354178842782 - nodes in this community are weakly interconnected._
 - **Should `dependencies` be split into smaller, more focused modules?**
