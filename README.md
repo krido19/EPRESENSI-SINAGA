@@ -33,6 +33,7 @@ Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gra
 
 ### ⚡ 3. Pengiriman WhatsApp Cepat & Batch Multi-Select
 - **1-Click Direct WA Send:** Tombol **`💬 Kirim WA`** di samping setiap guru untuk notifikasi instan.
+- **Smart Message Template:** Saat klik kirim manual, bot cerdas memilih template kalimat (Sudah/Belum Absen, Pagi/Pulang) sesuai status kehadiran dan jam saat itu.
 - **Multi-Select Checkboxes:** Memilih beberapa guru tertentu untuk mengirim pesan massal sekaligus via *Floating Action Bar*.
 - **Quick Send Unabsent:** Tombol cepat untuk mengirim pengingat ke seluruh rekan yang belum absen hari ini.
 
@@ -90,21 +91,32 @@ cp .env.example .env
 ```
 Sesuaikan variabel di dalam `.env` jika diperlukan (port, password akses aplikasi, secret key, akun ePresensi).
 
-### 4. Menjalankan Aplikasi
-
-**Rekomendasi (Menggunakan PM2 - Background Process):**
-Karena aplikasi ini harus berjalan 24 jam untuk pengiriman pesan jadwal (*scheduler*), kami sangat menyarankan menggunakan **PM2**.
-1. Klik kanan pada **`Setup_PM2.bat`** lalu pilih **Run as Administrator** (hanya perlu dilakukan sekali).
-2. Untuk memantau server, melihat log, atau menyalakan/mematikan aplikasi, gunakan **`Kelola_PM2.bat`** sebagai *remote control* Anda.
-
-**Alternatif (Menjalankan Manual di CMD):**
-Jika hanya untuk *testing* / pengembangan:
+### 4. Setup PM2 (Hanya Sekali)
+Karena aplikasi harus berjalan 24 jam, wajib menggunakan **PM2** sebagai *process manager*.
 ```bash
-npm start
-```
-Buka browser dan akses alamat: **`http://localhost:3000`**
+# Install PM2 secara global
+npm install -g pm2
 
-### 5. Menghubungkan WhatsApp
+# Daftarkan dan jalankan aplikasi di PM2
+pm2 start server.js --name epresensi-sinaga
+pm2 start ngrok_start.js --name ngrok-tunnel
+pm2 save
+```
+
+### 5. Mengelola Aplikasi (Sehari-hari)
+Cukup gunakan **satu file ini** untuk semua keperluan:
+
+> 🎮 **`Kelola_PM2.bat`** — *Remote control* aplikasi Anda.
+> - **[1]** Lihat Log Realtime
+> - **[2]** Lihat Log Error
+> - **[3]** Restart Server
+> - **[4]** Stop Server
+> - **[5]** Start Server
+> - **[6]** Buka Dashboard Browser + UptimeRobot
+
+Buka browser dan akses: **`http://localhost:3000`** atau URL publik Ngrok Anda.
+
+### 6. Menghubungkan WhatsApp
 1. Buka dashboard di browser dan login dengan password awal: `SMK3magelang` (atau sesuai `APP_PASSWORD` di `.env`).
 2. Masuk ke menu **⚙️ Pengaturan & WhatsApp**.
 3. Pada bagian **WhatsApp Gateway**, pilih opsi **WhatsApp Web (Scan QR - Gratis)**.
@@ -116,30 +128,33 @@ Buka browser dan akses alamat: **`http://localhost:3000`**
 
 ```text
 epresensi-jateng/
-├── server.js               # Express backend, Baileys socket, Cheerio scraper, scheduler & API endpoints
-├── .env.example            # Template variabel lingkungan untuk konfigurasi rahasia
+├── server.js               # Express backend, Baileys, Cheerio scraper, scheduler & API
+├── ngrok_start.js          # Script Ngrok tunnel dengan Auto-Healing (dikelola PM2)
+├── Kelola_PM2.bat          # Remote control: log, restart, stop, start server (1 file cukup!)
+├── create_notification_logs.sql  # SQL setup tabel log notifikasi di Supabase
+├── .env.example            # Template variabel lingkungan
 ├── .env                    # File konfigurasi lokal (diabaikan oleh git)
-├── config.json             # File konfigurasi cookie, credentials & gateway state
-├── recipients.json         # Database lokal nomor kontak guru/penerima WhatsApp
-├── logs.json               # Catatan log aktivitas bot dan pengiriman pesan
+├── config.json             # Konfigurasi cookie, credentials & gateway state (auto-backup)
 ├── package.json            # Daftar dependensi & metadata proyek
-├── README.md               # Dokumentasi umum & panduan penggunaan aplikasi
-├── BAILEYS_GUIDE.md        # Dokumentasi teknis, arsitektur & troubleshooting Baileys
+├── README.md               # Dokumentasi & panduan penggunaan
+├── BAILEYS_GUIDE.md        # Dokumentasi teknis troubleshooting Baileys
 ├── public/
-│   ├── index.html          # Layout antarmuka dashboard, sidebar, modal, dan gatekeeper
-│   ├── style.css           # Desain Glassmorphism, Theme Tokens (Dark & Light), dan Scrollbar CSS
-│   └── app.js              # Logika frontend, event handler, avatar generator, dan polling WA
+│   ├── index.html          # Layout antarmuka dashboard, sidebar, modal, gatekeeper
+│   ├── style.css           # Desain Glassmorphism, Theme Tokens (Dark & Light)
+│   └── app.js              # Logika frontend, event handler, avatar, polling WA
 ├── graphify-out/           # Knowledge graph & visualisasi arsitektur kode
-└── baileys_auth_info/      # Direktori sesi WhatsApp Web multi-device (diabaikan oleh .gitignore)
+└── baileys_auth_info/      # Sesi WhatsApp Web multi-device (diabaikan .gitignore)
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Node.js, Express.js, `@whiskeysockets/baileys` (Multi-Device WA), `cheerio` (DOM Scraper), `node-cron`, `dotenv`, `multer`, `xlsx`, `pino`, `qrcode`.
+- **Backend:** Node.js, Express.js, `@whiskeysockets/baileys` (Multi-Device WA), `cheerio` (DOM Scraper), `node-cron`, `@supabase/supabase-js`, `dotenv`, `multer`, `xlsx`, `pino`, `qrcode`, `@ngrok/ngrok`.
 - **Frontend:** Vanilla HTML5, Modern CSS Variables (Design Tokens, Dark/Light Mode, Glassmorphism), Vanilla JavaScript (ES6+), `Plus Jakarta Sans`, `JetBrains Mono`.
+- **Database:** Supabase (PostgreSQL) — recipients, notification_logs, schools.
 - **Data Provider:** Portal Resmi ePresensi BKD Pemerintah Provinsi Jawa Tengah.
+- **Monitoring:** UptimeRobot (24/7 health check) + Ngrok (public tunnel dengan Auto-Healing).
 
 ---
 

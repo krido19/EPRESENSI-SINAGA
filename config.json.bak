@@ -14,12 +14,12 @@
   "schedulerPulangEnabled": true,
   "pulangHour": 18,
   "pulangMinute": 5,
-  "messagePagi": "Halo *{nama}*! 👋\n\nPengingat presensi pagi:\nAnda tercatat \n\n██████████████████\n██             BELUM             ██\n██████████████████\n\nmelakukan *absen pagi / masuk* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! ⏰\n\nE-PRESENSI SINAGA",
-  "messagePagiSudah": "Halo *{nama}*! 👋\n\nPengingat presensi pagi:\nAnda tercatat \n\n██████████████████\n██             SUDAH             ██\n██████████████████\n\nmelakukan *absen pagi / masuk* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! ⏰\n\nE-PRESENSI SINAGA",
-  "messageSiang": "Halo *{nama}*! 👋\n\nPengingat presensi pulang :\nJANGAN LUPA \n\n██████████████████\n██             ABSEN             ██\n██████████████████\n\nmelakukan *absen pulang* siang ini di ePresensi Jateng.\n\nJangan lupa absen ya! ⏰\n\n_Pesan otomatis ePresensi_",
-  "messageSiangSudah": "Halo *{nama}*! 👋\n\nPengingat presensi pulang:\nJangan Lupa\n\n██████████████████\n██             ABSEN             ██\n██████████████████\n\nmelakukan *absen pulang* hari ini di ePresensi Jateng.\n\nJangan lupa lakukan presensi pulang sebelum batas waktu berakhir! 🏢⏰\n\n\nE-PRESESENSI SINAGA",
-  "messagePulang": "Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat \n\n██████████████████\n██             BELUM            ██\n██████████████████\n\n melakukan presensi pulang hari ini di ePresensi Jateng. ! 🏡✨\n\n_Pesan otomatis ePresensi_",
-  "messagePulangSudah": "Halo *{nama}*! 👋\n\nTerima kasih, Anda tercatat \n\n██████████████████\n██             SUDAH            ██\n██████████████████\n\n melakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\n_Pesan otomatis ePresensi_",
+  "messagePagi": " *{nama}*! \n\nPengingat presensi pagi:\nAnda tercatat \n\n██████████████████\n██             BELUM             ██\n██████████████████\n\nmelakukan *absen pagi / masuk* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! ⏰\n\nE-PRESENSI SINAGA",
+  "messagePagiSudah": " *{nama}*! \n\nPengingat presensi pagi:\nAnda tercatat \n\n██████████████████\n██             SUDAH             ██\n██████████████████\n\nmelakukan *absen pagi / masuk* hari ini di ePresensi Jateng.\n\nSegera lakukan presensi masuk sekarang ya! ⏰\n\nE-PRESENSI SINAGA",
+  "messageSiang": " *{nama}*! \n\nPengingat presensi pulang :\nJANGAN LUPA \n\n██████████████████\n██             ABSEN             ██\n██████████████████\n\nmelakukan *absen pulang* siang ini di ePresensi Jateng.\n\nJangan lupa absen ya! ⏰\n\nE-PRESESENSI SINAGA",
+  "messageSiangSudah": " *{nama}*! 👋\n\nPengingat presensi pulang:\nJangan Lupa\n\n██████████████████\n██             ABSEN             ██\n██████████████████\n\nmelakukan *absen pulang* hari ini di ePresensi Jateng.\n\nJangan lupa lakukan presensi pulang sebelum batas waktu berakhir! 🏢⏰\n\n\nE-PRESESENSI SINAGA",
+  "messagePulang": " *{nama}*! \n\nTerima kasih, Anda tercatat \n\n██████████████████\n██             BELUM            ██\n██████████████████\n\n melakukan presensi pulang hari ini di ePresensi Jateng. ! 🏡✨\n\nE-PRESESENSI SINAGA",
+  "messagePulangSudah": " *{nama}*! \n\nTerima kasih, Anda tercatat \n\n██████████████████\n██             SUDAH            ██\n██████████████████\n\n melakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\nE-PRESESENSI SINAGA",
   "message": "Halo *{nama}*! 👋\n\nPengingat presensi:\nAnda belum melakukan *absen* hari ini di ePresensi Jateng. Segera absen sekarang! ⏰",
   "appPassword": "SMK3magelang",
   "namaSekolah": "SMKN 3 MAGELANG",
@@ -47,8 +47,5 @@
       "opdCode": "F200000000",
       "lastLogin": "2026-08-18T02:55:16.915Z"
     }
-  ],
-  "schedulerSiangEnabled": true,
-  "siangHour": 15,
-  "siangMinute": 30
+  ]
 }

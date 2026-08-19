@@ -491,10 +491,13 @@ function loadLogs() {
   }
 }
 
-function addLog(entry) {
+function addLog(entry, fallbackEntry) {
+  // Support 2-argument form: addLog(null, entry) used in some places
+  const logEntry = entry || fallbackEntry;
+  if (!logEntry || !logEntry.message) return; // Jangan simpan log kosong
   try {
     const logs = loadLogs();
-    logs.unshift({ ...entry, timestamp: new Date().toISOString() });
+    logs.unshift({ ...logEntry, timestamp: new Date().toISOString() });
     if (logs.length > 200) logs.splice(200);
     const tempFile = `${LOG_FILE}.tmp`;
     fs.writeFileSync(tempFile, JSON.stringify(logs, null, 2), 'utf8');
@@ -1983,14 +1986,42 @@ app.post('/api/send-unabsent', async (req, res) => {
 
 // Send Direct WhatsApp to Individual Teacher
 app.post('/api/send-direct', async (req, res) => {
-  const { nomor, nama, message } = req.body;
+  const { nomor, nama, message, isHadir } = req.body;
   if (!nomor) return res.json({ success: false, error: 'Nomor WhatsApp tidak valid.' });
 
   const cfg = loadConfig();
-  const template = message || cfg.messagePagi || cfg.message || 'Halo *{nama}*! Jangan lupa lakukan presensi hari ini di ePresensi Jateng ya! ⏰';
-  const finalMsg = template.replace(/\{nama\}/gi, nama || 'Bapak/Ibu');
 
-  const result = await sendWhatsApp(nomor, finalMsg, cfg.fonnteToken);
+  let finalMsg;
+  if (message) {
+    // Jika frontend mengirim pesan custom langsung, gunakan itu
+    finalMsg = message.replace(/\{nama\}/gi, nama || 'Bapak/Ibu');
+  } else {
+    // Pilih template cerdas berdasarkan waktu WIB & status hadir guru
+    const jamWIB = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', hour12: false });
+    const jam = parseInt(jamWIB, 10);
+    const sudahHadir = isHadir === true || isHadir === 'true';
+
+    let template;
+    if (jam < 12) {
+      // Sebelum jam 12 siang → konteks absensi pagi
+      template = sudahHadir
+        ? (cfg.messagePagiSudah || 'Terima kasih *{nama}*, Anda sudah tercatat hadir pagi ini! ✅ Jangan lupa absen pulang nanti ya.')
+        : (cfg.messagePagi   || 'Halo *{nama}*, jangan lupa lakukan absensi masuk di ePresensi Jateng ya! ⏰');
+    } else if (jam < 15) {
+      // Jam 12-15 → konteks siang
+      template = sudahHadir
+        ? (cfg.messageSiangSudah || 'Terima kasih *{nama}*, Anda sudah tercatat hadir! ✅ Jangan lupa absen pulang nanti ya.')
+        : (cfg.messageSiang      || 'Halo *{nama}*, Anda belum absen siang ini. Segera lakukan presensi! ⏰');
+    } else {
+      // Jam 15+ → konteks pulang
+      template = sudahHadir
+        ? (cfg.messagePulangSudah || 'Terima kasih *{nama}*, Anda sudah tercatat hadir hari ini! 🎉')
+        : (cfg.messagePulang      || 'Halo *{nama}*, jangan lupa absen pulang di ePresensi Jateng ya! 🕕');
+    }
+    finalMsg = template.replace(/\{nama\}/gi, nama || 'Bapak/Ibu');
+  }
+
+  const result = await sendWhatsAppWithRetry(nomor, finalMsg, cfg.fonnteToken || null);
   if (result.success) {
     addLog({
       type: 'sent',
@@ -2720,7 +2751,7 @@ app.get('/api/status', requireAppAuth, async (req, res) => {
     schedulerEnabled: cfg.schedulerEnabled || false,
     pagiTime: `${String(cfg.pagiHour ?? 7).padStart(2,'0')}:${String(cfg.pagiMinute ?? 30).padStart(2,'0')}`,
     pulangTime: `${String(cfg.pulangHour ?? 18).padStart(2,'0')}:${String(cfg.pulangMinute ?? 0).padStart(2,'0')}`,
-    checkTime: `07:30 & 18:00`,
+    checkTime: `${String(cfg.pagiHour ?? 7).padStart(2,'0')}:${String(cfg.pagiMinute ?? 30).padStart(2,'0')} & ${String(cfg.siangHour ?? 15).padStart(2,'0')}:${String(cfg.siangMinute ?? 30).padStart(2,'0')} & ${String(cfg.pulangHour ?? 18).padStart(2,'0')}:${String(cfg.pulangMinute ?? 0).padStart(2,'0')}`,
     nextCheck: nextCheck ? nextCheck.toISOString() : null,
     currentTime: now.toISOString(),
     usernameSet: !!cfg.username, passwordSet: !!cfg.password,

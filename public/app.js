@@ -1515,7 +1515,7 @@ function renderColleaguesTable() {
 
     const isSelected = selectedTeachers.has(c.nip || c.no);
     const waBtnHtml = matchedRecipient
-      ? `<button class="modern-btn btn-purple btn-xs mr-1" onclick="sendDirectWa('${matchedRecipient.nomor}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}')" title="Kirim WA ke ${escapeHtml(c.nama)}">
+      ? `<button class="modern-btn btn-purple btn-xs mr-1" onclick="sendDirectWa('${matchedRecipient.nomor}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}',${ c.isHadir ? 'true' : 'false'})" title="Kirim WA ke ${escapeHtml(c.nama)}">
           💬 WA
         </button>`
       : '';
@@ -1822,7 +1822,7 @@ function renderRecipientsTable() {
   `}).join('');
 }
 
-window.sendDirectWa = async function(nomor, nama) {
+window.sendDirectWa = async function(nomor, nama, isHadir = null) {
   if (!nomor) {
     showToast('Nomor WhatsApp tidak valid.', 'error');
     return;
@@ -1836,7 +1836,7 @@ window.sendDirectWa = async function(nomor, nama) {
     const res = await fetch('/api/send-direct', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nomor, nama })
+      body: JSON.stringify({ nomor, nama, isHadir })
     });
     const data = await res.json();
     if (data.success) {
@@ -2209,6 +2209,12 @@ function updateMessagePreviews() {
   }
   if (cfgMessagePagiSudah && whatsappPreviewPagiSudah) {
     whatsappPreviewPagiSudah.innerHTML = formatWaHtml(cfgMessagePagiSudah.value);
+  }
+  if (cfgMessageSiang && whatsappPreviewSiang) {
+    whatsappPreviewSiang.innerHTML = formatWaHtml(cfgMessageSiang.value);
+  }
+  if (cfgMessageSiangSudah && whatsappPreviewSiangSudah) {
+    whatsappPreviewSiangSudah.innerHTML = formatWaHtml(cfgMessageSiangSudah.value);
   }
   if (cfgMessagePulang && whatsappPreviewPulang) {
     whatsappPreviewPulang.innerHTML = formatWaHtml(cfgMessagePulang.value);

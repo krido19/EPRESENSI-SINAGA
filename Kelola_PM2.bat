@@ -41,14 +41,14 @@ goto MENU
 :LOG
 cls
 echo [INFO] Membuka log realtime di jendela baru...
-start "PM2 Log - ePresensi" cmd /k "pm2 logs epresensi --lines 50"
+start "PM2 Log - ePresensi" powershell -NoExit -Command "Get-Content '%USERPROFILE%\.pm2\logs\epresensi-sinaga-out-0.log' -Wait -Tail 80"
 timeout /t 2 >nul
 goto MENU
 
 :LOG_ERROR
 cls
 echo [INFO] Membuka log error di jendela baru...
-start "PM2 Error Log" cmd /k "pm2 logs epresensi --err --lines 50"
+start "PM2 Error Log" powershell -NoExit -Command "Get-Content '%USERPROFILE%\.pm2\logs\epresensi-sinaga-error-0.log' -Wait -Tail 80"
 timeout /t 2 >nul
 goto MENU
 
