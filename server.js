@@ -1589,7 +1589,7 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
       message:   msg
     });
 
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000)); // random 1–2 detik (anti-ban)
   }
 
   // Invalidate cache absensi setelah kirim selesai
