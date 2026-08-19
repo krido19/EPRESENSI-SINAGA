@@ -53,6 +53,7 @@ Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gra
 
 ### 📈 7. Monitoring & Reliabilitas Pengiriman (Baru!)
 - **Health Check Endpoint (`/health`):** Endpoint khusus untuk memonitor status server, koneksi WhatsApp, dan scheduler. Siap diintegrasikan dengan *UptimeRobot* (24/7).
+- **Ngrok Auto-Healing Tunnel:** Terowongan publik (*public URL*) Ngrok yang dijaga oleh PM2. Dilengkapi pendeteksi *offline* otomatis—jika internet putus, Ngrok akan me-reset dirinya sendiri agar PM2 bisa melakukan *auto-restart*.
 - **Persistent Logs via Supabase:** Riwayat pengiriman WhatsApp dicatat permanen ke database Supabase (`notification_logs`), sehingga data tidak hilang saat restart.
 - **Smart Retry Mechanism:** Jika pengiriman WhatsApp gagal (timeout sesaat), sistem otomatis mengulang 3x dengan *exponential backoff* (2s ➡️ 4s ➡️ 8s).
 - **WhatsApp Disconnect Alert:** Sistem otomatis mengirimkan pesan peringatan ke nomor Admin jika koneksi WhatsApp terputus lebih dari 5 menit.

@@ -45,8 +45,8 @@ goto MENU
 
 :RESTART
 cls
-echo [INFO] Merestart server...
-call pm2 restart epresensi
+echo [INFO] Merestart semua service (ePresensi & Ngrok)...
+call pm2 restart all
 echo.
 echo [OK] Server berhasil direstart!
 timeout /t 2 >nul
