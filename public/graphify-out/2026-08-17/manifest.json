@@ -1,0 +1,97 @@
+{
+  "package.json": {
+    "mtime": 1786922847.2326458,
+    "ast_hash": "0dbfa3cb1ecf4cd91b9618d19e145636",
+    "semantic_hash": ""
+  },
+  "public/app.js": {
+    "mtime": 1786924707.200211,
+    "ast_hash": "7dec7dd232b79052d2e8c003308b7093",
+    "semantic_hash": ""
+  },
+  "public/manifest.json": {
+    "mtime": 1786922847.2426455,
+    "ast_hash": "2ab2d9d3b8c81793fa11786899fa39b3",
+    "semantic_hash": ""
+  },
+  "public/sw.js": {
+    "mtime": 1786922847.2436457,
+    "ast_hash": "9742b21f7cb5770837210d6861e30c5e",
+    "semantic_hash": ""
+  },
+  "server.js": {
+    "mtime": 1786924680.9756138,
+    "ast_hash": "8223d1ec9b783b73576a6c1c05664fb4",
+    "semantic_hash": ""
+  },
+  "deploy_vps.sh": {
+    "mtime": 1786922847.217649,
+    "ast_hash": "3cbc6e9d5733d214c669c19b787c9b57",
+    "semantic_hash": ""
+  },
+  "ecosystem.config.js": {
+    "mtime": 1786922847.2186468,
+    "ast_hash": "4916b772d55e6506e84a01de00860e05",
+    "semantic_hash": ""
+  },
+  ".agents/rules/graphify.md": {
+    "mtime": 1786922847.1836479,
+    "ast_hash": "a0e4d192b9e2e17256124dbfc8e24e6a",
+    "semantic_hash": ""
+  },
+  ".agents/workflows/graphify.md": {
+    "mtime": 1786922847.184648,
+    "ast_hash": "a831cf3669f1e6ab85d8a80ebe655f99",
+    "semantic_hash": ""
+  },
+  "BAILEYS_GUIDE.md": {
+    "mtime": 1786922847.2166476,
+    "ast_hash": "ad981c3b6a77fe279690b429719aa861",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1786922847.217649,
+    "ast_hash": "1db74c28cfd188f54bad42d05fd7323b",
+    "semantic_hash": ""
+  },
+  "public/index.html": {
+    "mtime": 1786924181.1955569,
+    "ast_hash": "dc7b9827e27f334047335156b9ae2482",
+    "semantic_hash": ""
+  },
+  "render.yaml": {
+    "mtime": 1786922847.2446454,
+    "ast_hash": "f621fe43092696d3b285ac78f5f74ce5",
+    "semantic_hash": ""
+  },
+  ".debug.html": {
+    "mtime": 1786922847.2136464,
+    "ast_hash": "815202b0978ddbbd037a2e4a6e1a0aa8",
+    "semantic_hash": ""
+  },
+  ".diff.txt": {
+    "mtime": 1786922847.2146466,
+    "ast_hash": "cdebeabcf033eeb10ac06336bc078bb9",
+    "semantic_hash": ""
+  },
+  ".old_server.txt": {
+    "mtime": 1786922847.2166476,
+    "ast_hash": "e0d11d6a5e4e66b42aa00b5742ea704c",
+    "semantic_hash": ""
+  },
+  "public/favicon.png": {
+    "mtime": 1786922847.2346497,
+    "ast_hash": "188f2c35b8dc7115934b4448a520ec42",
+    "semantic_hash": ""
+  },
+  "config.example.json": {
+    "mtime": 1786922847.217649,
+    "ast_hash": "ab391383450f89d3036e70fd7232801c",
+    "semantic_hash": ""
+  },
+  "graphify-out/converted/template_daftar_guru_50673033.md": {
+    "mtime": 1786924880.7090757,
+    "ast_hash": "839f833d5f74990d7a34131162635431",
+    "semantic_hash": ""
+  }
+}

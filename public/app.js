@@ -130,9 +130,10 @@ if (gatekeeperForm) {
         checkAppAuth();
         applyRoleUI(data.role); // update tampilan sesuai role baru
         showToast(`Selamat datang, ${data.role === 'super_admin' ? 'Super Admin' : 'Admin Sekolah'}!`, 'success');
+        // Selalu load status & monitoring untuk semua role (termasuk super_admin)
+        loadStatus();
+        loadColleagues();
         if (data.role !== 'super_admin') {
-          loadStatus();
-          loadColleagues();
           loadSchoolAccounts();
           loadConfig();
           loadRecipients();
@@ -650,6 +651,7 @@ window.switchNavTab = function(tabName) {
     sidebarBackdrop?.classList.remove('show');
   }
   // Load data saat masuk ke tab tertentu
+  if (targetTab === 'monitoring') { loadStatus(); loadColleagues(); }
   if (targetTab === 'config' || targetTab === 'template') loadConfig();
   if (targetTab === 'recipients') loadRecipients();
   if (targetTab === 'logs') loadLogs();
@@ -2743,12 +2745,13 @@ initSelectOptions();
 buildDateStrip();      // render modern date strip on load
 
 const currentInitRole = localStorage.getItem('epresensi_user_role') || 'school_admin';
+// Selalu load status & monitoring untuk semua role (termasuk super_admin)
+loadStatus();
+loadColleagues();
 if (currentInitRole !== 'super_admin') {
   loadSchoolAccounts();
-  loadStatus();
   loadConfig();
   loadRecipients();
-  loadColleagues();
   loadLogs();
 }
 loadGraphStats();

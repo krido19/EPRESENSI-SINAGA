@@ -1,0 +1,16 @@
+{
+  "0": "app.js",
+  "1": "server.js",
+  "2": "dependencies",
+  "3": "escapeHtml",
+  "4": "manifest.json",
+  "5": "✨ Fitur Utama Aplikasi",
+  "6": "applyTheme",
+  "7": "loadStatus",
+  "8": "sw.js",
+  "9": "rules/graphify.md",
+  "10": "workflows/graphify.md",
+  "11": "deploy_vps.sh",
+  "12": "ecosystem.config.js",
+  "13": "formatWaHtml"
+}
