@@ -23,10 +23,11 @@ echo   [4] Stop Server
 echo   [5] Start Server (jika sedang stop)
 echo   [6] Buka Dashboard Browser
 echo   [7] Hapus dari PM2 (unregister)
+echo   [8] Daftarkan Ngrok ke PM2 (jika offline)
 echo   [0] Keluar
 echo.
 echo ====================================================================
-set /p PILIHAN=Masukkan pilihan [0-7]: 
+set /p PILIHAN=Masukkan pilihan [0-8]: 
 
 if "%PILIHAN%"=="1" goto LOG
 if "%PILIHAN%"=="2" goto LOG_ERROR
@@ -35,6 +36,7 @@ if "%PILIHAN%"=="4" goto STOP
 if "%PILIHAN%"=="5" goto START
 if "%PILIHAN%"=="6" goto BROWSER
 if "%PILIHAN%"=="7" goto HAPUS
+if "%PILIHAN%"=="8" goto DAFTAR_NGROK
 if "%PILIHAN%"=="0" goto KELUAR
 goto MENU
 
@@ -96,6 +98,16 @@ if /i "%KONFIRM%"=="YA" (
     echo [INFO] Dibatalkan.
 )
 timeout /t 2 >nul
+goto MENU
+
+:DAFTAR_NGROK
+cls
+echo [INFO] Mendaftarkan dan menjalankan Ngrok tunnel ke PM2...
+call pm2 start ngrok_start.js --name ngrok-tunnel
+call pm2 save
+echo.
+echo [OK] Ngrok tunnel berhasil didaftarkan! URL publik akan aktif dalam ~5 detik.
+timeout /t 3 >nul
 goto MENU
 
 :KELUAR
