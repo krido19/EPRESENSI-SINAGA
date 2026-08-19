@@ -16,31 +16,40 @@ echo.
 echo ====================================================================
 echo   Pilih aksi:
 echo.
-echo   [1] Lihat Log (realtime)
-echo   [2] Restart Server
-echo   [3] Stop Server
-echo   [4] Start Server (jika sedang stop)
-echo   [5] Buka Dashboard Browser
-echo   [6] Hapus dari PM2 (unregister)
+echo   [1] Lihat Log Realtime (jendela baru)
+echo   [2] Lihat Log Error (jendela baru)
+echo   [3] Restart Server
+echo   [4] Stop Server
+echo   [5] Start Server (jika sedang stop)
+echo   [6] Buka Dashboard Browser
+echo   [7] Hapus dari PM2 (unregister)
 echo   [0] Keluar
 echo.
 echo ====================================================================
-set /p PILIHAN=Masukkan pilihan [0-6]: 
+set /p PILIHAN=Masukkan pilihan [0-7]: 
 
 if "%PILIHAN%"=="1" goto LOG
-if "%PILIHAN%"=="2" goto RESTART
-if "%PILIHAN%"=="3" goto STOP
-if "%PILIHAN%"=="4" goto START
-if "%PILIHAN%"=="5" goto BROWSER
-if "%PILIHAN%"=="6" goto HAPUS
+if "%PILIHAN%"=="2" goto LOG_ERROR
+if "%PILIHAN%"=="3" goto RESTART
+if "%PILIHAN%"=="4" goto STOP
+if "%PILIHAN%"=="5" goto START
+if "%PILIHAN%"=="6" goto BROWSER
+if "%PILIHAN%"=="7" goto HAPUS
 if "%PILIHAN%"=="0" goto KELUAR
 goto MENU
 
 :LOG
 cls
-echo [INFO] Menampilkan log realtime... (Ctrl+C untuk kembali ke menu)
-echo.
-call pm2 logs epresensi
+echo [INFO] Membuka log realtime di jendela baru...
+start "PM2 Log - ePresensi" cmd /k "pm2 logs epresensi --lines 50"
+timeout /t 2 >nul
+goto MENU
+
+:LOG_ERROR
+cls
+echo [INFO] Membuka log error di jendela baru...
+start "PM2 Error Log" cmd /k "pm2 logs epresensi --err --lines 50"
+timeout /t 2 >nul
 goto MENU
 
 :RESTART
@@ -54,17 +63,17 @@ goto MENU
 
 :STOP
 cls
-echo [INFO] Menghentikan server...
-call pm2 stop epresensi
+echo [INFO] Menghentikan semua service (ePresensi & Ngrok)...
+call pm2 stop all
 echo.
-echo [OK] Server dihentikan. Gunakan pilihan 4 untuk menjalankan kembali.
+echo [OK] Server dihentikan. Gunakan pilihan 5 untuk menjalankan kembali.
 timeout /t 2 >nul
 goto MENU
 
 :START
 cls
-echo [INFO] Menjalankan server...
-call pm2 start epresensi
+echo [INFO] Menjalankan semua service (ePresensi & Ngrok)...
+call pm2 start all
 echo.
 echo [OK] Server berjalan kembali!
 timeout /t 2 >nul
@@ -72,6 +81,7 @@ goto MENU
 
 :BROWSER
 start http://localhost:3000
+start https://dashboard.uptimerobot.com
 goto MENU
 
 :HAPUS
