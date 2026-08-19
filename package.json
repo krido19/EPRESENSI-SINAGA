@@ -8,6 +8,8 @@
     "dev": "node server.js"
   },
   "dependencies": {
+    "@ngrok/ngrok": "^1.7.0",
+    "@supabase/supabase-js": "^2.112.3",
     "@whiskeysockets/baileys": "^7.0.0-rc14",
     "cheerio": "^1.2.0",
     "cors": "^2.8.5",
