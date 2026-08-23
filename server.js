@@ -25,6 +25,14 @@ const DEF_MSG_PULANG = "Halo {nama}! 👋\n\nPengingat presensi pulang:\nAnda te
 const DEF_MSG_PULANG_SUDAH = "Halo {nama}! 👋\n\nTerima kasih, Anda tercatat:\n\n██████████████████\n██  S U D A H  ██\n██████████████████\n\nmelakukan presensi pulang hari ini di ePresensi Jateng. Selamat beristirahat! 🏡✨\n\nE-PRESENSI SINAGA";
 const DEF_MSG = "Halo {nama}! 👋\n\nPengingat presensi:\nAnda belum melakukan absen hari ini di ePresensi Jateng. Segera absen sekarang! 🏃💨";
 
+// ─── Default WA Templates — Penerima Eksternal (Beda Sekolah) ────────────────
+const DEF_MSG_EXTERNAL_PAGI   = "Halo {nama}! 👋\n\nIni pengingat absensi pagi dari E-PRESENSI SINAGA untuk {sekolah_asal}.\n\nJangan lupa lakukan presensi masuk sesuai jadwal sekolah Anda sekarang ya! 🏃💨\n\nE-PRESENSI SINAGA";
+const DEF_MSG_EXTERNAL_SIANG  = "Halo {nama}! 👋\n\nIni pengingat absensi siang dari E-PRESENSI SINAGA untuk {sekolah_asal}.\n\nJangan lupa lakukan presensi siang sesuai jadwal sekolah Anda sekarang ya! ☀️\n\nE-PRESENSI SINAGA";
+const DEF_MSG_EXTERNAL_PULANG = "Halo {nama}! 👋\n\nIni pengingat absensi pulang dari E-PRESENSI SINAGA untuk {sekolah_asal}.\n\nJangan lupa lakukan presensi pulang sebelum batas waktu berakhir! 🏡\n\nE-PRESENSI SINAGA";
+
+// ─── Default WA Template — Rekap Mingguan (Sabtu Pagi) ──────────────────────
+const DEF_MSG_REKAP_MINGGUAN = "Halo {nama}! \ud83d\udc4b\n\n\ud83d\udcca *REKAP HADIR MINGGU INI*\n({tanggal_mulai} \u2013 {tanggal_selesai})\n\n{detail_hari}\n\n\u2705 Total hadir: {total_hadir}/{total_hari_kerja} hari kerja\n\nE-PRESENSI SINAGA";
+
 // ─── Initialize Supabase ──────────────────────────────────────────────────────
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -109,7 +117,8 @@ app.use(cors({
       origin.startsWith('http://127.0.0.1:') ||
       origin.includes('.onrender.com') ||
       origin.includes('.up.railway.app') ||
-      origin.includes('.koyeb.app')
+      origin.includes('.koyeb.app') ||
+      origin.includes('119.28.100.51')
     ) {
       return callback(null, true);
     }
@@ -457,6 +466,9 @@ function loadConfig() {
     messagePulang: data.messagePulang || DEF_MSG_PULANG,
     messagePulangSudah: data.messagePulangSudah || DEF_MSG_PULANG_SUDAH,
     message: data.message || DEF_MSG,
+    messageExternalPagi:   data.messageExternalPagi   || DEF_MSG_EXTERNAL_PAGI,
+    messageExternalSiang:  data.messageExternalSiang  || DEF_MSG_EXTERNAL_SIANG,
+    messageExternalPulang: data.messageExternalPulang || DEF_MSG_EXTERNAL_PULANG,
     appPassword,
     namaSekolah: data.namaSekolah || 'SMKN 3 MAGELANG',
     unitCode: data.unitCode || 'F208007700',
@@ -1521,10 +1533,10 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
     }
   }
 
-  // ── Fallback: kirim ke SEMUA penerima terdaftar (tanpa cek status absen) ────
+  // ── Fallback: kirim ke SEMUA penerima terdaftar non-eksternal (tanpa cek status absen) ────
   if (!session.success || targets.length === 0) {
     addLog({ type: 'warning', message: `${labelWaktu}: Tidak bisa cek ePresensi — fallback ke mode kirim semua penerima.`, school: config.namaSekolah });
-    let q = supabase.from('recipients').select('*').eq('aktif', true);
+    let q = supabase.from('recipients').select('*').eq('aktif', true).eq('is_external', false);
     const validSchoolId = config.schoolId && config.schoolId !== 'local' ? config.schoolId : null;
     console.log(`[Scheduler DEBUG] schoolId saat query: ${validSchoolId || 'semua sekolah'} (sekolah: ${config.namaSekolah})`);
     if (validSchoolId) q = q.eq('school_id', validSchoolId);
@@ -1540,10 +1552,34 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
     if (allRecipients.length === 0) {
       const msg = `${labelWaktu}: Tidak ada penerima WA terdaftar di tabel recipients (school_id: ${validSchoolId || 'semua'}). Silakan import data penerima WA di dashboard.`;
       addLog({ type: 'warning', message: msg, school: config.namaSekolah });
-      return { success: true, sent: 0, total: 0, message: msg };
+      // Jangan return dulu — masih kemungkinan ada penerima eksternal
+    } else {
+      // Semua dianggap belum absen (isHadir = false)
+      targets = allRecipients.map(r => ({ nama: r.nama, nomor: r.nomor, isHadir: false, isExternal: false }));
     }
-    // Semua dianggap belum absen (isHadir = false)
-    targets = allRecipients.map(r => ({ nama: r.nama, nomor: r.nomor, isHadir: false }));
+  }
+
+  // ── Tambahkan Penerima Eksternal (Beda Sekolah) ─────────────────────────────
+  // Selalu kirim tanpa cek ePresensi, pakai template khusus
+  try {
+    const validSchoolIdExt = config.schoolId && config.schoolId !== 'local' ? config.schoolId : null;
+    let qExt = supabase.from('recipients').select('*').eq('aktif', true).eq('is_external', true);
+    if (validSchoolIdExt) qExt = qExt.eq('school_id', validSchoolIdExt);
+    const { data: extData, error: extErr } = await qExt;
+    if (extErr) {
+      console.error('[Scheduler] Error query penerima eksternal:', extErr.message);
+    } else if (extData && extData.length > 0) {
+      console.log(`[Scheduler] 🌐 ${extData.length} penerima eksternal ditemukan — langsung masuk antrian.`);
+      for (const ext of extData) {
+        const alreadyIn = targets.some(t => t.nomor === ext.nomor);
+        if (!alreadyIn) {
+          targets.push({ nama: ext.nama, nomor: ext.nomor, isHadir: false, isExternal: true, sekolahAsal: ext.sekolah_asal || 'Sekolah Anda' });
+        }
+      }
+      addLog({ type: 'info', message: `${labelWaktu}: +${extData.length} penerima eksternal (beda sekolah) ditambahkan.`, school: config.namaSekolah });
+    }
+  } catch (extErr) {
+    console.error('[Scheduler] Gagal query penerima eksternal:', extErr.message);
   }
 
   if (targets.length === 0) {
@@ -1561,13 +1597,26 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
   const msgBelumSiang  = config.messageSiang  || DEF_MSG_SIANG;
   const msgBelumPulang = config.messagePulang || DEF_MSG_PULANG;
 
+  const msgExternalPagi   = config.messageExternalPagi   || DEF_MSG_EXTERNAL_PAGI;
+  const msgExternalSiang  = config.messageExternalSiang  || DEF_MSG_EXTERNAL_SIANG;
+  const msgExternalPulang = config.messageExternalPulang || DEF_MSG_EXTERNAL_PULANG;
+
   const logsArr = [];
   for (const t of targets) {
     let template = '';
-    if (type === 'pagi')        template = t.isHadir ? msgPagiSudah   : msgBelumPagi;
-    else if (type === 'siang')  template = t.isHadir ? msgSiangSudah  : msgBelumSiang;
-    else                        template = t.isHadir ? msgPulangSudah : msgBelumPulang;
-    const msg = template.replace(/\{nama\}/gi, t.nama);
+    if (t.isExternal) {
+      // Penerima eksternal: template khusus (tanpa status hadir/belum)
+      if (type === 'pagi')       template = msgExternalPagi;
+      else if (type === 'siang') template = msgExternalSiang;
+      else                       template = msgExternalPulang;
+    } else {
+      if (type === 'pagi')        template = t.isHadir ? msgPagiSudah   : msgBelumPagi;
+      else if (type === 'siang')  template = t.isHadir ? msgSiangSudah  : msgBelumSiang;
+      else                        template = t.isHadir ? msgPulangSudah : msgBelumPulang;
+    }
+    const msg = template
+      .replace(/\{nama\}/gi, t.nama)
+      .replace(/\{sekolah_asal\}/gi, t.sekolahAsal || '');
 
     // Gunakan retry (3x) agar tidak ada pesan hilang karena timeout sesaat
     const sRes = await sendWhatsAppWithRetry(t.nomor, msg, config.fonnteToken || null);
@@ -1604,6 +1653,157 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
 
+// ─── Helper: Bangun Pesan Rekap Mingguan per Guru ─────────────────────────────
+function buildWeeklyRekapMessage(target, template) {
+  const STATUS_EMOJI = {
+    'Hadir':                       '✅',
+    'Belum Absen':                 '❌',
+    'Sakit':                       '🤒',
+    'Izin':                        '📋',
+    'Cuti':                        '🏖️',
+    'Dinas Luar':                  '🚗',
+    'Tugas Luar':                  '🚗',
+    'Libur (OFF)':                 '🏖️',
+    'Libur (Hari Besar Nasional)': '🎉',
+    'Belum Jadwal':                '⏳',
+  };
+
+  if (target.isExternal) {
+    return 'Halo ' + target.nama + '! 👋\n\n📊 *REKAP MINGGU INI*\nPengingat rekap absensi minggu ini untuk ' + (target.sekolahAsal || 'Sekolah Anda') + '.\nSilakan cek sistem absensi sekolah Anda.\n\nE-PRESENSI SINAGA';
+  }
+
+  const history  = target.history || [];
+  const weekDays = target.weekDays || [];
+  let totalHadir     = 0;
+  let totalHariKerja = 0;
+  const lines = [];
+
+  for (const wd of weekDays) {
+    const entry = history.find(h => h.tanggal === wd.tanggal);
+    if (!entry || entry.isWeekend) continue;
+
+    const emoji       = STATUS_EMOJI[entry.status] || '❓';
+    const isLibur     = entry.status.startsWith('Libur');
+    const statusShort = entry.status === 'Libur (Hari Besar Nasional)' ? 'Libur Nasional' : entry.status;
+    const tglStr      = String(wd.tanggal).padStart(2,'0') + '/' + String(wd.bulan).padStart(2,'0');
+    let jamInfo = '';
+    if (entry.isHadir && entry.jamMasuk && entry.jamMasuk !== '-') {
+      jamInfo = ' (' + entry.jamMasuk;
+      if (entry.jamPulang && entry.jamPulang !== '-') jamInfo += '–' + entry.jamPulang;
+      jamInfo += ')';
+    }
+
+    lines.push('• ' + wd.hari.padEnd(7,' ') + ' ' + tglStr + ' ' + emoji + ' ' + statusShort + jamInfo);
+    if (entry.isHadir) totalHadir++;
+    if (!isLibur)      totalHariKerja++;
+  }
+
+  if (lines.length === 0) lines.push('(Tidak ada data hari kerja minggu ini)');
+
+  const firstDay       = weekDays[0];
+  const lastDay        = weekDays[weekDays.length - 1];
+  const tanggalMulai   = firstDay.hari + ' ' + String(firstDay.tanggal).padStart(2,'0') + '/' + String(firstDay.bulan).padStart(2,'0');
+  const tanggalSelesai = lastDay.hari  + ' ' + String(lastDay.tanggal).padStart(2,'0')  + '/' + String(lastDay.bulan).padStart(2,'0');
+
+  return template
+    .replace(/\{nama\}/gi,            target.nama)
+    .replace(/\{tanggal_mulai\}/gi,   tanggalMulai)
+    .replace(/\{tanggal_selesai\}/gi, tanggalSelesai)
+    .replace(/\{detail_hari\}/gi,     lines.join('\n'))
+    .replace(/\{total_hadir\}/gi,     String(totalHadir))
+    .replace(/\{total_hari_kerja\}/gi,String(totalHariKerja));
+}
+
+// ─── Rekap Mingguan (Sabtu Pagi) ──────────────────────────────────────────────
+async function runWeeklyRekapLogic(cfg) {
+  const labelWaktu = '📊 Rekap Mingguan';
+
+  // Hitung tanggal Senin–Jumat minggu ini (Sabtu = hari ini, dayOfWeek=6)
+  const now = new Date();
+  const wib = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+  const weekDays = [];
+  for (let i = 5; i >= 1; i--) {
+    const d = new Date(wib);
+    d.setDate(wib.getDate() - i);
+    weekDays.push({
+      tanggal: d.getDate(),
+      bulan:   d.getMonth() + 1,
+      tahun:   d.getFullYear(),
+      hari:    ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()]
+    });
+  }
+
+  addLog({ type: 'info', message: `${labelWaktu}: Memulai pengiriman rekap ${cfg.namaSekolah}…`, school: cfg.namaSekolah });
+
+  const session = await ensureTenantSession(cfg);
+  if (!session.success) {
+    addLog({ type: 'warning', message: `${labelWaktu}: Gagal koneksi ePresensi — rekap dibatalkan.`, school: cfg.namaSekolah });
+    return { success: false, error: 'Tidak bisa login ke ePresensi.' };
+  }
+
+  // 1 request saja — monthHistory berisi data seluruh bulan
+  const colleaguesRes = await fetchColleaguesAttendance(session.cookie, wib.getDate(), null, null, true, 0, cfg);
+  if (!colleaguesRes.success) {
+    addLog({ type: 'warning', message: `${labelWaktu}: Gagal ambil data ePresensi.`, school: cfg.namaSekolah });
+    return { success: false, error: colleaguesRes.error };
+  }
+
+  // Ambil penerima internal terdaftar
+  const validSchoolId = cfg.schoolId && cfg.schoolId !== 'local' ? cfg.schoolId : null;
+  let q = supabase.from('recipients').select('*').eq('aktif', true).eq('is_external', false);
+  if (validSchoolId) q = q.eq('school_id', validSchoolId);
+  const { data: recipientsData } = await q;
+  const registered = recipientsData || [];
+
+  const targets = [];
+  for (const guru of colleaguesRes.colleagues) {
+    const cleanGuru = guru.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const found = registered.find(r => {
+      const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanGuru.includes(cleanR) || cleanR.includes(cleanGuru);
+    });
+    if (found && found.nomor && guru.monthHistory && guru.monthHistory.history) {
+      targets.push({ nama: guru.nama, nomor: found.nomor, history: guru.monthHistory.history, weekDays });
+    }
+  }
+
+  // Penerima eksternal: rekap sederhana (tanpa data ePresensi)
+  let qExt = supabase.from('recipients').select('*').eq('aktif', true).eq('is_external', true);
+  if (validSchoolId) qExt = qExt.eq('school_id', validSchoolId);
+  const { data: extData } = await qExt;
+  for (const ext of (extData || [])) {
+    if (!targets.some(t => t.nomor === ext.nomor)) {
+      targets.push({ nama: ext.nama, nomor: ext.nomor, weekDays, isExternal: true, sekolahAsal: ext.sekolah_asal || 'Sekolah Anda' });
+    }
+  }
+
+  if (targets.length === 0) {
+    addLog({ type: 'info', message: `${labelWaktu}: Tidak ada penerima terdaftar.`, school: cfg.namaSekolah });
+    return { success: true, sent: 0, total: 0, message: 'Tidak ada penerima.' };
+  }
+
+  const msgTemplate = cfg.messageRekapMingguan || DEF_MSG_REKAP_MINGGUAN;
+  let sentCount = 0;
+  const logsArr = [];
+
+  for (const t of targets) {
+    const msg  = buildWeeklyRekapMessage(t, msgTemplate);
+    const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
+    if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
+    logNotificationToSupabase({
+      school_id: cfg.schoolId || null, type: 'rekap_mingguan',
+      nama: t.nama, nomor: t.nomor,
+      status:    sRes.success ? 'sent' : 'failed',
+      error_msg: sRes.success ? null : (sRes.error || 'unknown'),
+      gateway:   sRes.gateway || 'baileys', message: msg
+    });
+    await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+  }
+
+  const summaryMsg = `${labelWaktu}: Rekap terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
+  addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
+  return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
+}
 // ─── Scheduler (Master 1-Menit, Multi-Tenant, Cache 5 Menit) ──────────────────
 let masterCron = null;
 let schedulerRunning = false;   // guard: cegah cron berjalan ganda
@@ -1623,6 +1823,7 @@ async function getActiveSchools() {
       .select(`
         scheduler_enabled, scheduler_siang_enabled, pagi_hour, pagi_minute, siang_hour, siang_minute, pulang_hour, pulang_minute,
         message_pagi, message_pagi_sudah, message_siang, message_siang_sudah, message_pulang, message_pulang_sudah,
+        message_external_pagi, message_external_siang, message_external_pulang,
         school_id,
         schools!inner(id, name, epresensi_username, epresensi_password, fonnte_token, wa_gateway, unit_code, opd_code, plan)
       `)
@@ -1693,6 +1894,9 @@ function buildTenantCfg(row) {
     messagePulang:      row.message_pulang       || loc.messagePulang      || DEF_MSG_PULANG,
     messagePulangSudah: row.message_pulang_sudah || loc.messagePulangSudah || DEF_MSG_PULANG_SUDAH,
     message:            loc.message || DEF_MSG,
+    messageExternalPagi:   row.message_external_pagi   || loc.messageExternalPagi   || DEF_MSG_EXTERNAL_PAGI,
+    messageExternalSiang:  row.message_external_siang  || loc.messageExternalSiang  || DEF_MSG_EXTERNAL_SIANG,
+    messageExternalPulang: row.message_external_pulang || loc.messageExternalPulang || DEF_MSG_EXTERNAL_PULANG,
   };
 }
 
@@ -1714,6 +1918,25 @@ function setupScheduler() {
       const wib = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
       const H = wib.getHours();
       const M = wib.getMinutes();
+      const dayOfWeek = wib.getDay(); // 0 = Minggu, 6 = Sabtu
+
+      // ── Minggu: skip total ──
+      if (dayOfWeek === 0) return;
+
+      // ── Sabtu: hanya kirim rekap mingguan di jam pagi ──
+      if (dayOfWeek === 6) {
+        const satSchools = await getActiveSchools();
+        for (const satRow of satSchools) {
+          const satCfg = buildTenantCfg(satRow);
+          if (H === satCfg.pagiHour && M === satCfg.pagiMinute) {
+            console.log(`[Scheduler 📊 Rekap Mingguan] ${satCfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+            runWeeklyRekapLogic(satCfg).catch(e =>
+              console.error(`[Scheduler] Rekap Mingguan error (${satCfg.namaSekolah}):`, e.message)
+            );
+          }
+        }
+        return; // Tidak lanjut ke jadwal harian
+      }
 
       const schools = await getActiveSchools();
       if (!schools.length) return;
@@ -2520,12 +2743,14 @@ app.get('/api/recipients', async (req, res) => {
 });
 
 app.post('/api/recipients', async (req, res) => {
-  const { nama, nomor, school_id } = req.body;
+  const { nama, nomor, school_id, is_external, sekolah_asal } = req.body;
   if (!nama || !nomor) return res.json({ success: false, error: 'Nama dan nomor WA diperlukan.' });
   const clean = String(nomor).replace(/[^0-9]/g, '');
   
   const targetSchoolId = req.userRole === 'super_admin' ? (school_id || null) : req.schoolId;
   if (!targetSchoolId) return res.json({ success: false, error: 'Asal sekolah tidak diketahui.' });
+  
+  const isExt = !!is_external;
   
   try {
     const { data: existing } = await supabase.from('recipients').select('id').eq('nomor', clean).eq('school_id', targetSchoolId).limit(1);
@@ -2535,7 +2760,9 @@ app.post('/api/recipients', async (req, res) => {
       nama: nama.trim(),
       nomor: clean,
       aktif: true,
-      school_id: targetSchoolId
+      school_id: targetSchoolId,
+      is_external: isExt,
+      sekolah_asal: isExt ? (sekolah_asal ? sekolah_asal.trim() : null) : null
     }).select().single();
     if (error) throw error;
     res.json({ success: true, data });
@@ -2557,6 +2784,15 @@ app.put('/api/recipients/:id', async (req, res) => {
     if (req.body.nama) updates.nama = req.body.nama.trim();
     if (req.body.nomor) updates.nomor = String(req.body.nomor).replace(/[^0-9]/g, '');
     if (req.body.aktif !== undefined) updates.aktif = !!req.body.aktif;
+    if (req.body.is_external !== undefined) {
+      updates.is_external = !!req.body.is_external;
+      // Jika ubah ke non-eksternal, hapus sekolah_asal otomatis
+      updates.sekolah_asal = updates.is_external
+        ? (req.body.sekolah_asal ? req.body.sekolah_asal.trim() : null)
+        : null;
+    } else if (req.body.sekolah_asal !== undefined) {
+      updates.sekolah_asal = req.body.sekolah_asal ? req.body.sekolah_asal.trim() : null;
+    }
     
     const { data, error } = await supabase.from('recipients').update(updates).eq('id', targetId).select().single();
     if (error) throw error;
@@ -2813,5 +3049,6 @@ app.listen(PORT, () => console.log(`
 ║   http://localhost:${PORT}                 ║
 ║   Health: http://localhost:${PORT}/health  ║
 ╚════════════════════════════════════════╝`));
+
 
 

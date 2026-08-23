@@ -1,16 +1,16 @@
-# Graph Report - EPRESENSI-SINAGA  (2026-08-19)
+# Graph Report - EPRESENSI-SINAGA  (2026-08-24)
 
 ## Corpus Check
-- 49 files · ~286,638 words
+- 18 files · ~52,392 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 507 nodes · 537 edges · 49 communities (19 shown, 30 thin omitted)
-- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.5)
+- 434 nodes · 496 edges · 18 communities (10 shown, 8 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 8 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `71a94bcd`
+- Built from commit: `23ab419f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -31,48 +31,19 @@
 - template_daftar_guru_50673033.md
 - fix_auth.js
 - fix_login_handler.js
-- fix_mastercron.js
-- fix_scheduler.js
-- migrate_to_supabase.js
-- fix_appjs_head.js
-- refactor_api.js
-- setup_superadmin.js
-- setup_user.js
-- add_debug.js
-- add_run_now.js
-- add_superadmin_api.js
-- add_superadmin_app.js
-- add_superadmin_ui.js
-- debug_parser2.js
-- debug_parser3.js
-- debug_status_codes.js
-- fix_dangling.js
-- fix_ensure.js
-- fix_login.js
-- fix_loop.js
-- fix_req.js
-- fix_server_login.js
-- fix_sigs.js
-- fix_status_codes.js
-- refactor_scheduler.js
-- restore_login.js
-- restore_phase1.js
-- rm_debug.js
-- unified_fix.js
-- migrate_recipients.js
 - loadConfig
 
 ## God Nodes (most connected - your core abstractions)
-1. `fetch` - 9 edges
-2. `loadConfig()` - 9 edges
-3. `✨ Fitur Utama Aplikasi` - 9 edges
-4. `runSchedulerLogic()` - 8 edges
-5. `escapeHtml()` - 7 edges
-6. `ensureTenantSession()` - 7 edges
-7. `ensureValidSession()` - 7 edges
-8. `sendWhatsApp()` - 7 edges
-9. `showToast()` - 6 edges
-10. `loadColleagues()` - 6 edges
+1. `📅 Panduan Cron Job & WhatsApp Gateway — ePresensi Sinaga` - 20 edges
+2. `📱 Baileys — WhatsApp Web Gateway Self-Hosted` - 11 edges
+3. `fetch` - 9 edges
+4. `loadConfig()` - 9 edges
+5. `✨ Fitur Utama Aplikasi` - 9 edges
+6. `runSchedulerLogic()` - 8 edges
+7. `escapeHtml()` - 7 edges
+8. `ensureTenantSession()` - 7 edges
+9. `ensureValidSession()` - 7 edges
+10. `sendWhatsApp()` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `formatWaHtml()` --calls--> `escapeHtml()`  [EXTRACTED]
@@ -81,7 +52,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (49 total, 30 thin omitted)
+## Communities (18 total, 8 thin omitted)
 
 ### Community 0 - "app.js"
 Cohesion: 0.01
@@ -93,7 +64,7 @@ Nodes (56): actionLimiter, addLog(), allowedOrigins, app, AUTH_SECRET, authCache
 
 ### Community 2 - "dependencies"
 Cohesion: 0.06
-Nodes (30): cheerio, cors, dotenv, express, multer, node-cron, node-fetch, dependencies (+22 more)
+Nodes (34): cheerio, cors, dotenv, express, multer, @ngrok/ngrok, node-cron, node-fetch (+26 more)
 
 ### Community 3 - "escapeHtml"
 Cohesion: 0.13
@@ -104,66 +75,40 @@ Cohesion: 0.22
 Nodes (8): background_color, description, display, icons, name, short_name, start_url, theme_color
 
 ### Community 5 - "✨ Fitur Utama Aplikasi"
-Cohesion: 0.07
-Nodes (28): 1. Unhandled Disconnect & Reconnect Lifecycle Crash, 2. Gateway Dispatcher Conflict ("Gagal kirim: Terjadi kesalahan"), 3. Normalisasi Format Nomor Telepon & JID WhatsApp, 4. Isolasi Kunci Sesi Kriptografi (.gitignore), 5. Pengendalian Noise Log (Pino Silent Logger), 🏗️ Arsitektur Integrasi Baileys, ⚠️ Masalah yang Dihadapi & Solusinya, 🛠️ Panduan Teknis & Troubleshooting: @whiskeysockets/baileys (+20 more)
+Cohesion: 0.06
+Nodes (29): 1. Unhandled Disconnect & Reconnect Lifecycle Crash, 2. Gateway Dispatcher Conflict ("Gagal kirim: Terjadi kesalahan"), 3. Normalisasi Format Nomor Telepon & JID WhatsApp, 4. Isolasi Kunci Sesi Kriptografi (.gitignore), 5. Pengendalian Noise Log (Pino Silent Logger), 🏗️ Arsitektur Integrasi Baileys, ⚠️ Masalah yang Dihadapi & Solusinya, 🛠️ Panduan Teknis & Troubleshooting: @whiskeysockets/baileys (+21 more)
 
 ### Community 13 - "formatWaHtml"
-Cohesion: 0.40
-Nodes (3): { createClient }, fs, supabase
+Cohesion: 0.08
+Nodes (24): 1. Master Cron — Setiap 1 Menit, 2. Cache Sekolah — Supabase (5 Menit), 3. Logic Pengiriman — `runSchedulerLogic(type, cfg)`, 🏗️ Arsitektur Cron Job, 🔧 Cara Kerja Detail, ➕ Cara Menambah Cron Job Baru, 📋 Checklist Membuat Cron Baru, 📦 Dependensi yang Digunakan (+16 more)
 
 ### Community 15 - "fix_auth.js"
-Cohesion: 0.40
-Nodes (4): content, endIndex, fs, startIndex
-
-### Community 16 - "fix_login_handler.js"
-Cohesion: 0.40
-Nodes (4): content, endIdx, fs, startIdx
-
-### Community 17 - "fix_mastercron.js"
-Cohesion: 0.40
-Nodes (4): c, endIdx, fs, startIdx
-
-### Community 18 - "fix_scheduler.js"
-Cohesion: 0.40
-Nodes (4): content, fs, setupEndIndex, startIndex
-
-### Community 19 - "migrate_to_supabase.js"
-Cohesion: 0.40
-Nodes (3): { createClient }, fs, supabase
-
-### Community 20 - "fix_appjs_head.js"
-Cohesion: 0.50
-Nodes (3): content, fs, gatekeeperFormIdx
-
-### Community 21 - "refactor_api.js"
-Cohesion: 0.50
-Nodes (3): content, fs, TODO: Fetch from Supabase synchronously? No, express routes should be refactored
-
-### Community 45 - "migrate_recipients.js"
-Cohesion: 0.33
-Nodes (4): { createClient }, fs, path, supabase
+Cohesion: 0.18
+Nodes (11): Apa itu Baileys?, 🏗️ Arsitektur Baileys di Project Ini, 🔄 Auto-Reconnect & Lifecycle, 📱 Baileys — WhatsApp Web Gateway Self-Hosted, 📋 Checklist Setup Baileys di Project Baru, 🗂️ File Session Baileys, ⚡ Inisialisasi Baileys saat Server Start, 🔢 Normalisasi Format Nomor Telepon (+3 more)
 
 ### Community 46 - "loadConfig"
 Cohesion: 0.33
 Nodes (6): formatWaHtml(), initSelectOptions(), loadConfig(), loadWaStatus(), switchWaGatewayUI(), updateMessagePreviews()
 
 ## Knowledge Gaps
-- **364 isolated node(s):** `fs`, `content`, `fs`, `content`, `fs` (+359 more)
+- **325 isolated node(s):** `deploy_vps.sh script`, `ngrok`, `name`, `version`, `description` (+320 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **What connects `fs`, `content`, `fs` to the rest of the system?**
-  _364 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `📅 Panduan Cron Job & WhatsApp Gateway — ePresensi Sinaga` connect `formatWaHtml` to `fix_auth.js`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
+- **What connects `deploy_vps.sh script`, `ngrok`, `name` to the rest of the system?**
+  _325 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `app.js` be split into smaller, more focused modules?**
   _Cohesion score 0.009302325581395349 - nodes in this community are weakly interconnected._
 - **Should `server.js` be split into smaller, more focused modules?**
   _Cohesion score 0.052083333333333336 - nodes in this community are weakly interconnected._
 - **Should `dependencies` be split into smaller, more focused modules?**
-  _Cohesion score 0.06451612903225806 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05714285714285714 - nodes in this community are weakly interconnected._
 - **Should `escapeHtml` be split into smaller, more focused modules?**
   _Cohesion score 0.13157894736842105 - nodes in this community are weakly interconnected._
 - **Should `✨ Fitur Utama Aplikasi` be split into smaller, more focused modules?**
-  _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06451612903225806 - nodes in this community are weakly interconnected._

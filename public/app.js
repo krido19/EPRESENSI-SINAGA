@@ -1435,7 +1435,18 @@ async function loadColleagues(force = false) {
       return;
     }
 
-    localStorage.setItem(cacheKey, JSON.stringify(data));
+    // Hapus cache hari lain dulu agar localStorage tidak meluap (quota ~5MB)
+    try {
+      const keysToDelete = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('epresensi_cache_day_') && k !== cacheKey) keysToDelete.push(k);
+      }
+      keysToDelete.forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+    } catch (quotaErr) {
+      console.warn('[Cache] localStorage quota exceeded, skip cache:', quotaErr.message);
+    }
     applyColleaguesData(data);
 
     if (force) {
@@ -1787,6 +1798,12 @@ function renderRecipientsTable() {
 
   recipientsTableBody.innerHTML = recipients.map((r, i) => {
     const isSelected = selectedTeachers.has(r.id);
+    const externalBadge = r.is_external
+      ? `<span style="display:inline-block;margin-left:6px;padding:2px 7px;border-radius:6px;font-size:0.72rem;font-weight:700;background:rgba(249,115,22,0.18);color:#fb923c;border:1px solid rgba(249,115,22,0.35);vertical-align:middle;">🌐 EKSTERNAL</span>`
+      : '';
+    const sekolahInfo = r.is_external && r.sekolah_asal
+      ? `<div style="font-size:0.75rem;color:#94a3b8;margin-top:2px;">${escapeHtml(r.sekolah_asal)}</div>`
+      : '';
     return `
     <tr>
       <td class="text-center">
@@ -1876,10 +1893,16 @@ const editRecipientId       = document.getElementById('editRecipientId');
 const editNama              = document.getElementById('editNama');
 const editNomor             = document.getElementById('editNomor');
 
-window.openEditRecipient = function(id, nama, nomor) {
+window.openEditRecipient = function(id, nama, nomor, isExternal = false, sekolahAsal = '') {
   if (editRecipientId) editRecipientId.value = id;
   if (editNama) editNama.value = nama;
   if (editNomor) editNomor.value = nomor;
+  const editExtCb = document.getElementById('editIsExternal');
+  const editSekolahWrap = document.getElementById('editSekolahAsalWrap');
+  const editSekolahInput = document.getElementById('editSekolahAsal');
+  if (editExtCb) editExtCb.checked = !!isExternal;
+  if (editSekolahInput) editSekolahInput.value = sekolahAsal || '';
+  if (editSekolahWrap) editSekolahWrap.style.display = isExternal ? '' : 'none';
   if (editRecipientModal) editRecipientModal.classList.add('show');
 };
 
@@ -1892,17 +1915,28 @@ if (editRecipientModal) {
 }
 
 if (editRecipientForm) {
+  // Toggle sekolah asal field di modal edit
+  const editExtCb = document.getElementById('editIsExternal');
+  const editSekolahWrap = document.getElementById('editSekolahAsalWrap');
+  if (editExtCb && editSekolahWrap) {
+    editExtCb.addEventListener('change', () => {
+      editSekolahWrap.style.display = editExtCb.checked ? '' : 'none';
+    });
+  }
+
   editRecipientForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = editRecipientId.value;
     const nama = editNama.value.trim();
     const nomor = editNomor.value.trim();
+    const isExternal = document.getElementById('editIsExternal')?.checked || false;
+    const sekolahAsal = document.getElementById('editSekolahAsal')?.value.trim() || '';
 
     try {
       const res = await fetch(`/api/recipients/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nama, nomor })
+        body: JSON.stringify({ nama, nomor, is_external: isExternal, sekolah_asal: sekolahAsal })
       });
       const data = await res.json();
       if (!data.success) {
@@ -1961,10 +1995,21 @@ if (addRecipientModal) {
 }
 
 if (addRecipientForm) {
+  // Toggle sekolah asal field di modal tambah
+  const manualExtCb = document.getElementById('manualIsExternal');
+  const manualSekolahWrap = document.getElementById('manualSekolahAsalWrap');
+  if (manualExtCb && manualSekolahWrap) {
+    manualExtCb.addEventListener('change', () => {
+      manualSekolahWrap.style.display = manualExtCb.checked ? '' : 'none';
+    });
+  }
+
   addRecipientForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const namaVal = document.getElementById('manualNama').value.trim();
     const nomor = document.getElementById('manualNomor').value.trim();
+    const isExternal = document.getElementById('manualIsExternal')?.checked || false;
+    const sekolahAsal = document.getElementById('manualSekolahAsal')?.value.trim() || '';
 
     let school_id = null;
     if (window.isSuperAdmin && typeof colleagues !== 'undefined') {
@@ -1976,7 +2021,7 @@ if (addRecipientForm) {
       const res = await fetch('/api/recipients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nama: namaVal, nomor, school_id })
+        body: JSON.stringify({ nama: namaVal, nomor, school_id, is_external: isExternal, sekolah_asal: sekolahAsal })
       });
       const data = await res.json();
       if (!data.success) {
@@ -1985,6 +2030,7 @@ if (addRecipientForm) {
         showToast('Penerima berhasil ditambahkan!', 'success');
         addRecipientModal.classList.remove('show');
         addRecipientForm.reset();
+        if (manualSekolahWrap) manualSekolahWrap.style.display = 'none';
         loadRecipients();
         loadStatus();
       }

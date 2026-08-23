@@ -1101,6 +1101,16 @@
           <label class="form-label">Nomor WhatsApp</label>
           <input type="text" id="manualNomor" class="custom-input" placeholder="Contoh: 081234567890" required>
         </div>
+        <div class="form-item">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="manualIsExternal" style="width:16px;height:16px;accent-color:#f97316;">
+            <span class="form-label" style="margin:0;">🏫 Beda Sekolah (Eksternal) — tanpa cek ePresensi</span>
+          </label>
+        </div>
+        <div class="form-item" id="manualSekolahAsalWrap" style="display:none;">
+          <label class="form-label">Nama Sekolah Asal</label>
+          <input type="text" id="manualSekolahAsal" class="custom-input" placeholder="Contoh: SMKN 2 Magelang">
+        </div>
         <div class="modal-footer mt-4">
           <button type="button" class="modern-btn btn-ghost btn-sm" id="btnCancelModal">Batal</button>
           <button type="submit" class="modern-btn btn-purple btn-sm">Simpan Kontak</button>
@@ -1128,6 +1138,16 @@
         <div class="form-item">
           <label class="form-label">Nomor WhatsApp</label>
           <input type="text" id="editNomor" class="custom-input" placeholder="Contoh: 081234567890" required>
+        </div>
+        <div class="form-item">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="editIsExternal" style="width:16px;height:16px;accent-color:#f97316;">
+            <span class="form-label" style="margin:0;">🏫 Beda Sekolah (Eksternal)</span>
+          </label>
+        </div>
+        <div class="form-item" id="editSekolahAsalWrap" style="display:none;">
+          <label class="form-label">Nama Sekolah Asal</label>
+          <input type="text" id="editSekolahAsal" class="custom-input" placeholder="Contoh: SMKN 2 Magelang">
         </div>
         <div class="modal-footer mt-4">
           <button type="button" class="modern-btn btn-ghost btn-sm" id="btnCancelEditModal">Batal</button>
