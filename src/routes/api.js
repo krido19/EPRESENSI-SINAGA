@@ -12,6 +12,15 @@ const { sendWhatsApp, sendWhatsAppWithRetry, sendToAllRecipients } = require('..
 const { ensureTenantSession, fetchColleaguesAttendance, ensureValidSession, checkAttendance } = require('../epresensi');
 const { buildTenantCfg }          = require('../scheduler');
 
+// GET /api/schools — daftar sekolah aktif (untuk super_admin)
+router.get('/schools', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('schools').select('id, name').order('name');
+    if (error) return res.json({ success: false, error: error.message });
+    res.json({ success: true, schools: data || [] });
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
+
 // GET /api/colleagues
 router.get('/', async (req, res) => {
   const role   = req.userRole;
@@ -20,13 +29,30 @@ router.get('/', async (req, res) => {
   const month  = req.query.month || null;
   const year   = req.query.year  || null;
   const forceRefresh = req.query.refresh === 'true';
-  const session = role === 'super_admin'
-    ? await ensureValidSession()
-    : await ensureTenantSession(cfg);
+  const schoolId = req.query.schoolId || null; // untuk super_admin filter per sekolah
+
+  let session, activeCfg = cfg;
+  if (role === 'super_admin' && schoolId) {
+    // Ambil konfigurasi sekolah spesifik dari Supabase
+    const { data: schoolData } = await supabase.from('schools').select('*').eq('id', schoolId).single();
+    const { data: schoolCfgData } = await supabase.from('school_configs').select('*').eq('school_id', schoolId).single();
+    if (schoolData) {
+      activeCfg = buildTenantCfg({ schools: schoolData, school_configs: schoolCfgData });
+      session = await ensureTenantSession(activeCfg);
+    } else {
+      return res.json({ success: false, error: 'Sekolah tidak ditemukan' });
+    }
+  } else if (role === 'super_admin') {
+    session = await ensureValidSession();
+  } else {
+    session = await ensureTenantSession(cfg);
+  }
+
   if (!session.success) return res.json({ success: false, error: session.error, needLogin: true });
-  const result = await fetchColleaguesAttendance(session.cookie, day, month, year, forceRefresh, 0, cfg);
+  const result = await fetchColleaguesAttendance(session.cookie, day, month, year, forceRefresh, 0, activeCfg);
   res.json(result);
 });
+
 
 // GET /api/colleagues/debug-html
 router.get('/debug-html', async (req, res) => {

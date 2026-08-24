@@ -1184,6 +1184,12 @@
         <button class="modal-close-btn" id="btnCloseModal">&times;</button>
       </div>
       <form id="addRecipientForm" class="modern-form">
+        <div class="form-item" id="modalSchoolFilterWrap" style="display:none;">
+          <label class="form-label">🏫 Sumber Nama (Sekolah)</label>
+          <select id="modalSchoolFilter" class="custom-input">
+            <option value="">— Pilih Sekolah —</option>
+          </select>
+        </div>
         <div class="form-item">
           <label class="form-label">Nama Lengkap Guru</label>
           <input type="text" id="manualNama" list="listGuruSkaniga" class="custom-input" placeholder="Ketik atau pilih dari daftar..." required autocomplete="off">

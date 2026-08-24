@@ -1985,7 +1985,43 @@ if (btnClearAllRecipients) {
 }
 
 // Modal Tambah Penerima Manual
-if (btnAddRecipientModal) btnAddRecipientModal.addEventListener('click', () => addRecipientModal?.classList.add('show'));
+const modalSchoolFilterWrap = document.getElementById('modalSchoolFilterWrap');
+const modalSchoolFilter     = document.getElementById('modalSchoolFilter');
+
+async function loadModalSchoolFilter() {
+  if (!window.isSuperAdmin || !modalSchoolFilterWrap || !modalSchoolFilter) return;
+  modalSchoolFilterWrap.style.display = '';
+  try {
+    const r = await fetch('/api/colleagues/schools');
+    const d = await r.json();
+    if (d.success && d.schools && d.schools.length > 0) {
+      modalSchoolFilter.innerHTML = `<option value="">— Pilih Sekolah —</option>` +
+        d.schools.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
+  } catch(e) { console.warn('Gagal load schools:', e); }
+}
+
+async function refreshDatalistFromSchool(schoolId) {
+  const datalist = document.getElementById('listGuruSkaniga');
+  if (!datalist || !schoolId) return;
+  try {
+    const day = colleagueDaySelect?.value || new Date().getDate();
+    const r = await fetch(`/api/colleagues?day=${day}&schoolId=${encodeURIComponent(schoolId)}`);
+    const d = await r.json();
+    if (d.success && d.colleagues) {
+      datalist.innerHTML = d.colleagues.map(c => `<option value="${c.nama}">`).join('');
+    }
+  } catch(e) { console.warn('Gagal load datalist:', e); }
+}
+
+if (modalSchoolFilter) {
+  modalSchoolFilter.addEventListener('change', () => refreshDatalistFromSchool(modalSchoolFilter.value));
+}
+
+if (btnAddRecipientModal) btnAddRecipientModal.addEventListener('click', () => {
+  addRecipientModal?.classList.add('show');
+  loadModalSchoolFilter();
+});
 if (btnCloseModal) btnCloseModal.addEventListener('click', () => addRecipientModal?.classList.remove('show'));
 if (btnCancelModal) btnCancelModal.addEventListener('click', () => addRecipientModal?.classList.remove('show'));
 if (addRecipientModal) {
