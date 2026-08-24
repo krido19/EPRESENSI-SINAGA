@@ -1,94 +1,65 @@
-# 🚀 Panduan Deploy: GitHub → VPS
+# 🚀 Panduan Deploy: GitHub → VPS (ePresensi Sinaga)
 
-Panduan ini menjelaskan cara men-deploy/mengupdate **Uptime Nineteen** dari repository GitHub ke VPS.
+Panduan deploy/update **ePresensi Sinaga** dari PC ke VPS via GitHub.
 
 ---
 
-## 📋 Prasyarat
+## 📋 Info Server
 
-| Kebutuhan | Detail |
+| | Detail |
 |---|---|
-| Komputer | Node.js v18+, Git, npm |
-| VPS | `/root/uptime-kuma` sudah clone dari `krido19/Uptimer-Nineteen` |
-| GitHub | Personal Access Token (PAT) dengan scope `repo` |
+| **Repo** | `https://github.com/krido19/EPRESENSI-SINAGA.git` |
+| **Folder VPS** | `/root/epresensi` |
+| **PM2 App Name** | `epresensi-sinaga` |
+| **Port** | `3000` |
 
 ---
 
-## 🔁 Alur Kerja (Setiap Kali Ada Perubahan)
+## 🔁 Alur Kerja (Setiap Ada Perubahan)
 
 ```
-Edit kode di PC → Build di PC → Git Push → Git Pull di VPS → Restart PM2
+Edit kode di PC (Windows) → Git Push → Git Pull di VPS → PM2 Restart
 ```
 
 ---
 
-## 💻 LANGKAH 1: Edit & Build di PC (Windows)
+## 💻 LANGKAH 1: Push dari PC (Windows)
 
-### 1a. Buat perubahan di kode
-Lakukan perubahan di folder `D:\Antigravity\UPTIMER` sesuai kebutuhan.
-
-### 1b. Build frontend (kompilasi Vue → file statis)
 ```powershell
-cd "D:\Antigravity\UPTIMER"
-npm run build
-```
-> ⏳ Proses ini memakan waktu sekitar 1-3 menit. Tunggu sampai selesai dan muncul `✨ Done`.
+cd "D:\Antigravity\EPRESENSI SKANIGA\EPRESENSI-SINAGA"
 
-### 1c. Commit dan push ke GitHub
-```powershell
 git add .
-git commit -m "feat: deskripsi perubahan yang kamu buat"
-git push
+git commit -m "feat: deskripsi perubahan"
+git push origin main
 ```
 
 ---
 
 ## 🌐 LANGKAH 2: Update di VPS
 
-Masuk ke VPS kamu (via OrcaTerm atau SSH), lalu jalankan:
+Masuk ke VPS (via OrcaTerm / SSH), lalu jalankan:
 
 ```bash
-cd /root/uptime-kuma
-git pull origin main
-pm2 restart uptime-kuma
+cd /root/epresensi && git pull origin main && pm2 restart epresensi-sinaga
 ```
 
-> 🔐 Jika diminta **Username** dan **Password**, masukkan:
+> 🔐 Jika diminta **Username** dan **Password**:
 > - Username: `krido19`
-> - Password: **Personal Access Token (PAT)** kamu (bukan password GitHub!)
-
----
-
-## 🔐 Cara Membuat Personal Access Token (PAT)
-
-Jika PAT belum ada atau sudah expired, buat yang baru:
-
-1. Buka: https://github.com/settings/tokens
-2. Klik **"Generate new token (classic)"**
-3. Isi **Note**: bebas (contoh: `VPS Deploy`)
-4. **Expiration**: pilih sesuai kebutuhan
-5. **Scope**: centang ✅ **`repo`** (akses penuh ke repo)
-6. Scroll bawah → klik **"Generate token"**
-7. **Copy token** yang muncul (hanya muncul sekali!)
-
-> 💡 Agar VPS tidak terus-terusan minta token, jalankan sekali ini di VPS:
-> ```bash
-> cd /root/uptime-kuma
-> git config credential.helper store
-> ```
-> Setelah itu, `git pull` di masa depan tidak akan minta password lagi.
+> - Password: **Personal Access Token (PAT)** (bukan password GitHub!)
 
 ---
 
 ## 🔄 Setup Awal VPS (Hanya Sekali)
 
-Jika VPS belum pernah dihubungkan ke repo ini (fresh setup), jalankan urutan berikut:
+Jika folder VPS belum dihubungkan ke repo ini:
 
 ```bash
-# Ganti remote ke repo kamu
-cd /root/uptime-kuma
+# Masuk ke folder project
+cd /root/epresensi
+
+# Ganti remote ke repo ePresensi
 git remote remove origin
-git remote add origin https://github.com/krido19/Uptimer-Nineteen.git
+git remote add origin https://github.com/krido19/EPRESENSI-SINAGA.git
 
 # Simpan PAT agar tidak perlu login berulang
 git config credential.helper store
@@ -99,17 +70,17 @@ git checkout -B main
 git reset --hard origin/main
 
 # Restart aplikasi
-pm2 restart uptime-kuma
+pm2 restart epresensi-sinaga
 ```
 
 ---
 
-## ⚡ Perintah Cepat (Setelah Setup Selesai)
+## ⚡ Perintah Cepat (Update Rutin)
 
-Cukup 3 baris ini untuk update ke versi terbaru setelah kamu push dari PC:
+Cukup 1 baris setelah push dari PC:
 
 ```bash
-cd /root/uptime-kuma && git pull origin main && pm2 restart uptime-kuma
+cd /root/epresensi && git pull origin main && pm2 restart epresensi-sinaga
 ```
 
 ---
@@ -118,7 +89,13 @@ cd /root/uptime-kuma && git pull origin main && pm2 restart uptime-kuma
 
 Setelah restart, buka di browser:
 ```
-http://119.28.100.51:3001
+http://119.28.100.51:3000
+http://119.28.100.51:3000/health
+```
+
+Cek log PM2:
+```bash
+pm2 logs epresensi-sinaga --lines 30
 ```
 
 ---
@@ -127,7 +104,29 @@ http://119.28.100.51:3001
 
 | Error | Solusi |
 |---|---|
-| `fatal: couldn't find remote ref main` | Jalankan `git fetch origin` terlebih dahulu |
-| `fatal: not in a git directory` | Pastikan kamu sudah `cd /root/uptime-kuma` |
-| `Password` diminta terus | Jalankan `git config credential.helper store` di dalam folder uptime-kuma |
-| Halaman web tidak berubah | Pastikan kamu sudah `npm run build` di PC sebelum push, lalu `pm2 restart uptime-kuma` di VPS |
+| `fatal: couldn't find remote ref main` | Jalankan `git fetch origin` dulu |
+| `EADDRINUSE: address already in use :::3000` | `pm2 restart epresensi-sinaga` atau `pm2 kill && pm2 start ecosystem.config.js` |
+| Password diminta terus | Jalankan `git config credential.helper store` di dalam folder epresensi |
+| `Cannot find module './src/...'` | Pastikan `git pull` sudah dapat folder `src/` terbaru |
+| WA tidak connect | Cek `pm2 logs epresensi-sinaga` — scan ulang QR jika diperlukan |
+
+---
+
+## 📦 Struktur Modul (src/)
+
+```
+server.js          ← Entry point (170 baris)
+src/
+├── config.js      ← Config & template WA
+├── supabase.js    ← Supabase client
+├── logger.js      ← Log & notifikasi
+├── auth.js        ← JWT & middleware auth
+├── whatsapp.js    ← Baileys & kirim WA
+├── epresensi.js   ← Login & scraping
+├── scheduler.js   ← Semua jadwal otomatis
+└── routes/
+    ├── admin.js       ← /api/admin/*
+    ├── auth.js        ← /api/auth/*, /api/wa/*, /api/config
+    ├── api.js         ← /api/colleagues, /api/send-*, /api/recipients
+    └── scheduler.js   ← /api/scheduler/run-now
+```
