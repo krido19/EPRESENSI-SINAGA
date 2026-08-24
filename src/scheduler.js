@@ -205,7 +205,7 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
 
 // ─── buildWeeklyRekapMessage ──────────────────────────────────────────────────
 function buildWeeklyRekapMessage(target, template) {
-  const STATUS_EMOJI = { 'Hadir': '✅', 'Belum Absen': '❌', 'Sakit': '🤒', 'Izin': '📋', 'Cuti': '🏖️', 'Dinas Luar': '🚗', 'Tugas Luar': '🚗', 'Libur (OFF)': '🏖️', 'Libur (Hari Besar Nasional)': '🎉', 'Belum Jadwal': '⏳' };
+  const STATUS_EMOJI = { 'Hadir': '✅', 'Terlambat': '⏰', 'Belum Absen': '❌', 'Sakit': '🤒', 'Izin': '📋', 'Cuti': '🏖️', 'Dinas Luar': '🚗', 'Tugas Luar': '🚗', 'Libur (OFF)': '🏖️', 'Libur (Hari Besar Nasional)': '🎉', 'Belum Jadwal': '⏳' };
   if (target.isExternal) return `Halo ${target.nama}! 👋\n\n📊 *REKAP MINGGU INI*\nPengingat rekap absensi minggu ini untuk ${target.sekolahAsal || 'Sekolah Anda'}.\nSilakan cek sistem absensi sekolah Anda.\n\nE-PRESENSI SINAGA`;
   const history = target.history || [], weekDays = target.weekDays || [];
   let totalHadir = 0, totalHariKerja = 0;
@@ -218,7 +218,12 @@ function buildWeeklyRekapMessage(target, template) {
     const statusShort = entry.status === 'Libur (Hari Besar Nasional)' ? 'Libur Nasional' : entry.status;
     const tglStr = String(wd.tanggal).padStart(2,'0') + '/' + String(wd.bulan).padStart(2,'0');
     let jamInfo = '';
-    if (entry.isHadir && entry.jamMasuk && entry.jamMasuk !== '-') { jamInfo = ' (' + entry.jamMasuk; if (entry.jamPulang && entry.jamPulang !== '-') jamInfo += '–' + entry.jamPulang; jamInfo += ')'; }
+    // Tampilkan jam untuk Hadir DAN Terlambat (keduanya isHadir=true)
+    if ((entry.isHadir || entry.status === 'Terlambat') && entry.jamMasuk && entry.jamMasuk !== '-') {
+      jamInfo = ' (' + entry.jamMasuk;
+      if (entry.jamPulang && entry.jamPulang !== '-') jamInfo += '–' + entry.jamPulang;
+      jamInfo += ')';
+    }
     lines.push('• ' + wd.hari.padEnd(7,' ') + ' ' + tglStr + ' ' + emoji + ' ' + statusShort + jamInfo);
     if (entry.isHadir) totalHadir++;
     if (!isLibur) totalHariKerja++;
