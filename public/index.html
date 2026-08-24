@@ -111,6 +111,10 @@
           <span class="nav-icon">💬</span>
           <span class="nav-text">Template Pesan WA</span>
         </button>
+        <button class="nav-item tab-item" data-tab="kalender" title="Kalender Jadwal">
+          <span class="nav-icon">📅</span>
+          <span class="nav-text">Kalender Jadwal</span>
+        </button>
         <button class="nav-item tab-item" data-tab="logs" title="Log Aktivitas">
           <span class="nav-icon">📜</span>
           <span class="nav-text">Log Aktivitas</span>
@@ -733,6 +737,18 @@
                 <button type="button" id="btnRunNowPulang" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
                   🌆 Jalankan Sekarang (Pulang)
                 </button>
+                <button type="button" id="btnRunNowRekap" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
+                  📊 Rekap Mingguan (Test)
+                </button>
+                <button type="button" id="btnRunNowArchiver" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
+                  💾 Simpan Data Hari Ini (Test)
+                </button>
+              </div>
+              <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
+                <input type="date" id="backfillDate" class="modern-input" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;" />
+                <button type="button" id="btnRunNowBackfill" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
+                  🚀 Tarik Data per Tanggal
+                </button>
               </div>
             </div>
 
@@ -853,7 +869,83 @@
         </div>
 
         <!-- TAB 5: Riwayat Log -->
-        <div class="tab-panel" id="tab-logs">
+        <!-- ─── TAB: KALENDER JADWAL ─────────────────────────────────────────── -->
+    <div class="tab-panel" id="tab-kalender">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">📅 Kalender Jadwal Notifikasi</h2>
+          <p class="section-desc">Lihat jadwal otomatis & kirim manual notifikasi WA per hari</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="modern-btn btn-ghost btn-sm" id="btnCalPrev" title="Bulan sebelumnya">‹ Prev</button>
+          <span class="font-mono text-purple" id="calMonthLabel" style="font-size:1rem;font-weight:700;min-width:140px;text-align:center;">—</span>
+          <button class="modern-btn btn-ghost btn-sm" id="btnCalNext" title="Bulan berikutnya">Next ›</button>
+          <button class="modern-btn btn-purple-gradient btn-sm" id="btnCalToday">Hari Ini</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;margin-top:16px;">
+        <!-- Kalender Grid -->
+        <div>
+          <!-- Day headers -->
+          <div class="cal-weekdays">
+            <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span>
+            <span style="color:var(--accent-orange);">Sab</span>
+            <span style="color:var(--text-muted);">Min</span>
+          </div>
+          <!-- Date cells -->
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+
+        <!-- Panel Detail Hari -->
+        <div class="cal-detail-panel" id="calDetailPanel">
+          <div class="cal-detail-date" id="calDetailDate">Pilih tanggal</div>
+          <div class="cal-detail-day" id="calDetailDay"></div>
+
+          <!-- Jadwal Otomatis -->
+          <div class="cal-section-label">🤖 JADWAL OTOMATIS</div>
+          <div id="calAutoSchedule"></div>
+
+          <!-- Kirim Manual -->
+          <div class="cal-section-label" style="margin-top:16px;">⚡ KIRIM MANUAL</div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="calManualBtns">
+            <button class="cal-send-btn" id="calBtnPagi" data-type="pagi">
+              <span class="cal-send-icon">🌅</span>
+              <div><div class="cal-send-title">Notif Pagi</div><div class="cal-send-sub">Kirim sekarang ke semua guru</div></div>
+            </button>
+            <button class="cal-send-btn" id="calBtnSiang" data-type="siang">
+              <span class="cal-send-icon">☀️</span>
+              <div><div class="cal-send-title">Notif Siang</div><div class="cal-send-sub">Kirim sekarang ke semua guru</div></div>
+            </button>
+            <button class="cal-send-btn" id="calBtnPulang" data-type="pulang">
+              <span class="cal-send-icon">🌆</span>
+              <div><div class="cal-send-title">Notif Pulang</div><div class="cal-send-sub">Kirim sekarang ke semua guru</div></div>
+            </button>
+            <button class="cal-send-btn cal-send-rekap" id="calBtnRekap" data-type="rekap_mingguan">
+              <span class="cal-send-icon">📊</span>
+              <div><div class="cal-send-title">Rekap Mingguan</div><div class="cal-send-sub">Hanya aktif saat Sabtu otomatis</div></div>
+            </button>
+            <button class="cal-send-btn cal-send-archiver" id="calBtnArchiver" data-type="archiver">
+              <span class="cal-send-icon">💾</span>
+              <div><div class="cal-send-title">Arsip Harian</div><div class="cal-send-sub">Simpan data presensi ke database</div></div>
+            </button>
+          </div>
+
+          <!-- Result area -->
+          <div id="calSendResult" style="margin-top:12px;display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="cal-legend">
+        <span><span class="cal-dot cal-dot-pagi"></span> Pagi</span>
+        <span><span class="cal-dot cal-dot-pulang"></span> Pulang</span>
+        <span><span class="cal-dot cal-dot-rekap"></span> Rekap Mingguan (Sabtu)</span>
+        <span><span class="cal-dot cal-dot-archiver"></span> Arsip Harian</span>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-logs">
           <div class="glass-card">
             <div class="panel-header">
               <div>

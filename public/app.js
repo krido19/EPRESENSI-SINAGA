@@ -2169,22 +2169,36 @@ if (configForm) {
 async function runNowScheduler(type) {
   const btn = type === 'pagi'
     ? document.getElementById('btnRunNowPagi')
-    : document.getElementById('btnRunNowPulang');
-  const label = type === 'pagi' ? '🌅 Pagi' : '🌆 Pulang';
+    : type === 'rekap_mingguan' ? document.getElementById('btnRunNowRekap')
+    : type === 'archiver' ? document.getElementById('btnRunNowArchiver')
+    : type === 'backfill' ? document.getElementById('btnRunNowBackfill') : document.getElementById('btnRunNowPulang');
+  const label = type === 'pagi' ? '🌅 Pagi' : type === 'rekap_mingguan' ? '📊 Rekap' : type === 'archiver' ? '💾 Arsip' : type === 'backfill' ? '🚀 Backfill' : '🌆 Pulang';
   const origText = btn?.innerHTML;
   if (btn) { btn.disabled = true; btn.innerHTML = `⏳ Mengirim ${label}...`; }
+  
+  let payload = { type };
+  if (type === 'backfill') {
+    const bDate = document.getElementById('backfillDate').value;
+    if (!bDate) {
+      alert('Pilih tanggal backfill terlebih dahulu!');
+      if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+      return;
+    }
+    payload.date = bDate;
+  }
+
   try {
     const res = await fetch('/api/scheduler/run-now', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
     if (data.success) {
       showToast(data.message || `${label}: Selesai!`, 'success');
       loadLogs();
     } else {
-      showToast(`${label} Error: ${data.message}`, 'error');
+      showToast(`${label} Error: ${data.message || data.error || 'Terjadi kesalahan tidak diketahui'}`, 'error');
     }
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
@@ -2195,8 +2209,14 @@ async function runNowScheduler(type) {
 
 const btnRunNowPagi   = document.getElementById('btnRunNowPagi');
 const btnRunNowPulang = document.getElementById('btnRunNowPulang');
+const btnRunNowRekap  = document.getElementById('btnRunNowRekap');
+const btnRunNowArchiver = document.getElementById('btnRunNowArchiver');
+const btnRunNowBackfill = document.getElementById('btnRunNowBackfill');
 if (btnRunNowPagi)   btnRunNowPagi.addEventListener('click',   () => runNowScheduler('pagi'));
 if (btnRunNowPulang) btnRunNowPulang.addEventListener('click', () => runNowScheduler('pulang'));
+if (btnRunNowRekap)  btnRunNowRekap.addEventListener('click',  () => runNowScheduler('rekap_mingguan'));
+if (btnRunNowArchiver) btnRunNowArchiver.addEventListener('click', () => runNowScheduler('archiver'));
+if (btnRunNowBackfill) btnRunNowBackfill.addEventListener('click', () => runNowScheduler('backfill'));
 
 if (btnTestLogin) {
   btnTestLogin.addEventListener('click', async () => {
@@ -2955,5 +2975,286 @@ loadGraphStats();
     }
   };
 })();
+
+/* ════════════════════════════════════════════════════════════
+   📅 KALENDER JADWAL MODULE
+════════════════════════════════════════════════════════════ */
+(function initKalender() {
+  const HARI = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const BULAN_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+  let calYear  = new Date().getFullYear();
+  let calMonth = new Date().getMonth(); // 0-indexed
+  let selectedDate = null;           // { year, month, day, dayOfWeek }
+  let calConfig = null;              // config jadwal dari server
+
+  /* ── Ambil config jadwal dari server ─────────────── */
+  async function fetchCalConfig() {
+    try {
+      const r = await apiFetch('/api/config');
+      calConfig = r;
+    } catch(e) { console.warn('[Kalender] Gagal ambil config:', e.message); }
+  }
+
+  /* ── Helper: apakah hari kerja (Sen-Jum) ─────────── */
+  function isWorkday(dow) { return dow >= 1 && dow <= 5; }
+  function isSabtu(dow)   { return dow === 6; }
+  function isMinggu(dow)  { return dow === 0; }
+
+  /* ── Bangun jadwal otomatis untuk satu hari ──────── */
+  function buildAutoSchedule(dayOfWeek) {
+    if (!calConfig) return [];
+    const pad = v => String(v).padStart(2,'0');
+
+    if (isMinggu(dayOfWeek)) {
+      return [{ time:'—', label:'Libur Minggu', badge:'libur', icon:'😴' }];
+    }
+
+    if (isSabtu(dayOfWeek)) {
+      const pagiH = calConfig.pagiHour ?? 7;
+      const pagiM = calConfig.pagiMinute ?? 30;
+      return [
+        { time: `${pad(pagiH)}:${pad(pagiM)}`, label:'📊 Rekap Mingguan', badge:'sabtu', icon:'📊' },
+      ];
+    }
+
+    // Weekday
+    const items = [];
+    if (calConfig.schedulerPagiEnabled !== false) {
+      items.push({ time: `${pad(calConfig.pagiHour ?? 7)}:${pad(calConfig.pagiMinute ?? 30)}`, label:'🌅 Notif Pagi', badge:'auto', icon:'🌅' });
+    }
+    if (calConfig.schedulerSiangEnabled !== false) {
+      items.push({ time: `${pad(calConfig.siangHour ?? 15)}:${pad(calConfig.siangMinute ?? 30)}`, label:'☀️ Notif Siang', badge:'auto', icon:'☀️' });
+    }
+    if (calConfig.schedulerPulangEnabled !== false) {
+      items.push({ time: `${pad(calConfig.pulangHour ?? 18)}:${pad(calConfig.pulangMinute ?? 0)}`, label:'🌆 Notif Pulang', badge:'auto', icon:'🌆' });
+    }
+    items.push({ time: '22:00', label: '💾 Arsip Harian', badge: 'auto', icon: '💾' });
+    return items;
+  }
+
+  /* ── Render dot indicators pada cell kalender ────── */
+  function getDots(dayOfWeek) {
+    if (isMinggu(dayOfWeek)) return '';
+    if (isSabtu(dayOfWeek)) return `<span class="cal-dot cal-dot-rekap"></span>`;
+    let d = '';
+    if (calConfig?.schedulerPagiEnabled !== false) d += `<span class="cal-dot cal-dot-pagi"></span>`;
+    if (calConfig?.schedulerSiangEnabled !== false) d += `<span class="cal-dot cal-dot-siang"></span>`;
+    if (calConfig?.schedulerPulangEnabled !== false) d += `<span class="cal-dot cal-dot-pulang"></span>`;
+    d += `<span class="cal-dot cal-dot-archiver"></span>`;
+    return d;
+  }
+
+  /* ── Render Grid Kalender ─────────────────────────── */
+  function renderCalendar() {
+    const grid = document.getElementById('calGrid');
+    const label = document.getElementById('calMonthLabel');
+    if (!grid) return;
+
+    label.textContent = `${BULAN_ID[calMonth]} ${calYear}`;
+
+    const today = new Date();
+    const todayY = today.getFullYear(), todayM = today.getMonth(), todayD = today.getDate();
+
+    // Hari pertama bulan (0=Min … 6=Sab), konversi ke Senin-start
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const startOffset = (firstDay === 0) ? 6 : firstDay - 1; // Senin = 0
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
+
+    let cells = '';
+    // Cells dari bulan sebelumnya
+    for (let i = startOffset - 1; i >= 0; i--) {
+      const d = daysInPrevMonth - i;
+      const date = new Date(calYear, calMonth - 1, d);
+      const dow  = date.getDay();
+      cells += `<div class="cal-cell is-other-month${isSabtu(dow)?' is-sabtu':''}${isMinggu(dow)?' is-weekend':''}">
+        <span class="cal-num">${d}</span>
+      </div>`;
+    }
+    // Cells bulan ini
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(calYear, calMonth, d);
+      const dow  = date.getDay();
+      const isToday = (calYear === todayY && calMonth === todayM && d === todayD);
+      const isSel   = selectedDate && selectedDate.year === calYear && selectedDate.month === calMonth && selectedDate.day === d;
+      const dots    = getDots(dow);
+
+      let cls = 'cal-cell';
+      if (isSabtu(dow)) cls += ' is-sabtu';
+      else if (isMinggu(dow)) cls += ' is-weekend';
+      if (isToday) cls += ' is-today';
+      if (isSel)   cls += ' is-selected';
+
+      cells += `<div class="${cls}" data-y="${calYear}" data-m="${calMonth}" data-d="${d}" data-dow="${dow}">
+        <span class="cal-num">${d}</span>
+        <div class="cal-dots">${dots}</div>
+      </div>`;
+    }
+    // Padding akhir bulan (isi sampai 42 sel)
+    const totalSoFar = startOffset + daysInMonth;
+    const remainder  = totalSoFar % 7 === 0 ? 0 : 7 - (totalSoFar % 7);
+    for (let d = 1; d <= remainder; d++) {
+      const date = new Date(calYear, calMonth + 1, d);
+      const dow  = date.getDay();
+      cells += `<div class="cal-cell is-other-month${isSabtu(dow)?' is-sabtu':''}${isMinggu(dow)?' is-weekend':''}">
+        <span class="cal-num">${d}</span>
+      </div>`;
+    }
+
+    grid.innerHTML = cells;
+
+    // Click handler tiap cell
+    grid.querySelectorAll('.cal-cell:not(.is-other-month)').forEach(cell => {
+      cell.addEventListener('click', () => {
+        const y   = parseInt(cell.dataset.y);
+        const m   = parseInt(cell.dataset.m);
+        const d   = parseInt(cell.dataset.d);
+        const dow = parseInt(cell.dataset.dow);
+        grid.querySelectorAll('.cal-cell.is-selected').forEach(c => c.classList.remove('is-selected'));
+        cell.classList.add('is-selected');
+        selectedDate = { year: y, month: m, day: d, dayOfWeek: dow };
+        renderDetailPanel();
+      });
+    });
+  }
+
+  /* ── Render Detail Panel ──────────────────────────── */
+  function renderDetailPanel() {
+    const elDate  = document.getElementById('calDetailDate');
+    const elDay   = document.getElementById('calDetailDay');
+    const elAuto  = document.getElementById('calAutoSchedule');
+    const elRes   = document.getElementById('calSendResult');
+    const btnRekap = document.getElementById('calBtnRekap');
+    if (!elDate || !selectedDate) return;
+
+    const { year, month, day, dayOfWeek } = selectedDate;
+    const tglStr = `${String(day).padStart(2,'0')} ${BULAN_ID[month]} ${year}`;
+    elDate.textContent = tglStr;
+    elDay.textContent  = HARI[dayOfWeek];
+    if (elRes) { elRes.style.display = 'none'; elRes.innerHTML = ''; }
+
+    // Jadwal otomatis
+    const schedule = buildAutoSchedule(dayOfWeek);
+    elAuto.innerHTML = schedule.map(s => `
+      <div class="cal-auto-item">
+        <span class="cal-auto-time">${s.time}</span>
+        <span class="cal-auto-label">${s.label}</span>
+        <span class="cal-auto-badge badge-${s.badge}">${s.badge === 'auto' ? 'Otomatis' : s.badge === 'sabtu' ? 'Sabtu' : 'Libur'}</span>
+      </div>`).join('');
+
+    // Tombol manual: rekap hanya aktif hari Sabtu
+    if (btnRekap) {
+      if (isSabtu(dayOfWeek)) {
+        btnRekap.disabled = false;
+        btnRekap.querySelector('.cal-send-sub').textContent = 'Kirim rekap minggu ini ke semua guru';
+      } else {
+        btnRekap.disabled = false; // Admin boleh trigger kapan saja
+        btnRekap.querySelector('.cal-send-sub').textContent = 'Kirim rekap manual (override hari ini)';
+      }
+    }
+
+    // Disable semua send btn jika Minggu
+    ['calBtnPagi','calBtnSiang','calBtnPulang','calBtnRekap','calBtnArchiver'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      if (isMinggu(dayOfWeek)) btn.disabled = true;
+      else btn.disabled = false;
+    });
+  }
+
+  /* ── Kirim Manual ─────────────────────────────────── */
+  async function sendManual(type, btn) {
+    const elRes = document.getElementById('calSendResult');
+    btn.classList.add('sending');
+    const origHTML = btn.innerHTML;
+    btn.querySelector('.cal-send-sub').textContent = '⏳ Mengirim…';
+    if (elRes) { elRes.style.display = 'none'; }
+
+    try {
+      const r = await apiFetch('/api/scheduler/run-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type })
+      });
+
+      const msg = r.message || (r.success ? 'Berhasil dikirim!' : r.error || 'Gagal');
+      if (elRes) {
+        elRes.style.display = 'block';
+        elRes.className     = r.success ? 'cal-result-ok' : 'cal-result-err';
+        elRes.textContent   = msg;
+      }
+      showToast(r.success ? `✅ ${msg}` : `❌ ${msg}`, r.success ? 'success' : 'error');
+    } catch(e) {
+      if (elRes) {
+        elRes.style.display = 'block';
+        elRes.className     = 'cal-result-err';
+        elRes.textContent   = `❌ ${e.message}`;
+      }
+      showToast(`❌ ${e.message}`, 'error');
+    } finally {
+      btn.classList.remove('sending');
+      btn.innerHTML = origHTML;
+    }
+  }
+
+  /* ── Init: pasang event listener ─────────────────── */
+  function bindEvents() {
+    document.getElementById('btnCalPrev')?.addEventListener('click', () => {
+      calMonth--;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      renderCalendar();
+    });
+    document.getElementById('btnCalNext')?.addEventListener('click', () => {
+      calMonth++;
+      if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderCalendar();
+    });
+    document.getElementById('btnCalToday')?.addEventListener('click', () => {
+      const now  = new Date();
+      calYear    = now.getFullYear();
+      calMonth   = now.getMonth();
+      selectedDate = { year: calYear, month: calMonth, day: now.getDate(), dayOfWeek: now.getDay() };
+      renderCalendar();
+      renderDetailPanel();
+    });
+
+    ['calBtnPagi','calBtnSiang','calBtnPulang','calBtnRekap','calBtnArchiver'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', function() {
+        const type = this.dataset.type;
+        sendManual(type, this);
+      });
+    });
+  }
+
+  /* ── Auto-select hari ini saat tab dibuka ─────────── */
+  function selectToday() {
+    const now = new Date();
+    selectedDate = { year: now.getFullYear(), month: now.getMonth(), day: now.getDate(), dayOfWeek: now.getDay() };
+    renderCalendar();
+    renderDetailPanel();
+  }
+
+  /* ── Aktifkan saat tab Kalender diklik ───────────── */
+  document.querySelectorAll('.tab-item[data-tab="kalender"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!calConfig) await fetchCalConfig();
+      selectToday();
+    });
+  });
+
+  /* ── Jika kalender sudah aktif saat load ─────────── */
+  if (document.getElementById('tab-kalender')?.classList.contains('active')) {
+    fetchCalConfig().then(selectToday);
+  }
+
+  // Bind tombol setelah DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindEvents);
+  } else {
+    bindEvents();
+  }
+})();
+
 
 
