@@ -107,11 +107,29 @@ router.get('/config', async (req, res) => {
 
   // Selalu ambil school_configs langsung dari Supabase agar nilai jadwal akurat
   let schoolCfg = null;
-  const schoolId = req.schoolId;
+  let schoolId = req.schoolId;
+
+  // Fallback untuk super_admin (schoolId = null): pakai DEFAULT_SCHOOL_ID atau sekolah pertama
+  if (!schoolId && req.userRole === 'super_admin') {
+    schoolId = process.env.DEFAULT_SCHOOL_ID || null;
+    if (!schoolId) {
+      try {
+        const { data: first } = await supabase.from('school_configs').select('school_id').limit(1).single();
+        schoolId = first?.school_id || null;
+      } catch(e) { /* ignore */ }
+    }
+  }
+
   if (schoolId) {
     try {
-      const { data } = await supabase.from('school_configs').select('*').eq('school_id', schoolId).single();
-      schoolCfg = data;
+      const { data, error } = await supabase.from('school_configs').select('*').eq('school_id', schoolId).single();
+      if (!error && data) {
+        schoolCfg = data;
+      } else {
+        // Tidak ada row untuk schoolId ini — fallback ke row pertama yang tersedia
+        const { data: fallback, error: fe } = await supabase.from('school_configs').select('*').limit(1).single();
+        if (!fe && fallback) schoolCfg = fallback;
+      }
     } catch(e) { /* fallback ke base */ }
   }
 
@@ -157,8 +175,17 @@ router.post('/config', async (req, res) => {
   saveConfig(updated);
   const schoolId = req.schoolId || req.user?.schoolId;
   const syncData = { scheduler_enabled: updated.schedulerEnabled !== false, scheduler_siang_enabled: updated.schedulerSiangEnabled !== false, pagi_hour: Number(updated.pagiHour ?? 7), pagi_minute: Number(updated.pagiMinute ?? 30), siang_hour: Number(updated.siangHour ?? 15), siang_minute: Number(updated.siangMinute ?? 30), pulang_hour: Number(updated.pulangHour ?? 18), pulang_minute: Number(updated.pulangMinute ?? 0), message_pagi: updated.messagePagi || null, message_pagi_sudah: updated.messagePagiSudah || null, message_siang: updated.messageSiang || null, message_siang_sudah: updated.messageSiangSudah || null, message_pulang: updated.messagePulang || null, message_pulang_sudah: updated.messagePulangSudah || null };
-  if (schoolId) { supabase.from('school_configs').update(syncData).eq('school_id', schoolId).then(({ error }) => { if (error) console.error('[Config] Gagal sync ke Supabase:', error.message); else console.log(`[Config] Jadwal sync untuk schoolId: ${schoolId}`); }); }
-  else { supabase.from('school_configs').update(syncData).not('school_id', 'is', null).then(({ error }) => { if (error) console.error('[Config] Gagal sync semua sekolah:', error.message); else console.log('[Config] Jadwal sync ke semua sekolah.'); }); }
+  if (schoolId) {
+    const { error } = await supabase.from('school_configs')
+      .upsert({ ...syncData, school_id: schoolId }, { onConflict: 'school_id' });
+    if (error) console.error('[Config] Gagal upsert ke Supabase:', error.message);
+    else console.log(`[Config] Jadwal upsert selesai untuk schoolId: ${schoolId}`);
+  } else {
+    // Super admin — await update semua sekolah sebelum balas ke frontend
+    const { error } = await supabase.from('school_configs').update(syncData).not('school_id', 'is', null);
+    if (error) console.error('[Config] Gagal sync semua sekolah:', error.message);
+    else console.log('[Config] Jadwal sync ke semua sekolah selesai.');
+  }
   const schedulerFields = ['schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute','schedulerSiangEnabled','siangHour','siangMinute','schedulerPulangEnabled','pulangHour','pulangMinute'];
   const schedulerChanged = schedulerFields.some(k => req.body[k] !== undefined && req.body[k] !== '');
   if (schedulerChanged) {
