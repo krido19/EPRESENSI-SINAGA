@@ -7,15 +7,15 @@ const { loadConfig, saveConfig }    = require('../config');
 const { supabase }                  = require('../supabase');
 const { addLog }                    = require('../logger');
 const { doLogin }                   = require('../epresensi');
-const { generateAuthToken }         = require('../auth');
-const { setupScheduler }            = require('../scheduler');
+const { generateAuthToken, authLimiter, authCache } = require('../auth');
+const { setupScheduler, invalidateSchoolsCache } = require('../scheduler');
 const { initBaileys, getWaState, BAILEYS_AUTH_DIR } = require('../whatsapp');
 
 const fs   = require('fs');
 const path = require('path');
 
 // POST /api/auth/app-login
-router.post('/app-login', async (req, res) => {
+router.post('/auth/app-login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, error: 'Email dan password wajib diisi.' });
   try {
@@ -37,7 +37,7 @@ router.post('/app-login', async (req, res) => {
 });
 
 // POST /api/auth/change-app-password
-router.post('/change-app-password', async (req, res) => {
+router.post('/auth/change-app-password', async (req, res) => {
   const { oldPassword, newPassword } = req.body;
   const cfg       = loadConfig();
   const validPass = cfg.appPassword || process.env.APP_PASSWORD || 'SMK3magelang';
@@ -101,22 +101,52 @@ router.post('/wa/logout', async (req, res) => {
 });
 
 // GET /api/config
-router.get('/config', (req, res) => {
-  const cfg = req.tenantCfg || loadConfig();
+router.get('/config', async (req, res) => {
+  const localCfg = loadConfig();
+  const base     = req.tenantCfg || localCfg;
+
+  // Selalu ambil school_configs langsung dari Supabase agar nilai jadwal akurat
+  let schoolCfg = null;
+  const schoolId = req.schoolId;
+  if (schoolId) {
+    try {
+      const { data } = await supabase.from('school_configs').select('*').eq('school_id', schoolId).single();
+      schoolCfg = data;
+    } catch(e) { /* fallback ke base */ }
+  }
+
   res.json({
-    authMode: cfg.authMode || 'auto', username: cfg.username || '', usernameSet: !!cfg.username, passwordSet: !!cfg.password,
-    cookieSet: !!cfg.cookie, cookieExpiry: cfg.cookieExpiry, waGateway: cfg.waGateway || 'baileys',
-    fonnteSet: !!cfg.fonnteToken, fonnteToken: cfg.fonnteToken || '', waNumber: cfg.waNumber || '', waNumberSet: !!cfg.waNumber,
-    schedulerEnabled: cfg.schedulerEnabled !== false, schedulerPagiEnabled: cfg.schedulerPagiEnabled !== false,
-    pagiHour: cfg.pagiHour ?? 7, pagiMinute: cfg.pagiMinute ?? 30,
-    schedulerSiangEnabled: cfg.schedulerSiangEnabled !== false, siangHour: cfg.siangHour ?? 15, siangMinute: cfg.siangMinute ?? 30,
-    schedulerPulangEnabled: cfg.schedulerPulangEnabled !== false, pulangHour: cfg.pulangHour ?? 18, pulangMinute: cfg.pulangMinute ?? 0,
-    message: cfg.message || '', messagePagi: cfg.messagePagi || '', messagePagiSudah: cfg.messagePagiSudah || '',
-    messageSiang: cfg.messageSiang || '', messageSiangSudah: cfg.messageSiangSudah || '',
-    messagePulang: cfg.messagePulang || '', messagePulangSudah: cfg.messagePulangSudah || '',
-    testModeSudahAbsen: cfg.testModeSudahAbsen || false,
+    authMode:    base.authMode    || 'auto',
+    username:    base.username    || '', usernameSet: !!base.username, passwordSet: !!base.password,
+    cookieSet:   !!base.cookie, cookieExpiry: base.cookieExpiry,
+    waGateway:   base.waGateway   || 'baileys',
+    fonnteSet:   !!base.fonnteToken, fonnteToken: base.fonnteToken || '',
+    waNumber:    base.waNumber    || '', waNumberSet: !!base.waNumber,
+
+    // Scheduler — prioritaskan Supabase school_configs
+    schedulerEnabled:       schoolCfg?.scheduler_enabled       ?? base.schedulerEnabled       ?? true,
+    schedulerPagiEnabled:   schoolCfg?.scheduler_pagi_enabled  ?? base.schedulerPagiEnabled   ?? true,
+    pagiHour:               schoolCfg?.pagi_hour               ?? base.pagiHour               ?? 7,
+    pagiMinute:             schoolCfg?.pagi_minute             ?? base.pagiMinute             ?? 30,
+    schedulerSiangEnabled:  schoolCfg?.scheduler_siang_enabled ?? base.schedulerSiangEnabled  ?? true,
+    siangHour:              schoolCfg?.siang_hour              ?? base.siangHour              ?? 15,
+    siangMinute:            schoolCfg?.siang_minute            ?? base.siangMinute            ?? 30,
+    schedulerPulangEnabled: schoolCfg?.scheduler_pulang_enabled ?? base.schedulerPulangEnabled ?? true,
+    pulangHour:             schoolCfg?.pulang_hour             ?? base.pulangHour             ?? 18,
+    pulangMinute:           schoolCfg?.pulang_minute           ?? base.pulangMinute           ?? 0,
+
+    // Template pesan — Supabase dulu, lalu local
+    message:            base.message            || '',
+    messagePagi:        schoolCfg?.message_pagi        || base.messagePagi        || '',
+    messagePagiSudah:   schoolCfg?.message_pagi_sudah  || base.messagePagiSudah   || '',
+    messageSiang:       schoolCfg?.message_siang       || base.messageSiang       || '',
+    messageSiangSudah:  schoolCfg?.message_siang_sudah || base.messageSiangSudah  || '',
+    messagePulang:      schoolCfg?.message_pulang      || base.messagePulang      || '',
+    messagePulangSudah: schoolCfg?.message_pulang_sudah || base.messagePulangSudah || '',
+    testModeSudahAbsen: base.testModeSudahAbsen || false,
   });
 });
+
 
 // POST /api/config
 router.post('/config', async (req, res) => {
@@ -130,7 +160,16 @@ router.post('/config', async (req, res) => {
   if (schoolId) { supabase.from('school_configs').update(syncData).eq('school_id', schoolId).then(({ error }) => { if (error) console.error('[Config] Gagal sync ke Supabase:', error.message); else console.log(`[Config] Jadwal sync untuk schoolId: ${schoolId}`); }); }
   else { supabase.from('school_configs').update(syncData).not('school_id', 'is', null).then(({ error }) => { if (error) console.error('[Config] Gagal sync semua sekolah:', error.message); else console.log('[Config] Jadwal sync ke semua sekolah.'); }); }
   const schedulerFields = ['schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute','schedulerSiangEnabled','siangHour','siangMinute','schedulerPulangEnabled','pulangHour','pulangMinute'];
-  if (schedulerFields.some(k => req.body[k] !== undefined && req.body[k] !== '')) { console.log('[Config] Setting jadwal berubah — memulai ulang scheduler...'); setupScheduler(); }
+  const schedulerChanged = schedulerFields.some(k => req.body[k] !== undefined && req.body[k] !== '');
+  if (schedulerChanged) {
+    console.log('[Config] Setting jadwal berubah — reset cache & restart scheduler...');
+    invalidateSchoolsCache(); // reset scheduler cache
+    authCache.clear();        // reset auth cache agar tenantCfg fresh di request berikutnya
+    setupScheduler();
+  } else {
+    // Selalu clear auth cache saat config apapun berubah
+    authCache.clear();
+  }
   res.json({ success: true });
 });
 

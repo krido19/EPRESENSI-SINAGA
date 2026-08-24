@@ -152,8 +152,61 @@ router.post('/check-and-send', async (req, res) => {
   res.json({ success: true, attendance: data, waSent: !!sendResult?.success, sendResult, notAbsent: !data.hasAbsenPagi });
 });
 
+// GET /api/recipients/template — HARUS sebelum /recipients/:id
+router.get('/recipients/template', async (req, res) => {
+  try {
+    const role = req.userRole;
+    let teachers = [];
+    if (role === 'super_admin') {
+      const { data: allSchools } = await supabase.from('schools').select('*');
+      if (allSchools && allSchools.length > 0) {
+        const { buildTenantCfg } = require('../scheduler');
+        const promises = allSchools.map(async (schoolData) => {
+          const cfg = buildTenantCfg({ schools: schoolData });
+          const session = await ensureTenantSession(cfg);
+          if (session.success) {
+            const res2 = await fetchColleaguesAttendance(session.cookie, null, null, null, false, 0, cfg);
+            if (res2.success && res2.colleagues) { res2.colleagues.forEach(c => { c.namaSekolah = cfg.namaSekolah; }); teachers = teachers.concat(res2.colleagues); }
+          }
+        });
+        await Promise.all(promises);
+      }
+    } else {
+      const cfg = req.tenantCfg || loadConfig();
+      const session = await ensureTenantSession(cfg);
+      if (session.success) {
+        const res2 = await fetchColleaguesAttendance(session.cookie, null, null, null, false, 0, cfg);
+        if (res2.success && res2.colleagues) teachers = res2.colleagues;
+      }
+    }
+    let query = supabase.from('recipients').select('*');
+    if (req.userRole !== 'super_admin') query = query.eq('school_id', req.schoolId);
+    const { data: dbData } = await query;
+    const phoneMap = new Map();
+    (dbData || []).forEach(r => { if (r.nama && r.nomor) phoneMap.set(r.nama.toLowerCase().replace(/[^a-z0-9]/g,''), r.nomor); });
+    const rows = teachers.map((t, idx) => ({
+      'No': t.no || (idx + 1), 'NIP': String(t.nip || ''), 'Nama Guru': t.nama || '',
+      'Nomor WhatsApp': phoneMap.get((t.nama||'').toLowerCase().replace(/[^a-z0-9]/g,'')) || '',
+      ...(role === 'super_admin' ? { 'Asal Sekolah': t.namaSekolah || '' } : {})
+    }));
+    if (rows.length === 0) rows.push({ 'No': 1, 'NIP': '199601042025211042', 'Nama Guru': 'KRIDO BAHTIAR, S.Kom', 'Nomor WhatsApp': '' });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const cols = [{ wch: 6 }, { wch: 24 }, { wch: 42 }, { wch: 22 }];
+    if (role === 'super_admin') cols.push({ wch: 30 });
+    ws['!cols'] = cols;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Guru');
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const fileName = role === 'super_admin' ? 'template_semua_guru.xlsx' : 'template_guru.xlsx';
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (err) { res.status(500).send(`Gagal generate template: ${err.message}`); }
+});
+
 // Recipients CRUD
 router.get('/recipients', async (req, res) => {
+
   try {
     let query = supabase.from('recipients').select('*, schools(name)');
     if (req.userRole !== 'super_admin') query = query.eq('school_id', req.schoolId);

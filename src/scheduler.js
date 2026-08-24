@@ -38,8 +38,8 @@ async function getActiveSchools() {
 
     if (!error && data && data.length > 0) {
       schoolsCache       = data;
-      schoolsCacheExpiry = Date.now() + 5 * 60_000;
-      if (Date.now() - schoolsCacheLastLog > 4 * 60_000) {
+      schoolsCacheExpiry = Date.now() + 60_000; // cache 1 menit (bukan 5) agar perubahan Supabase cepat aktif
+      if (Date.now() - schoolsCacheLastLog > 60_000) {
         console.log(`[Scheduler] Loaded ${data.length} sekolah dari Supabase: ${data.map(r => r.schools?.name).join(', ')}`);
         schoolsCacheLastLog = Date.now();
       }
@@ -379,9 +379,17 @@ function setupScheduler() {
   console.log('[Scheduler] Master Multi-Tenant Cron aktif (setiap 1 menit, cache Supabase 5 menit)');
 }
 
+// ─── invalidateSchoolsCache ───────────────────────────────────────────────────
+// Dipanggil saat config/jadwal diupdate agar scheduler langsung ambil data baru
+function invalidateSchoolsCache() {
+  schoolsCache       = null;
+  schoolsCacheExpiry = 0;
+  console.log('[Scheduler] Cache sekolah di-reset — akan ambil data baru dari Supabase.');
+}
+
 module.exports = {
   getActiveSchools, buildTenantCfg, setupScheduler,
   runSchedulerLogic, runWeeklyRekapLogic,
   runBackfillLogic, runDailyArchiverLogic,
-  buildWeeklyRekapMessage
+  buildWeeklyRekapMessage, invalidateSchoolsCache
 };

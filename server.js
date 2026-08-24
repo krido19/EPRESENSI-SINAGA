@@ -67,10 +67,12 @@ app.use('/api', (req, res, next) => {
 });
 
 // ─── Mount Routes ─────────────────────────────────────────────────────────────
-app.use('/api/admin',     adminRoutes);
-app.use('/api/scheduler', schedulerRoutes);
-app.use('/api',           authRoutes);
-app.use('/api',           apiRoutes);
+app.use('/api/admin',      adminRoutes);
+app.use('/api/scheduler',  schedulerRoutes);
+app.use('/api',            authRoutes);
+app.use('/api/colleagues', apiRoutes);   // GET /api/colleagues, /api/colleagues/:nip/history
+app.use('/api',            apiRoutes);   // POST /api/send-*, /api/check, /api/recipients, dll
+
 
 // ─── Misc Endpoints ───────────────────────────────────────────────────────────
 const GRAPH_FILE = path.join(__dirname, 'graphify-out', 'graph.json');
