@@ -125,17 +125,36 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
     const day = new Date().getDate();
     const colleaguesRes = await fetchColleaguesAttendance(session.cookie, day, null, null, true, 0, config);
     if (colleaguesRes.success) {
-      const targets_raw = colleaguesRes.colleagues.filter(c => !c.status.includes('Libur'));
+      const allColleagues = colleaguesRes.colleagues; // seluruh data termasuk Libur/Izin
+      const targets_raw = allColleagues.filter(c => !c.status.includes('Libur'));
       let q = supabase.from('recipients').select('*').eq('aktif', true);
       const validSchoolId = config && config.schoolId && config.schoolId !== 'local' ? config.schoolId : null;
       if (validSchoolId) q = q.eq('school_id', validSchoolId);
       const { data } = await q;
       const registered = data || [];
+
+      // ── STEP 1: Loop dari ePresensi → cocokkan ke registered (logika asal) ──
       for (const guru of targets_raw) {
         const cleanGuru = guru.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
         const found = registered.find(r => { const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, ''); return cleanGuru.includes(cleanR) || cleanR.includes(cleanGuru); });
         if (found && found.nomor) targets.push({ nama: guru.nama, nomor: found.nomor, isHadir: type === 'pagi' ? guru.isHadir : (type === 'siang' ? !!guru.jamSiang : !!guru.jamPulang) });
       }
+
+      // ── STEP 2: Tambah guru yang TIDAK ADA di ePresensi sama sekali ──
+      // (bukan sedang Libur/Izin, tapi memang tidak punya akun ePresensi)
+      for (const r of registered) {
+        if (r.is_external) continue; // Eksternal ditangani terpisah
+        if (targets.some(t => t.nomor === r.nomor)) continue; // Sudah diproses Step 1
+        const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const isInEpresensi = allColleagues.some(c => {
+          const cleanC = c.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanC.includes(cleanR) || cleanR.includes(cleanC);
+        });
+        if (isInEpresensi) continue; // Ada di ePresensi (Libur/Izin/dll) — tidak dikirim
+        // Tidak ada di ePresensi → kirim pengingat absen
+        targets.push({ nama: r.nama, nomor: r.nomor, isHadir: false });
+      }
+
       addLog({ type: 'info', message: `${labelWaktu}: Mode normal (ePresensi) — ${targets.length} target ditemukan.`, school: config.namaSekolah });
     } else { session.success = false; }
   }

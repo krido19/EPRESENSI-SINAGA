@@ -2048,9 +2048,20 @@ if (addRecipientForm) {
     const sekolahAsal = document.getElementById('manualSekolahAsal')?.value.trim() || '';
 
     let school_id = null;
-    if (window.isSuperAdmin && typeof colleagues !== 'undefined') {
-      const c = colleagues.find(x => x.nama.toLowerCase() === namaVal.toLowerCase());
-      if (c && c.school_id) school_id = c.school_id;
+    if (window.isSuperAdmin) {
+      // Prioritas: ambil dari dropdown sekolah yang dipilih di modal
+      const filterSel = document.getElementById('modalSchoolFilter');
+      if (filterSel && filterSel.value) {
+        school_id = filterSel.value;
+      } else if (typeof colleagues !== 'undefined') {
+        // Fallback: cari dari data colleagues jika guru ada di ePresensi
+        const c = colleagues.find(x => x.nama.toLowerCase() === namaVal.toLowerCase());
+        if (c && c.school_id) school_id = c.school_id;
+      }
+      if (!school_id) {
+        showToast('Pilih sekolah terlebih dahulu (dropdown "Sumber Nama")', 'error');
+        return;
+      }
     }
 
     try {
