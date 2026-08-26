@@ -23,35 +23,77 @@ router.get('/schools', async (req, res) => {
 
 // GET /api/colleagues
 router.get('/', async (req, res) => {
-  const role   = req.userRole;
-  const cfg    = req.tenantCfg || loadConfig();
-  const day    = req.query.day   || null;
-  const month  = req.query.month || null;
-  const year   = req.query.year  || null;
-  const forceRefresh = req.query.refresh === 'true';
-  const schoolId = req.query.schoolId || null; // untuk super_admin filter per sekolah
+  const role         = req.userRole;
+  const cfg          = req.tenantCfg || loadConfig();
+  const day          = req.query.day    || null;
+  const month        = req.query.month  || null;
+  const year         = req.query.year   || null;
+  const forceRefresh = req.query.force === 'true' || req.query.refresh === 'true';
+  const schoolId     = req.query.schoolId || null;
 
-  let session, activeCfg = cfg;
-  if (role === 'super_admin' && schoolId) {
-    // Ambil konfigurasi sekolah spesifik dari Supabase
-    const { data: schoolData } = await supabase.from('schools').select('*').eq('id', schoolId).single();
-    const { data: schoolCfgData } = await supabase.from('school_configs').select('*').eq('school_id', schoolId).single();
-    if (schoolData) {
-      activeCfg = buildTenantCfg({ schools: schoolData, school_configs: schoolCfgData });
-      session = await ensureTenantSession(activeCfg);
+  try {
+    if (role === 'super_admin') {
+      // Super admin: agregasi semua sekolah (atau filter per schoolId)
+      let schoolRows;
+      if (schoolId) {
+        const { data: s } = await supabase.from('schools').select('*').eq('id', schoolId);
+        schoolRows = s || [];
+      } else {
+        const { data: s } = await supabase.from('schools').select('*');
+        schoolRows = s || [];
+      }
+
+      if (!schoolRows.length) return res.json({ success: true, colleagues: [], total: 0, hadir: 0, belumAbsen: 0, izin: 0, sakit: 0 });
+
+      let aggregatedColleagues = [];
+      console.log(`[SuperAdmin] Ditemukan ${schoolRows.length} sekolah untuk agregasi.`);
+
+      const promises = schoolRows.map(async (schoolData) => {
+        const tenantCfg = buildTenantCfg({ schools: schoolData });
+        console.log(`[SuperAdmin] Memproses tenant: ${tenantCfg.namaSekolah}`);
+        const session = await ensureTenantSession(tenantCfg);
+        if (!session.success) {
+          console.error(`[SuperAdmin] Gagal login tenant ${tenantCfg.namaSekolah}: ${session.error}`);
+          return;
+        }
+        const result = await fetchColleaguesAttendance(session.cookie, day, month, year, forceRefresh, 0, tenantCfg);
+        if (result.success && result.colleagues) {
+          result.colleagues.forEach(c => {
+            c.namaSekolah = tenantCfg.namaSekolah;
+            c.school_id   = tenantCfg.schoolId;
+          });
+          aggregatedColleagues = aggregatedColleagues.concat(result.colleagues);
+          console.log(`[SuperAdmin] Tenant ${tenantCfg.namaSekolah}: ${result.colleagues.length} guru.`);
+        } else {
+          console.error(`[SuperAdmin] Gagal tarik data tenant ${tenantCfg.namaSekolah}: ${result.error}`);
+        }
+      });
+
+      await Promise.all(promises);
+
+      const hadir      = aggregatedColleagues.filter(c => c.isHadir).length;
+      const belumAbsen = aggregatedColleagues.filter(c => !c.isHadir && !c.status?.includes('Libur') && !c.status?.includes('Izin') && !c.status?.includes('Sakit')).length;
+      const izin       = aggregatedColleagues.filter(c => c.status?.includes('Izin') || c.status?.includes('Cuti')).length;
+      const sakit      = aggregatedColleagues.filter(c => c.status?.includes('Sakit')).length;
+
+      return res.json({ success: true, colleagues: aggregatedColleagues, total: aggregatedColleagues.length, hadir, belumAbsen, izin, sakit });
+
     } else {
-      return res.json({ success: false, error: 'Sekolah tidak ditemukan' });
+      // School admin: pakai session tenant sendiri
+      const session = await ensureTenantSession(cfg);
+      if (!session.success) return res.json({ success: false, error: session.error, needLogin: true });
+      const result = await fetchColleaguesAttendance(session.cookie, day, month, year, forceRefresh, 0, cfg);
+      if (result.success && result.colleagues) {
+        result.colleagues.forEach(c => { c.namaSekolah = cfg.namaSekolah; });
+      }
+      return res.json(result);
     }
-  } else if (role === 'super_admin') {
-    session = await ensureValidSession();
-  } else {
-    session = await ensureTenantSession(cfg);
+  } catch (e) {
+    console.error('[Colleagues] Error:', e.message);
+    return res.json({ success: false, error: e.message });
   }
-
-  if (!session.success) return res.json({ success: false, error: session.error, needLogin: true });
-  const result = await fetchColleaguesAttendance(session.cookie, day, month, year, forceRefresh, 0, activeCfg);
-  res.json(result);
 });
+
 
 
 // GET /api/colleagues/debug-html
