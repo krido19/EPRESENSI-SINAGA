@@ -393,30 +393,42 @@ function setupScheduler() {
       if (!schools.length) return;
 
       // Sequential per sekolah — hindari race condition WA/cookie
-      for (const row of schools) {
+      for (let i = 0; i < schools.length; i++) {
+        const row = schools[i];
         const cfg = buildTenantCfg(row);
+        let didRun = false;
         try {
           if (H === 22 && M === 0) {
             console.log(`[Scheduler 💾 Harian] ${cfg.namaSekolah} - 22:00 WIB`);
             await runDailyArchiverLogic(cfg);
+            didRun = true;
           }
           if (H === cfg.pagiHour && M === cfg.pagiMinute) {
             console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
             await runSchedulerLogic('pagi', cfg);
+            didRun = true;
           }
           if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) {
             console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah}`);
             await runSchedulerLogic('siang', cfg);
+            didRun = true;
           }
           if (H === cfg.pulangHour && M === cfg.pulangMinute) {
             console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah}`);
             await runSchedulerLogic('pulang', cfg);
+            didRun = true;
+          }
+          // Jeda antar sekolah — beri waktu Baileys flush signal sessions
+          if (didRun && i < schools.length - 1) {
+            console.log(`[Scheduler] ⏳ Jeda 60 detik sebelum sekolah berikutnya...`);
+            await new Promise(r => setTimeout(r, 60000));
           }
         } catch (schoolErr) {
           console.error(`[Scheduler] Error pada ${cfg.namaSekolah}: ${schoolErr.message}`);
           // lanjut ke sekolah berikutnya
         }
       }
+
     } finally { schedulerRunning = false; }
   });
   console.log('[Scheduler] Master Multi-Tenant Cron aktif (setiap 1 menit, cache Supabase 5 menit)');
