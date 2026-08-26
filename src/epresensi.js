@@ -275,7 +275,7 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   try {
     res = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
       method: 'POST',
-      headers: { ...HEADERS_BASE, 'Cookie': cookie, 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': `${BASE_URL}/v3/data_v4`, 'Origin': BASE_URL, 'X-Requested-With': 'XMLHttpRequest', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-origin' },
+      headers: { ...HEADERS_BASE, 'Cookie': cookie, 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': `${BASE_URL}/v3/data_v4?bulan=${month}&tahun=${year}`, 'Origin': BASE_URL, 'X-Requested-With': 'XMLHttpRequest', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-origin' },
       body: formData.toString()
     });
   } catch (err) {
@@ -285,8 +285,8 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   if (!res.ok) {
     if ((res.status === 301 || res.status === 302 || res.status === 401 || res.status === 403) && retryCount === 0) {
       console.log('[Colleagues] Sesi ePresensi expired (HTTP ' + res.status + '), mencoba re-login...');
-      const fresh = await ensureValidSession(true);
-      if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1);
+      const fresh = await ensureTenantSession(currentCfg, true);
+      if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1, currentCfg);
     }
     return { success: false, error: `HTTP ${res.status} dari portal ePresensi` };
   }
@@ -295,8 +295,8 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   const isLoginPage = html.includes('name="password"') || html.includes('portal/auth') || html.includes('name="jawaban"');
   if (isLoginPage && retryCount === 0) {
     console.log('[Colleagues] Sesi ePresensi expired (halaman login terdeteksi), mencoba re-login otomatis...');
-    const fresh = await ensureValidSession(true);
-    if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1);
+    const fresh = await ensureTenantSession(currentCfg, true);
+    if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1, currentCfg);
   }
 
   const $ = cheerio.load(html);
@@ -306,9 +306,9 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
 
   if (!targetTable || maxRows < 2) {
     if (retryCount === 0) {
-      console.log('[Colleagues] Tabel data belum ditemukan, mencoba re-login...');
-      const fresh = await ensureValidSession(true);
-      if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1);
+      console.log('[Colleagues] Tabel data belum ditemukan (bulan=' + month + ' tahun=' + year + '), mencoba re-login...');
+      const fresh = await ensureTenantSession(currentCfg, true);
+      if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1, currentCfg);
     }
     return { success: false, error: 'Tabel data unit kerja tidak ditemukan. Pastikan akun ePresensi aktif dan memiliki hak akses OPD/Unit sekolah.' };
   }
