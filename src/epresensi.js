@@ -271,25 +271,36 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   formData.append('opd', opdCode); formData.append('unit', unitCode);
   formData.append('rl', '100'); formData.append('bulan', month); formData.append('tahun', year); formData.append('nip', '');
 
-  // Untuk bulan selain bulan ini: lakukan GET dulu ke halaman data_v4 agar
-  // portal menginisialisasi konteks bulan yang benar (seperti browser nyata saat klik filter bulan)
+  // Untuk bulan lama: gunakan GET biasa seperti browser (bukan POST/AJAX)
+  // karena portal ePresensi mengembalikan tabel data via GET page yang sama
   const isCurrentMonth = (parseInt(month) === (now.getMonth() + 1) && parseInt(year) === now.getFullYear());
-  if (!isCurrentMonth) {
-    try {
-      await fetch(`${BASE_URL}/v3/data_v4?bulan=${month}&tahun=${year}`, {
-        method: 'GET',
-        headers: { ...HEADERS_BASE, 'Cookie': cookie, 'Referer': `${BASE_URL}/v3/data_v4` }
-      });
-    } catch (_) { /* abaikan error GET awal */ }
-  }
+  const isPastMonth    = !isCurrentMonth && (parseInt(year) < now.getFullYear() ||
+                         (parseInt(year) === now.getFullYear() && parseInt(month) < (now.getMonth() + 1)));
 
   let res;
   try {
-    res = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
-      method: 'POST',
-      headers: { ...HEADERS_BASE, 'Cookie': cookie, 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': `${BASE_URL}/v3/data_v4?bulan=${month}&tahun=${year}`, 'Origin': BASE_URL, 'X-Requested-With': 'XMLHttpRequest', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-origin' },
-      body: formData.toString()
-    });
+    if (isPastMonth) {
+      // GET request biasa — meniru perilaku browser saat navigasi ke bulan lama
+      res = await fetch(`${BASE_URL}/v3/data_v4?bulan=${month}&tahun=${year}&opd=${opdCode}&unit=${unitCode}&rl=100`, {
+        method: 'GET',
+        headers: {
+          ...HEADERS_BASE,
+          'Cookie': cookie,
+          'Referer': `${BASE_URL}/v3/data_v4`,
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'same-origin'
+        }
+      });
+    } else {
+      // Bulan ini: POST ke kerja_cari (AJAX) — tetap pakai cara lama yang proven
+      res = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
+        method: 'POST',
+        headers: { ...HEADERS_BASE, 'Cookie': cookie, 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': `${BASE_URL}/v3/data_v4`, 'Origin': BASE_URL, 'X-Requested-With': 'XMLHttpRequest', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-origin' },
+        body: formData.toString()
+      });
+    }
   } catch (err) {
     return { success: false, error: `Koneksi gagal: ${err.message}` };
   }
@@ -317,15 +328,25 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   tables.each((_, tbl) => { const rowCount = $(tbl).find('tr').length; if (rowCount > maxRows) { maxRows = rowCount; targetTable = $(tbl); } });
 
   if (!targetTable || maxRows < 2) {
-    if (retryCount === 0) {
+    // Untuk bulan lama: portal ePresensi memblokir query melalui WAF — jangan retry
+    // (retry justru trigger WAF rate-limiting). Langsung return error.
+    const isPastMonth = (parseInt(year) < now.getFullYear()) ||
+                        (parseInt(year) === now.getFullYear() && parseInt(month) < (now.getMonth() + 1));
+    if (!isPastMonth && retryCount === 0) {
       console.log('[Colleagues] Tabel data belum ditemukan (bulan=' + month + ' tahun=' + year + '), mencoba re-login...');
       const fresh = await ensureTenantSession(currentCfg, true);
       if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1, currentCfg);
     }
-    // Log HTML snippet untuk debug
-    console.log('[Colleagues] HTML response (800 char): ' + html.substring(0, 800).replace(/\s+/g, ' '));
-    console.log('[Colleagues] Tables found: ' + tables.length + ', maxRows: ' + maxRows);
-    return { success: false, error: 'Tabel data unit kerja tidak ditemukan. Pastikan akun ePresensi aktif dan memiliki hak akses OPD/Unit sekolah.' };
+    if (isPastMonth) {
+      console.log('[Colleagues] Data bulan=' + month + ' tahun=' + year + ' tidak tersedia dari portal (WAF block). Tables: ' + tables.length + ', maxRows: ' + maxRows);
+    } else {
+      console.log('[Colleagues] HTML response (800 char): ' + html.substring(0, 800).replace(/\s+/g, ' '));
+      console.log('[Colleagues] Tables found: ' + tables.length + ', maxRows: ' + maxRows);
+    }
+    const errMsg = isPastMonth
+      ? 'Data bulan ini tidak dapat diambil langsung dari portal ePresensi. Gunakan fitur Backfill (⚙️ Pengaturan → Tarik Data per Tanggal) untuk mengisi data historis terlebih dahulu.'
+      : 'Tabel data unit kerja tidak ditemukan. Pastikan akun ePresensi aktif dan memiliki hak akses OPD/Unit sekolah.';
+    return { success: false, error: errMsg };
   }
 
   const rows      = targetTable.find('tr');

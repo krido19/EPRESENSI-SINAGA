@@ -1972,15 +1972,28 @@ async function loadHistoryForMonth(nip, nama, month, year) {
     const data = await res.json();
 
     if (!data.success) {
+      const isPastMonthErr = data.error && data.error.includes('Backfill');
       if (historyTableBody) {
-        historyTableBody.innerHTML = `
+        historyTableBody.innerHTML = isPastMonthErr ? `
+          <tr>
+            <td colspan="5" class="table-empty" style="padding: 24px 16px;">
+              <div style="font-size: 1.5rem; margin-bottom: 8px;">📅</div>
+              <div style="font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">Data ${MONTH_NAMES_ID[month-1]} ${year} Belum Tersedia</div>
+              <div style="color: var(--text-muted); font-size: 0.82rem; max-width: 340px; margin: 0 auto 14px; line-height: 1.5;">
+                Portal ePresensi tidak menyediakan akses data bulan sebelumnya secara langsung.
+                Gunakan fitur <strong>Backfill</strong> untuk mengisi data historis ke database terlebih dahulu.
+              </div>
+              <button type="button" class="modern-btn btn-purple btn-sm" onclick="document.getElementById('colleagueHistoryModal').classList.remove('show'); document.querySelector('[data-tab=config]').click(); setTimeout(()=>document.getElementById('backfillDate')?.scrollIntoView({behavior:'smooth'}),300);">
+                ⚙️ Buka Fitur Backfill →
+              </button>
+            </td>
+          </tr>` : `
           <tr>
             <td colspan="5" class="table-empty" style="color: var(--rose-500);">
               ❌ Gagal memuat riwayat: ${data.error || 'Data tidak tersedia'}
             </td>
           </tr>`;
       }
-      // Still update label
       if (historyMonthLabel) historyMonthLabel.textContent = `${MONTH_NAMES_ID[month - 1]} ${year}`;
       return;
     }
