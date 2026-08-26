@@ -391,12 +391,31 @@ function setupScheduler() {
       }
       const schools = await getActiveSchools();
       if (!schools.length) return;
+
+      // Sequential per sekolah — hindari race condition WA/cookie
       for (const row of schools) {
         const cfg = buildTenantCfg(row);
-        if (H === 22 && M === 0) { console.log(`[Scheduler 💾 Harian] ${cfg.namaSekolah} - 22:00 WIB`); runDailyArchiverLogic(cfg).catch(e => console.error(`[Scheduler] Archiver error (${cfg.namaSekolah}):`, e.message)); }
-        if (H === cfg.pagiHour && M === cfg.pagiMinute) { console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`); runSchedulerLogic('pagi', cfg).catch(e => console.error(`[Scheduler] Pagi error (${cfg.namaSekolah}):`, e.message)); }
-        if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) { console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah}`); runSchedulerLogic('siang', cfg).catch(e => console.error(`[Scheduler] Siang error:`, e.message)); }
-        if (H === cfg.pulangHour && M === cfg.pulangMinute) { console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah}`); runSchedulerLogic('pulang', cfg).catch(e => console.error(`[Scheduler] Pulang error:`, e.message)); }
+        try {
+          if (H === 22 && M === 0) {
+            console.log(`[Scheduler 💾 Harian] ${cfg.namaSekolah} - 22:00 WIB`);
+            await runDailyArchiverLogic(cfg);
+          }
+          if (H === cfg.pagiHour && M === cfg.pagiMinute) {
+            console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+            await runSchedulerLogic('pagi', cfg);
+          }
+          if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) {
+            console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah}`);
+            await runSchedulerLogic('siang', cfg);
+          }
+          if (H === cfg.pulangHour && M === cfg.pulangMinute) {
+            console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah}`);
+            await runSchedulerLogic('pulang', cfg);
+          }
+        } catch (schoolErr) {
+          console.error(`[Scheduler] Error pada ${cfg.namaSekolah}: ${schoolErr.message}`);
+          // lanjut ke sekolah berikutnya
+        }
       }
     } finally { schedulerRunning = false; }
   });
