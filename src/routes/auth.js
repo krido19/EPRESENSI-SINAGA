@@ -75,6 +75,50 @@ router.post('/accounts/login', async (req, res) => {
   res.json({ success: true, count: cfg.accounts.length });
 });
 
+// POST /api/accounts/switch
+router.post('/accounts/switch', async (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.json({ success: false, error: 'Username diperlukan.' });
+  const cfg = loadConfig();
+  const account = (cfg.accounts || []).find(a => a.username === username);
+  if (!account) return res.json({ success: false, error: 'Akun tidak ditemukan.' });
+  if (!account.password) return res.json({ success: false, error: 'Password akun tidak tersimpan. Silakan login ulang akun ini.' });
+
+  // Re-login untuk memastikan session aktif
+  const loginRes = await doLogin(account.username, account.password);
+  if (!loginRes.success) return res.json({ success: false, error: `Gagal login ke ePresensi: ${loginRes.error}` });
+
+  // Update active account di config
+  cfg.username    = account.username;
+  cfg.password    = account.password;
+  cfg.namaUser    = loginRes.namaUser    || account.namaUser    || account.username;
+  cfg.namaSekolah = loginRes.namaSekolah || account.namaSekolah || 'Unit Sekolah';
+  cfg.unitCode    = loginRes.unitCode    || account.unitCode    || 'F208007700';
+  cfg.opdCode     = loginRes.opdCode     || account.opdCode     || 'F200000000';
+
+  // Update lastLogin di daftar accounts
+  const accIdx = cfg.accounts.findIndex(a => a.username === username);
+  if (accIdx >= 0) cfg.accounts[accIdx] = { ...cfg.accounts[accIdx], namaUser: cfg.namaUser, namaSekolah: cfg.namaSekolah, unitCode: cfg.unitCode, lastLogin: new Date().toISOString() };
+
+  saveConfig(cfg);
+  authCache.clear();
+  addLog(null, { type: 'info', message: `🏫 Beralih ke akun: ${cfg.namaUser} (${cfg.namaSekolah})` });
+
+  res.json({ success: true, account: { username: cfg.username, namaUser: cfg.namaUser, namaSekolah: cfg.namaSekolah, unitCode: cfg.unitCode } });
+});
+
+// POST /api/accounts/delete
+router.post('/accounts/delete', (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.json({ success: false, error: 'Username diperlukan.' });
+  const cfg = loadConfig();
+  cfg.accounts = (cfg.accounts || []).filter(a => a.username !== username);
+  saveConfig(cfg);
+  res.json({ success: true, count: cfg.accounts.length });
+});
+
+
+
 // GET /api/wa/status
 router.get('/wa/status', (req, res) => {
   const cfg = loadConfig();

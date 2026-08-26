@@ -1411,26 +1411,42 @@ async function loadColleagues(force = false) {
 
     if (!data.success) {
       if (!hasRenderedFromCache) {
-        colleaguesTableBody.innerHTML = `
-          <tr>
-            <td colspan="8" class="table-empty" style="padding: 32px 16px;">
-              <div style="font-size: 2.2rem; margin-bottom: 8px;">🔑</div>
-              <div style="font-weight: 700; color: var(--rose-400); font-size: 1.05rem; margin-bottom: 6px;">
-                Sesi ePresensi Memerlukan Login Ulang
-              </div>
-              <div style="color: var(--text-muted); font-size: 0.84rem; max-width: 460px; margin: 0 auto 18px; line-height: 1.55;">
-                ${escapeHtml(data.error || 'Sesi login telah berakhir atau password ePresensi perlu dimasukkan ulang.')}
-              </div>
-              <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-                <button type="button" class="modern-btn btn-purple-gradient btn-sm" onclick="window.openSchoolAccountModal()">
-                  🏫 Masuk / Ganti Akun Sekolah
-                </button>
-                <button type="button" class="modern-btn btn-glass btn-sm" onclick="window.switchNavTab('config')">
-                  ⚙️ Pengaturan ePresensi
-                </button>
-              </div>
-            </td>
-          </tr>`;
+        // Super admin: tidak perlu tampilkan error login ePresensi
+        if (window.isSuperAdmin) {
+          colleaguesTableBody.innerHTML = `
+            <tr>
+              <td colspan="8" class="table-empty" style="padding: 32px 16px;">
+                <div style="font-size: 2.2rem; margin-bottom: 8px;">🏫</div>
+                <div style="font-weight: 700; color: var(--text-muted); font-size: 1rem; margin-bottom: 6px;">
+                  Data kehadiran dikelola per sekolah
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.84rem;">
+                  Gunakan tab <b>Kelola Sekolah</b> untuk memilih atau mengelola data per unit kerja.
+                </div>
+              </td>
+            </tr>`;
+        } else {
+          colleaguesTableBody.innerHTML = `
+            <tr>
+              <td colspan="8" class="table-empty" style="padding: 32px 16px;">
+                <div style="font-size: 2.2rem; margin-bottom: 8px;">🔑</div>
+                <div style="font-weight: 700; color: var(--rose-400); font-size: 1.05rem; margin-bottom: 6px;">
+                  Sesi ePresensi Memerlukan Login Ulang
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.84rem; max-width: 460px; margin: 0 auto 18px; line-height: 1.55;">
+                  ${escapeHtml(data.error || 'Sesi login telah berakhir atau password ePresensi perlu dimasukkan ulang.')}
+                </div>
+                <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                  <button type="button" class="modern-btn btn-purple-gradient btn-sm" onclick="window.openSchoolAccountModal()">
+                    🏫 Masuk / Ganti Akun Sekolah
+                  </button>
+                  <button type="button" class="modern-btn btn-glass btn-sm" onclick="window.switchNavTab('config')">
+                    ⚙️ Pengaturan ePresensi
+                  </button>
+                </div>
+              </td>
+            </tr>`;
+        }
       }
       return;
     }
