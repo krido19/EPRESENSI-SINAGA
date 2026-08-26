@@ -271,36 +271,28 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   formData.append('opd', opdCode); formData.append('unit', unitCode);
   formData.append('rl', '100'); formData.append('bulan', month); formData.append('tahun', year); formData.append('nip', '');
 
-  // Untuk bulan lama: gunakan GET biasa seperti browser (bukan POST/AJAX)
-  // karena portal ePresensi mengembalikan tabel data via GET page yang sama
-  const isCurrentMonth = (parseInt(month) === (now.getMonth() + 1) && parseInt(year) === now.getFullYear());
-  const isPastMonth    = !isCurrentMonth && (parseInt(year) < now.getFullYear() ||
-                         (parseInt(year) === now.getFullYear() && parseInt(month) < (now.getMonth() + 1)));
+  const isPastMonth = (parseInt(year) < now.getFullYear()) ||
+                      (parseInt(year) === now.getFullYear() && parseInt(month) < (now.getMonth() + 1));
 
   let res;
   try {
-    if (isPastMonth) {
-      // GET request biasa — meniru perilaku browser saat navigasi ke bulan lama
-      res = await fetch(`${BASE_URL}/v3/data_v4?bulan=${month}&tahun=${year}&opd=${opdCode}&unit=${unitCode}&rl=100`, {
-        method: 'GET',
-        headers: {
-          ...HEADERS_BASE,
-          'Cookie': cookie,
-          'Referer': `${BASE_URL}/v3/data_v4`,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'same-origin'
-        }
-      });
-    } else {
-      // Bulan ini: POST ke kerja_cari (AJAX) — tetap pakai cara lama yang proven
-      res = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
-        method: 'POST',
-        headers: { ...HEADERS_BASE, 'Cookie': cookie, 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': `${BASE_URL}/v3/data_v4`, 'Origin': BASE_URL, 'X-Requested-With': 'XMLHttpRequest', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-origin' },
-        body: formData.toString()
-      });
-    }
+    // Gunakan navigate-mode headers (persis seperti browser nyata) — bukan AJAX mode.
+    // WAF portal memblokir AJAX headers (cors/empty/XMLHttpRequest) untuk bulan lama.
+    res = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
+      method: 'POST',
+      headers: {
+        ...HEADERS_BASE,
+        'Cookie':          cookie,
+        'Content-Type':    'application/x-www-form-urlencoded',
+        'Referer':         `${BASE_URL}/v3/data_v4`,
+        'Origin':          BASE_URL,
+        'Sec-Fetch-Dest':  'document',
+        'Sec-Fetch-Mode':  'navigate',
+        'Sec-Fetch-Site':  'same-origin',
+        'Sec-Fetch-User':  '?1',
+      },
+      body: formData.toString()
+    });
   } catch (err) {
     return { success: false, error: `Koneksi gagal: ${err.message}` };
   }
