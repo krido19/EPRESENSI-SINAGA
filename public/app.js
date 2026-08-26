@@ -472,6 +472,15 @@ const historyStatIzin           = document.getElementById('historyStatIzin');
 const historyStatSakit          = document.getElementById('historyStatSakit');
 const historyStatBelum          = document.getElementById('historyStatBelum');
 const historyTableBody          = document.getElementById('historyTableBody');
+const historyMonthLabel         = document.getElementById('historyMonthLabel');
+const btnHistoryMonthPrev       = document.getElementById('btnHistoryMonthPrev');
+const btnHistoryMonthNext       = document.getElementById('btnHistoryMonthNext');
+
+// State: currently viewed teacher in history modal
+let _historyNip   = null;
+let _historyNama  = null;
+let _historyMonth = null; // 1-12
+let _historyYear  = null;
 
 // ─── Modern Date Strip ────────────────────────────────────────────────────────
 const dateStripScroll = document.getElementById('dateStripScroll');
@@ -1877,6 +1886,8 @@ async function triggerSendUnabsent() {
 if (btnQuickSendUnabsent) btnQuickSendUnabsent.addEventListener('click', triggerSendUnabsent);
 
 // ─── Teacher 1-Month History Modal (Instant 0ms from Preloaded In-Memory Data) ──
+const MONTH_NAMES_ID = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+
 function renderHistoryModalContent(nama, nip, monthHistory) {
   if (historyModalTeacherName) historyModalTeacherName.textContent = nama;
   if (historyModalTeacherNip) historyModalTeacherNip.textContent = `NIP: ${nip || '-'}`;
@@ -1884,6 +1895,17 @@ function renderHistoryModalContent(nama, nip, monthHistory) {
   if (historyStatIzin)  historyStatIzin.textContent  = monthHistory.totalIzin ?? 0;
   if (historyStatSakit) historyStatSakit.textContent = monthHistory.totalSakit ?? 0;
   if (historyStatBelum) historyStatBelum.textContent = monthHistory.totalBelum ?? 0;
+
+  // Update month label
+  const m = _historyMonth || (new Date().getMonth() + 1);
+  const y = _historyYear  || new Date().getFullYear();
+  if (historyMonthLabel) historyMonthLabel.textContent = `${MONTH_NAMES_ID[m - 1]} ${y}`;
+
+  // Disable Next button if viewing current or future month
+  const now = new Date();
+  const isCurrentOrFuture = (y > now.getFullYear()) || (y === now.getFullYear() && m >= now.getMonth() + 1);
+  if (btnHistoryMonthNext) btnHistoryMonthNext.disabled = isCurrentOrFuture;
+  if (btnHistoryMonthNext) btnHistoryMonthNext.style.opacity = isCurrentOrFuture ? '0.4' : '';
 
   const list = monthHistory.history || [];
   if (!historyTableBody) return;
@@ -1919,11 +1941,77 @@ function renderHistoryModalContent(nama, nip, monthHistory) {
   }).join('');
 }
 
+// ─── Load history for a specific month/year (used for month navigation) ──────
+async function loadHistoryForMonth(nip, nama, month, year) {
+  _historyNip   = nip;
+  _historyNama  = nama;
+  _historyMonth = month;
+  _historyYear  = year;
+
+  if (historyModalTeacherName) historyModalTeacherName.textContent = nama;
+  if (historyModalTeacherNip)  historyModalTeacherNip.textContent  = `NIP: ${nip}`;
+  if (historyStatHadir) historyStatHadir.textContent = '-';
+  if (historyStatIzin)  historyStatIzin.textContent  = '-';
+  if (historyStatSakit) historyStatSakit.textContent = '-';
+  if (historyStatBelum) historyStatBelum.textContent = '-';
+  if (historyMonthLabel) historyMonthLabel.textContent = `${MONTH_NAMES_ID[month - 1]} ${year}`;
+  if (btnHistoryMonthNext) { btnHistoryMonthNext.disabled = false; btnHistoryMonthNext.style.opacity = ''; }
+
+  if (historyTableBody) {
+    historyTableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="table-empty">
+          <div class="loading-spinner"></div>
+          <span>Memuat riwayat ${MONTH_NAMES_ID[month - 1]} ${year} untuk ${nama}...</span>
+        </td>
+      </tr>`;
+  }
+
+  try {
+    const res  = await fetch(`/api/colleagues/${nip}/history?month=${month}&year=${year}`);
+    const data = await res.json();
+
+    if (!data.success) {
+      if (historyTableBody) {
+        historyTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="table-empty" style="color: var(--rose-500);">
+              ❌ Gagal memuat riwayat: ${data.error || 'Data tidak tersedia'}
+            </td>
+          </tr>`;
+      }
+      // Still update label
+      if (historyMonthLabel) historyMonthLabel.textContent = `${MONTH_NAMES_ID[month - 1]} ${year}`;
+      return;
+    }
+
+    const teacherData = data.teacher || data;
+    const mh = teacherData.monthHistory || teacherData;
+    renderHistoryModalContent(teacherData.nama || data.nama || nama, nip, mh);
+  } catch (err) {
+    if (historyTableBody) {
+      historyTableBody.innerHTML = `
+        <tr>
+          <td colspan="5" class="table-empty" style="color: var(--rose-500);">
+            ❌ Error: ${err.message}
+          </td>
+        </tr>`;
+    }
+  }
+}
+
 window.openTeacherHistory = async function(nip, nama) {
   if (!nip) {
     showToast('NIP guru tidak valid.', 'error');
     return;
   }
+
+  // Save state for month navigation
+  const now = new Date();
+  _historyNip   = nip;
+  _historyNama  = nama;
+  _historyMonth = now.getMonth() + 1;
+  _historyYear  = now.getFullYear();
 
   // 1. INSTANT ZERO-LATENCY PATH: check in-memory colleagues array already loaded in background
   const teacher = colleagues.find(c => String(c.nip).trim() === String(nip).trim());
@@ -1940,6 +2028,7 @@ window.openTeacherHistory = async function(nip, nama) {
   if (historyStatIzin)  historyStatIzin.textContent  = '-';
   if (historyStatSakit) historyStatSakit.textContent = '-';
   if (historyStatBelum) historyStatBelum.textContent = '-';
+  if (historyMonthLabel) historyMonthLabel.textContent = `${MONTH_NAMES_ID[_historyMonth - 1]} ${_historyYear}`;
 
   if (historyTableBody) {
     historyTableBody.innerHTML = `
@@ -1969,7 +2058,9 @@ window.openTeacherHistory = async function(nip, nama) {
       return;
     }
 
-    renderHistoryModalContent(data.nama || nama, nip, data);
+    const teacherData = data.teacher || data;
+    const mh = teacherData.monthHistory || teacherData;
+    renderHistoryModalContent(teacherData.nama || data.nama || nama, nip, mh);
   } catch (err) {
     if (historyTableBody) {
       historyTableBody.innerHTML = `
@@ -1987,6 +2078,29 @@ if (btnCloseHistoryModalBtn) btnCloseHistoryModalBtn.addEventListener('click', (
 if (colleagueHistoryModal) {
   colleagueHistoryModal.addEventListener('click', (e) => {
     if (e.target === colleagueHistoryModal) colleagueHistoryModal.classList.remove('show');
+  });
+}
+
+// ─── Month Navigation for History Modal ───────────────────────────────────────
+if (btnHistoryMonthPrev) {
+  btnHistoryMonthPrev.addEventListener('click', () => {
+    if (!_historyNip) return;
+    let m = _historyMonth - 1;
+    let y = _historyYear;
+    if (m < 1) { m = 12; y--; }
+    loadHistoryForMonth(_historyNip, _historyNama, m, y);
+  });
+}
+if (btnHistoryMonthNext) {
+  btnHistoryMonthNext.addEventListener('click', () => {
+    if (!_historyNip) return;
+    const now = new Date();
+    let m = _historyMonth + 1;
+    let y = _historyYear;
+    if (m > 12) { m = 1; y++; }
+    // Don't go beyond current month
+    if (y > now.getFullYear() || (y === now.getFullYear() && m > now.getMonth() + 1)) return;
+    loadHistoryForMonth(_historyNip, _historyNama, m, y);
   });
 }
 

@@ -1186,8 +1186,12 @@
         </table>
       </div>
 
-      <div class="modal-footer">
-        <span class="text-muted font-mono text-xs">AGUSTUS 2026</span>
+      <div class="modal-footer" style="justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" class="modern-btn btn-glass btn-xs" id="btnHistoryMonthPrev" title="Bulan sebelumnya">&#8249; Prev</button>
+          <span class="text-muted font-mono text-xs" id="historyMonthLabel" style="min-width: 110px; text-align: center;">AGUSTUS 2026</span>
+          <button type="button" class="modern-btn btn-glass btn-xs" id="btnHistoryMonthNext" title="Bulan berikutnya">Next &#8250;</button>
+        </div>
         <button type="button" class="modern-btn btn-glass btn-sm" id="btnCloseHistoryModalBtn">Tutup</button>
       </div>
     </div>
@@ -1392,7 +1396,7 @@
   <!-- Cache buster: update versi setiap kali ada perubahan penting -->
   <script>
     (function() {
-      var APP_VERSION = 'v20260818h';
+      var APP_VERSION = 'v20260826a';
       var storedVer = localStorage.getItem('epresensi_app_version');
       if (storedVer !== APP_VERSION) {
         // Hapus semua cache presensi harian dari localStorage
@@ -1404,6 +1408,6 @@
       }
     })();
   </script>
-  <script src="app.js?v=20260818h"></script>
+  <script src="app.js?v=20260826a"></script>
 </body>
 </html>
