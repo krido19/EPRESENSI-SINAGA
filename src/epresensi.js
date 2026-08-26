@@ -328,22 +328,45 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   tables.each((_, tbl) => { const rowCount = $(tbl).find('tr').length; if (rowCount > maxRows) { maxRows = rowCount; targetTable = $(tbl); } });
 
   if (!targetTable || maxRows < 2) {
-    // Untuk bulan lama: portal ePresensi memblokir query melalui WAF — jangan retry
-    // (retry justru trigger WAF rate-limiting). Langsung return error.
-    const isPastMonth = (parseInt(year) < now.getFullYear()) ||
-                        (parseInt(year) === now.getFullYear() && parseInt(month) < (now.getMonth() + 1));
-    if (!isPastMonth && retryCount === 0) {
+    const isPastMonthBlock = (parseInt(year) < now.getFullYear()) ||
+                             (parseInt(year) === now.getFullYear() && parseInt(month) < (now.getMonth() + 1));
+
+    // Log HTML untuk debug selalu
+    console.log('[Colleagues] GET/POST bulan=' + month + ' tahun=' + year + ' tables=' + tables.length + ' maxRows=' + maxRows);
+    console.log('[Colleagues] HTML snippet: ' + html.substring(0, 600).replace(/\s+/g, ' '));
+
+    // Bulan lama: coba fallback POST ke /v3/data_v4 langsung (bukan kerja_cari)
+    if (isPastMonthBlock && isPastMonth && retryCount === 0) {
+      console.log('[Colleagues] Mencoba fallback POST ke /v3/data_v4 untuk bulan=' + month);
+      try {
+        const fallbackRes = await fetch(`${BASE_URL}/v3/data_v4`, {
+          method: 'POST',
+          headers: { ...HEADERS_BASE, 'Cookie': cookie, 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': `${BASE_URL}/v3/data_v4`, 'Origin': BASE_URL },
+          body: formData.toString()
+        });
+        if (fallbackRes.ok) {
+          const fallbackHtml = await fallbackRes.text();
+          const $2 = cheerio.load(fallbackHtml);
+          const tables2 = $2('table');
+          let tbl2 = null, max2 = 0;
+          tables2.each((_, t) => { const r = $2(t).find('tr').length; if (r > max2) { max2 = r; tbl2 = $2(t); } });
+          console.log('[Colleagues] Fallback POST /v3/data_v4 tables=' + tables2.length + ' maxRows=' + max2);
+          console.log('[Colleagues] Fallback HTML: ' + fallbackHtml.substring(0, 600).replace(/\s+/g, ' '));
+          if (tbl2 && max2 >= 2) {
+            // Sukses! Parse dari fallback response
+            // Re-assign untuk lanjut ke parsing bawah
+            return await fetchColleaguesAttendance(cookie, targetDay, targetMonth, targetYear, true, 1, currentCfg);
+          }
+        }
+      } catch (e2) { console.log('[Colleagues] Fallback error: ' + e2.message); }
+    }
+
+    if (!isPastMonthBlock && retryCount === 0) {
       console.log('[Colleagues] Tabel data belum ditemukan (bulan=' + month + ' tahun=' + year + '), mencoba re-login...');
       const fresh = await ensureTenantSession(currentCfg, true);
       if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1, currentCfg);
     }
-    if (isPastMonth) {
-      console.log('[Colleagues] Data bulan=' + month + ' tahun=' + year + ' tidak tersedia dari portal (WAF block). Tables: ' + tables.length + ', maxRows: ' + maxRows);
-    } else {
-      console.log('[Colleagues] HTML response (800 char): ' + html.substring(0, 800).replace(/\s+/g, ' '));
-      console.log('[Colleagues] Tables found: ' + tables.length + ', maxRows: ' + maxRows);
-    }
-    const errMsg = isPastMonth
+    const errMsg = isPastMonthBlock
       ? 'Data bulan ini tidak dapat diambil langsung dari portal ePresensi. Gunakan fitur Backfill (⚙️ Pengaturan → Tarik Data per Tanggal) untuk mengisi data historis terlebih dahulu.'
       : 'Tabel data unit kerja tidak ditemukan. Pastikan akun ePresensi aktif dan memiliki hak akses OPD/Unit sekolah.';
     return { success: false, error: errMsg };
