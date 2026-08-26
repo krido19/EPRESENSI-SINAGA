@@ -120,15 +120,63 @@ router.get('/debug-html', async (req, res) => {
 router.get('/:nip/history', async (req, res) => {
   const { nip } = req.params;
   const { month, year } = req.query;
-  const cfg     = req.tenantCfg || loadConfig();
+  const cfg = req.tenantCfg || loadConfig();
+  const now = new Date();
+  const reqMonth = month ? parseInt(month) : now.getMonth() + 1;
+  const reqYear  = year  ? parseInt(year)  : now.getFullYear();
+  const isPastMonth = reqYear < now.getFullYear() ||
+                      (reqYear === now.getFullYear() && reqMonth < (now.getMonth() + 1));
+
+  // ── Bulan lama: baca dari Supabase attendance_records ──
+  if (isPastMonth) {
+    const startDate = `${reqYear}-${String(reqMonth).padStart(2,'0')}-01`;
+    const daysInMonth = new Date(reqYear, reqMonth, 0).getDate();
+    const endDate   = `${reqYear}-${String(reqMonth).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
+    let q = supabase.from('attendance_records')
+      .select('*').eq('nip', nip).gte('tanggal', startDate).lte('tanggal', endDate).order('tanggal');
+    const validSchoolId = cfg.schoolId && cfg.schoolId !== 'local' ? cfg.schoolId : null;
+    if (validSchoolId) q = q.eq('school_id', validSchoolId);
+    const { data: records, error } = await q;
+    if (error) return res.json({ success: false, error: error.message });
+    if (!records || records.length === 0) {
+      return res.json({ success: false, error: `Data bulan ini belum diarsipkan ke database. Arsip harian berjalan otomatis setiap jam 22:00 WIB. Gunakan fitur Backfill (⚙️ Pengaturan → Tarik Data per Tanggal) untuk mengisi data historis.` });
+    }
+    // Bangun monthHistory dari records Supabase
+    const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    const mStr = String(reqMonth).padStart(2,'0');
+    const yStr = String(reqYear);
+    let totalHadir = 0, totalIzin = 0, totalSakit = 0, totalBelum = 0;
+    const history = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dStr = String(d).padStart(2,'0');
+      const dateObj = new Date(reqYear, reqMonth - 1, d);
+      const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+      const rec = records.find(r => r.tanggal === `${yStr}-${mStr}-${dStr}`);
+      let status = isWeekend ? 'Libur (OFF)' : 'Belum Absen';
+      if (rec) { status = rec.status; }
+      if (!isWeekend) {
+        if (status === 'Hadir' || status.includes('H')) totalHadir++;
+        else if (status === 'Izin') totalIzin++;
+        else if (status === 'Sakit') totalSakit++;
+        else totalBelum++;
+      }
+      history.push({ tanggal: d, tanggalLengkap: `${d}/${mStr}/${yStr}`, hari: DAYS[dateObj.getDay()], isWeekend, jamMasuk: rec?.jam_masuk || null, jamPulang: rec?.jam_pulang || null, status, isHadir: status === 'Hadir' || (rec?.jam_masuk && rec.jam_masuk !== '-') });
+    }
+    const nama = records[0]?.nama || nip;
+    const teacher = { nip, nama, monthHistory: { month: mStr, year: yStr, totalHadir, totalIzin, totalSakit, totalBelum, history } };
+    return res.json({ success: true, teacher, source: 'supabase' });
+  }
+
+  // ── Bulan ini: scrape dari portal ePresensi ──
   const session = await ensureTenantSession(cfg);
   if (!session.success) return res.json({ success: false, error: session.error });
   const result = await fetchColleaguesAttendance(session.cookie, null, month || null, year || null, false, 0, cfg);
   if (!result.success) return res.json(result);
   const teacher = result.colleagues.find(c => c.nip === nip);
   if (!teacher) return res.json({ success: false, error: `Guru NIP ${nip} tidak ditemukan.` });
-  res.json({ success: true, teacher });
+  res.json({ success: true, teacher, source: 'portal' });
 });
+
 
 // POST /api/check (presensi personal)
 router.post('/check', async (req, res) => {
