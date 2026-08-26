@@ -271,6 +271,18 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
   formData.append('opd', opdCode); formData.append('unit', unitCode);
   formData.append('rl', '100'); formData.append('bulan', month); formData.append('tahun', year); formData.append('nip', '');
 
+  // Untuk bulan selain bulan ini: lakukan GET dulu ke halaman data_v4 agar
+  // portal menginisialisasi konteks bulan yang benar (seperti browser nyata saat klik filter bulan)
+  const isCurrentMonth = (parseInt(month) === (now.getMonth() + 1) && parseInt(year) === now.getFullYear());
+  if (!isCurrentMonth) {
+    try {
+      await fetch(`${BASE_URL}/v3/data_v4?bulan=${month}&tahun=${year}`, {
+        method: 'GET',
+        headers: { ...HEADERS_BASE, 'Cookie': cookie, 'Referer': `${BASE_URL}/v3/data_v4` }
+      });
+    } catch (_) { /* abaikan error GET awal */ }
+  }
+
   let res;
   try {
     res = await fetch(`${BASE_URL}/v3/data_v4/kerja_cari`, {
