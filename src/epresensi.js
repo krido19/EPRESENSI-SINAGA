@@ -322,6 +322,9 @@ async function fetchColleaguesAttendance(cookie, targetDay = null, targetMonth =
       const fresh = await ensureTenantSession(currentCfg, true);
       if (fresh.success && fresh.cookie) return await fetchColleaguesAttendance(fresh.cookie, targetDay, targetMonth, targetYear, true, 1, currentCfg);
     }
+    // Log HTML snippet untuk debug
+    console.log('[Colleagues] HTML response (800 char): ' + html.substring(0, 800).replace(/\s+/g, ' '));
+    console.log('[Colleagues] Tables found: ' + tables.length + ', maxRows: ' + maxRows);
     return { success: false, error: 'Tabel data unit kerja tidak ditemukan. Pastikan akun ePresensi aktif dan memiliki hak akses OPD/Unit sekolah.' };
   }
 
