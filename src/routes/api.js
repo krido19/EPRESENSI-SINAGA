@@ -48,28 +48,33 @@ router.get('/', async (req, res) => {
       let aggregatedColleagues = [];
       console.log(`[SuperAdmin] Ditemukan ${schoolRows.length} sekolah untuk agregasi.`);
 
-      const promises = schoolRows.map(async (schoolData) => {
-        const tenantCfg = buildTenantCfg({ schools: schoolData });
-        console.log(`[SuperAdmin] Memproses tenant: ${tenantCfg.namaSekolah}`);
-        const session = await ensureTenantSession(tenantCfg);
-        if (!session.success) {
-          console.error(`[SuperAdmin] Gagal login tenant ${tenantCfg.namaSekolah}: ${session.error}`);
-          return;
+      // Sequential — bukan Promise.all — agar tidak race condition pada session/cookie
+      for (const schoolData of schoolRows) {
+        try {
+          const tenantCfg = buildTenantCfg({ schools: schoolData });
+          console.log(`[SuperAdmin] Memproses tenant: ${tenantCfg.namaSekolah}`);
+          const session = await ensureTenantSession(tenantCfg);
+          if (!session.success) {
+            console.error(`[SuperAdmin] Gagal login tenant ${tenantCfg.namaSekolah}: ${session.error}`);
+            continue;
+          }
+          const result = await fetchColleaguesAttendance(session.cookie, day, month, year, forceRefresh, 0, tenantCfg);
+          if (result.success && result.colleagues) {
+            result.colleagues.forEach(c => {
+              c.namaSekolah = tenantCfg.namaSekolah;
+              c.school_id   = tenantCfg.schoolId;
+            });
+            aggregatedColleagues = aggregatedColleagues.concat(result.colleagues);
+            console.log(`[SuperAdmin] Tenant ${tenantCfg.namaSekolah}: ${result.colleagues.length} guru.`);
+          } else {
+            console.error(`[SuperAdmin] Gagal tarik data tenant ${tenantCfg.namaSekolah}: ${result.error}`);
+          }
+        } catch (schoolErr) {
+          console.error(`[SuperAdmin] Error tenant ${schoolData.name}: ${schoolErr.message}`);
+          // lanjut ke sekolah berikutnya, jangan crash
         }
-        const result = await fetchColleaguesAttendance(session.cookie, day, month, year, forceRefresh, 0, tenantCfg);
-        if (result.success && result.colleagues) {
-          result.colleagues.forEach(c => {
-            c.namaSekolah = tenantCfg.namaSekolah;
-            c.school_id   = tenantCfg.schoolId;
-          });
-          aggregatedColleagues = aggregatedColleagues.concat(result.colleagues);
-          console.log(`[SuperAdmin] Tenant ${tenantCfg.namaSekolah}: ${result.colleagues.length} guru.`);
-        } else {
-          console.error(`[SuperAdmin] Gagal tarik data tenant ${tenantCfg.namaSekolah}: ${result.error}`);
-        }
-      });
+      }
 
-      await Promise.all(promises);
 
       const hadir      = aggregatedColleagues.filter(c => c.isHadir).length;
       const belumAbsen = aggregatedColleagues.filter(c => !c.isHadir && !c.status?.includes('Libur') && !c.status?.includes('Izin') && !c.status?.includes('Sakit')).length;
