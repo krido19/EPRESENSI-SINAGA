@@ -30,8 +30,23 @@ async function initBaileys() {
       auth: state,
       printQRInTerminal: false,
       logger: pino({ level: 'silent' }),
-      browser: ['ePresensi Sinaga', 'Chrome', '1.0.0']
+      browser: ['ePresensi Sinaga', 'Chrome', '1.0.0'],
+      generateHighQualityLinkPreview: false,
+      syncFullHistory: false,
     });
+
+    // ── Anti-crash: tangkap semua error Baileys agar tidak kill process ──────
+    if (waSock.ws) {
+      waSock.ws.on('error', (err) => {
+        console.error('[WhatsApp WS Error - caught]', err.message || err);
+      });
+    }
+    // Beberapa versi Baileys emit 'error' langsung di socket
+    if (typeof waSock.on === 'function') {
+      waSock.on('error', (err) => {
+        console.error('[WhatsApp Socket Error - caught]', err?.message || err);
+      });
+    }
 
     waSock.ev.on('creds.update', saveCreds);
 
