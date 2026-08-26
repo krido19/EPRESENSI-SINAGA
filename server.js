@@ -50,7 +50,7 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = ['http://localhost:3000','http://127.0.0.1:3000','http://localhost','http://127.0.0.1'];
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') || origin.includes('.onrender.com') || origin.includes('.up.railway.app') || origin.includes('.koyeb.app') || origin.includes('119.28.100.51')) return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') || origin.includes('.onrender.com') || origin.includes('.up.railway.app') || origin.includes('.koyeb.app') || origin.includes('119.28.100.51') || origin.includes('absen-online.xyz')) return callback(null, true);
     return callback(new Error('CORS Policy: Akses dari domain luar tidak diizinkan.'));
   },
   credentials: true
