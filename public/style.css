@@ -1253,7 +1253,30 @@ html, body {
   border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
-/* ─── Buttons ──────────────────────────────────────────────────────────────── */
+.badge-status-sakit {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.badge-status-terlambat {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  animation: pulse-yellow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-yellow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+  50%       { box-shadow: 0 0 6px 2px rgba(251,191,36,0.25); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+
 .modern-btn {
   display: inline-flex;
   align-items: center;

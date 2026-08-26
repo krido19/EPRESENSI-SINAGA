@@ -130,6 +130,8 @@ if (gatekeeperForm) {
         checkAppAuth();
         applyRoleUI(data.role); // update tampilan sesuai role baru
         showToast(`Selamat datang, ${data.role === 'super_admin' ? 'Super Admin' : 'Admin Sekolah'}!`, 'success');
+        requestNotificationPermission();
+
         // Selalu load status & monitoring untuk semua role (termasuk super_admin)
         loadStatus();
         loadColleagues();
@@ -263,7 +265,26 @@ let recipients = [];
 let colleagues = [];
 let logs = [];
 let activeFilter = 'all';
+let activeSchoolFilter = 'all';
 let nextCheckDate = null;
+
+// ─── School Color Map ─────────────────────────────────────────────────────────
+const SCHOOL_COLORS = [
+  { bg: 'rgba(124,58,237,0.15)', border: 'rgba(124,58,237,0.5)', text: '#a78bfa' },
+  { bg: 'rgba(8,145,178,0.15)',  border: 'rgba(8,145,178,0.5)',  text: '#38bdf8' },
+  { bg: 'rgba(5,150,105,0.15)',  border: 'rgba(5,150,105,0.5)',  text: '#34d399' },
+  { bg: 'rgba(217,119,6,0.15)',  border: 'rgba(217,119,6,0.5)',  text: '#fbbf24' },
+  { bg: 'rgba(220,38,38,0.15)',  border: 'rgba(220,38,38,0.5)',  text: '#f87171' },
+  { bg: 'rgba(219,39,119,0.15)', border: 'rgba(219,39,119,0.5)', text: '#f472b6' },
+];
+const _schoolColorIdx = {};
+function getSchoolColor(namaSekolah) {
+  if (!_schoolColorIdx[namaSekolah]) {
+    const idx = Object.keys(_schoolColorIdx).length % SCHOOL_COLORS.length;
+    _schoolColorIdx[namaSekolah] = SCHOOL_COLORS[idx];
+  }
+  return _schoolColorIdx[namaSekolah];
+}
 
 // ─── DOM Elements ─────────────────────────────────────────────────────────────
 const todayDateBadge      = document.getElementById('todayDateBadge');
@@ -1144,6 +1165,39 @@ function applyColleaguesData(data) {
   if (countSakitChip) countSakitChip.textContent = sakitCount;
   if (unabsentBadgeCount) unabsentBadgeCount.textContent = belumMurniCount;
 
+  // Populate school filter dropdown (super admin only)
+  const schoolFilterBox    = document.getElementById('schoolFilterBox');
+  const schoolFilterSelect = document.getElementById('schoolFilterSelect');
+  if (window.isSuperAdmin && schoolFilterBox && schoolFilterSelect) {
+    schoolFilterBox.style.display = 'flex';
+    const schools = [...new Set(colleagues.map(c => c.namaSekolah).filter(Boolean))].sort();
+    const currentVal = schoolFilterSelect.value;
+    schoolFilterSelect.innerHTML = `<option value="all">🏫 Semua Sekolah</option>` +
+      schools.map(s => `<option value="${s}" ${s === currentVal ? 'selected' : ''}>${s}</option>`).join('');
+    schoolFilterSelect.onchange = function() {
+      activeSchoolFilter = this.value;
+      renderColleaguesTable();
+    };
+  } else if (schoolFilterBox) {
+    schoolFilterBox.style.display = 'none';
+  }
+
+  // Render school summary cards (super admin only)
+  renderSchoolSummaryCards(colleagues);
+
+  // Show auto-refresh bar
+  const arBar = document.getElementById('autoRefreshBar');
+  if (arBar) arBar.style.display = 'flex';
+  updateLastRefreshText();
+
+  // Browser notification: alert if belum absen > 0 after 08:00
+  const nowHour = new Date().getHours();
+  if (nowHour >= 8 && belumMurniCount > 0) {
+    triggerBrowserNotification(
+      `⚠️ ${belumMurniCount} Guru Belum Absen`,
+      `Ada ${belumMurniCount} rekan guru yang belum melakukan absensi masuk.`
+    );
+  }
   // Update Progress Bar & HUD Metrics
   const percentage = total > 0 ? parseFloat(((hadir / total) * 100).toFixed(1)) : 0;
   if (progressPercentageText) progressPercentageText.textContent = `${percentage}% Rekan Sudah Hadir`;
@@ -1470,15 +1524,154 @@ async function loadColleagues(force = false) {
     }
   } catch (err) {
     if (!hasRenderedFromCache && colleaguesTableBody) {
-      colleaguesTableBody.innerHTML = `
-        <tr>
-          <td colspan="8" class="table-empty" style="color: var(--rose-500);">
-            ❌ Error koneksi: ${err.message}
-          </td>
-        </tr>`;
+      colleaguesTableBody.innerHTML = `<tr><td colspan="8" class="table-empty" style="color: var(--rose-500);">❌ Error koneksi: ${err.message}</td></tr>`;
     }
   }
 }
+
+function renderSchoolSummaryCards(data) {
+  const container = document.getElementById('schoolSummaryCards');
+  if (!window.isSuperAdmin || !container) return;
+  container.style.display = 'block';
+
+  // Aggregate stats per school
+  const schoolStats = {};
+  (data || colleagues).forEach(c => {
+    const s = c.namaSekolah || 'Tidak Diketahui';
+    if (!schoolStats[s]) schoolStats[s] = { total: 0, hadir: 0, belum: 0, izin: 0, sakit: 0 };
+    schoolStats[s].total++;
+    if (c.isHadir) schoolStats[s].hadir++;
+    else if (c.status === 'Belum Absen') schoolStats[s].belum++;
+    else if (c.status?.includes('Izin') || c.status?.includes('Cuti') || c.status === 'Dinas Luar' || c.status === 'Tugas Luar') schoolStats[s].izin++;
+    else if (c.status?.includes('Sakit')) schoolStats[s].sakit++;
+  });
+
+  const schools = Object.entries(schoolStats);
+  if (!schools.length) { container.style.display = 'none'; return; }
+
+  container.innerHTML = `
+    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:10px;">
+      ${schools.map(([school, st]) => {
+        const color  = getSchoolColor(school);
+        const pct    = st.total > 0 ? Math.round((st.hadir / st.total) * 100) : 0;
+        const short  = school.replace(/Sekolah Menengah Kejuruan/i,'SMK').replace(/Negeri/i,'N').replace(/Kota Magelang/i,'').trim();
+        return `
+          <div style="background:${color.bg}; border:1px solid ${color.border}; border-radius:12px; padding:12px 14px; cursor:pointer; transition:all 0.2s;"
+               onclick="filterBySchool('${school.replace(/'/g,"\\'")}')"
+               onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            <div style="font-size:0.78rem; font-weight:700; color:${color.text}; margin-bottom:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${school}">${school}</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+              <span style="font-size:0.72rem; color:#34d399;">✅ ${st.hadir} Hadir</span>
+              ${st.belum > 0 ? `<span style="font-size:0.72rem; color:#f87171;">❌ ${st.belum} Belum</span>` : ''}
+              ${st.izin  > 0 ? `<span style="font-size:0.72rem; color:#fbbf24;">🏠 ${st.izin} Izin</span>`  : ''}
+              ${st.sakit > 0 ? `<span style="font-size:0.72rem; color:#38bdf8;">🏥 ${st.sakit} Sakit</span>` : ''}
+            </div>
+            <div style="background:rgba(255,255,255,0.08); border-radius:6px; height:5px; overflow:hidden;">
+              <div style="width:${pct}%; height:100%; background:${color.text}; border-radius:6px; transition:width 0.4s;"></div>
+            </div>
+            <div style="font-size:0.68rem; color:var(--text-muted); margin-top:4px;">${pct}% hadir dari ${st.total} guru</div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+window.filterBySchool = function(school) {
+  activeSchoolFilter = school;
+  const sel = document.getElementById('schoolFilterSelect');
+  if (sel) sel.value = school;
+  renderColleaguesTable();
+};
+
+// ─── Auto Refresh ─────────────────────────────────────────────────────────────
+let _autoRefreshInterval = null;
+let _autoRefreshCountdown = 300; // 5 minutes
+let _lastRefreshAt = null;
+
+function updateLastRefreshText() {
+  _lastRefreshAt = new Date();
+  _autoRefreshCountdown = 300;
+  const el = document.getElementById('lastRefreshText');
+  if (el) el.textContent = 'Baru saja diperbarui';
+}
+
+function startAutoRefresh() {
+  if (_autoRefreshInterval) clearInterval(_autoRefreshInterval);
+  _autoRefreshInterval = setInterval(() => {
+    _autoRefreshCountdown--;
+    const mins = Math.floor(_autoRefreshCountdown / 60);
+    const secs = String(_autoRefreshCountdown % 60).padStart(2, '0');
+    const nextEl = document.getElementById('nextRefreshText');
+    if (nextEl) nextEl.textContent = `Refresh dalam ${mins}:${secs}`;
+
+    // Update "X menit lalu"
+    if (_lastRefreshAt) {
+      const diffSec = Math.round((new Date() - _lastRefreshAt) / 1000);
+      const lastEl  = document.getElementById('lastRefreshText');
+      if (lastEl) {
+        if (diffSec < 60) lastEl.textContent = `Diperbarui ${diffSec}d lalu`;
+        else lastEl.textContent = `Diperbarui ${Math.floor(diffSec/60)} mnt lalu`;
+      }
+    }
+
+    if (_autoRefreshCountdown <= 0) {
+      _autoRefreshCountdown = 300;
+      loadColleagues(true);
+    }
+  }, 1000);
+}
+
+// Tombol manual refresh
+const btnManualRefresh = document.getElementById('btnManualRefresh');
+if (btnManualRefresh) {
+  btnManualRefresh.addEventListener('click', () => {
+    _autoRefreshCountdown = 300;
+    loadColleagues(true);
+    showToast('Memperbarui data presensi...', 'info');
+  });
+}
+
+// Mulai auto refresh
+startAutoRefresh();
+
+// ─── Browser Notification ────────────────────────────────────────────────────
+let _notifSentThisHour = false;
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function triggerBrowserNotification(title, body) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  if (_notifSentThisHour) return;
+  _notifSentThisHour = true;
+  setTimeout(() => { _notifSentThisHour = false; }, 60 * 60 * 1000); // reset per jam
+  try {
+    new Notification(title, { body, icon: '/favicon.ico', tag: 'epresensi-alert' });
+  } catch(e) { /* ignore */ }
+}
+
+// ─── WA Inline per Guru ───────────────────────────────────────────────────────
+window.sendWAToColleague = async function(nip, nama) {
+  showToast(`Mencari nomor WA untuk ${nama}...`, 'info');
+  try {
+    // Cari di recipients berdasarkan nama fuzzy
+    const cleanNama = nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const match = recipients.find(r => {
+      const cleanR = (r.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanR.includes(cleanNama) || cleanNama.includes(cleanR);
+    });
+    if (!match || !match.nomor) {
+      showToast(`Nomor WA ${nama} tidak ditemukan di database penerima.`, 'warning');
+      return;
+    }
+    await sendDirectWa(match.nomor, nama, false);
+  } catch(err) {
+    showToast(`Gagal kirim WA: ${err.message}`, 'error');
+  }
+};
+
 
 function renderColleaguesTable() {
   if (!colleaguesTableBody) return;
@@ -1488,17 +1681,18 @@ function renderColleaguesTable() {
     const matchSearch = (c.nama || '').toLowerCase().includes(query) || (c.nip || '').includes(query);
     if (!matchSearch) return false;
 
+    if (activeSchoolFilter && activeSchoolFilter !== 'all') {
+      if ((c.namaSekolah || '') !== activeSchoolFilter) return false;
+    }
+
     if (activeFilter === 'hadir') return c.isHadir;
-    // belum: hanya status "Belum Absen" murni, exclude Sakit, Izin, Cuti, Dinas Luar, Tugas Luar, Libur
     if (activeFilter === 'belum') return !c.isHadir && c.status === 'Belum Absen';
-    // izin: termasuk Dinas Luar & Tugas Luar
     if (activeFilter === 'izin') return c.status && (
       c.status.includes('Izin') || c.status.includes('Cuti') ||
       c.status === 'Dinas Luar' || c.status === 'Tugas Luar'
     );
     if (activeFilter === 'sakit') return c.status && c.status.includes('Sakit');
     
-    // Monthly Filters
     if (activeFilter === 'monthly_hadir') return c.monthHistory && c.monthHistory.totalHadir > 0;
     if (activeFilter === 'monthly_belum') return c.monthHistory && c.monthHistory.totalBelum > 0;
     if (activeFilter === 'monthly_izin') return c.monthHistory && c.monthHistory.totalIzin > 0;
@@ -1508,30 +1702,41 @@ function renderColleaguesTable() {
   });
 
   if (tableSummaryFootnote) tableSummaryFootnote.textContent = `Menampilkan ${filtered.length} dari ${colleagues.length} rekan guru`;
+  
+  const thSekolah = document.getElementById('thSekolah');
+  if (thSekolah) thSekolah.style.display = window.isSuperAdmin ? '' : 'none';
 
   if (filtered.length === 0) {
-    colleaguesTableBody.innerHTML = `
-      <tr>
-        <td colspan="8" class="table-empty">
-          Tidak ada data guru yang sesuai dengan pencarian/filter.
-        </td>
-      </tr>`;
+    colleaguesTableBody.innerHTML = `<tr><td colspan="9" class="table-empty">Tidak ada data guru yang sesuai.</td></tr>`;
     return;
   }
 
   colleaguesTableBody.innerHTML = filtered.map(c => {
     let badgeClass = 'badge-status';
+    let statusLabel = c.status;
 
     if (c.isHadir) {
       badgeClass = 'badge-status badge-status-hadir';
+      if (c.jamMasuk) {
+        const [hh, mm] = c.jamMasuk.split(':').map(Number);
+        if (hh > 7 || (hh === 7 && mm > 30)) {
+          badgeClass = 'badge-status badge-status-terlambat';
+          statusLabel = `⏰ Terlambat (${c.jamMasuk})`;
+        } else {
+          statusLabel = `✅ Hadir Tepat`;
+        }
+      }
     } else if (c.status.includes('Libur')) {
       badgeClass = 'badge-status badge-status-libur';
     } else if (c.status.includes('Izin') || c.status.includes('Cuti') || c.status === 'Dinas Luar' || c.status === 'Tugas Luar') {
       badgeClass = 'badge-status badge-status-izin';
+      statusLabel = c.status === 'Dinas Luar' ? '🏢 Dinas Luar' : c.status === 'Tugas Luar' ? '📋 Tugas Luar' : `🏠 ${c.status}`;
     } else if (c.status.includes('Sakit')) {
       badgeClass = 'badge-status badge-status-sakit';
+      statusLabel = `🏥 ${c.status}`;
     } else {
       badgeClass = 'badge-status badge-status-belum';
+      statusLabel = '❌ Belum Absen';
     }
 
     const cleanC = c.nama ? c.nama.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
@@ -1541,11 +1746,22 @@ function renderColleaguesTable() {
     }) : null;
 
     const isSelected = selectedTeachers.has(c.nip || c.no);
-    const waBtnHtml = matchedRecipient
-      ? `<button class="modern-btn btn-purple btn-xs mr-1" onclick="sendDirectWa('${matchedRecipient.nomor}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}',${ c.isHadir ? 'true' : 'false'})" title="Kirim WA ke ${escapeHtml(c.nama)}">
-          💬 WA
-        </button>`
-      : '';
+
+    let waBtnHtml = '';
+    if (!c.isHadir && c.status === 'Belum Absen') {
+      if (matchedRecipient) {
+        waBtnHtml = `<button class="modern-btn btn-purple btn-xs mr-1" onclick="sendDirectWa('${matchedRecipient.nomor}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}', false)" title="Kirim WA ke ${escapeHtml(c.nama)}">⚡ WA</button>`;
+      } else {
+        waBtnHtml = `<button class="modern-btn btn-glass btn-xs mr-1" onclick="sendWAToColleague('${c.nip}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}')" title="Cari &amp; Kirim WA ke ${escapeHtml(c.nama)}">📲 WA</button>`;
+      }
+    } else if (matchedRecipient && c.isHadir) {
+      waBtnHtml = `<button class="modern-btn btn-glass btn-xs mr-1" onclick="sendDirectWa('${matchedRecipient.nomor}', '${escapeHtml(c.nama).replace(/'/g, "\\'")}', true)" title="Kirim WA ke ${escapeHtml(c.nama)}">💬 WA</button>`;
+    }
+
+    const schoolColor = c.namaSekolah ? getSchoolColor(c.namaSekolah) : null;
+    const schoolBadge = window.isSuperAdmin && c.namaSekolah
+      ? `<td style="white-space:nowrap;"><span style="display:inline-block; padding:2px 8px; border-radius:20px; font-size:0.72rem; font-weight:600; background:${schoolColor.bg}; border:1px solid ${schoolColor.border}; color:${schoolColor.text};">${escapeHtml(c.namaSekolah)}</span></td>`
+      : (window.isSuperAdmin ? '<td>-</td>' : '');
 
     return `
       <tr>

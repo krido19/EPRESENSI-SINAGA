@@ -407,6 +407,18 @@
               <select id="colleagueDaySelect" style="display:none;"></select>
             </div>
 
+            <!-- School Summary Cards (Super Admin only) -->
+            <div id="schoolSummaryCards" style="display:none; margin-bottom:14px;"></div>
+
+            <!-- Auto Refresh Status Bar -->
+            <div id="autoRefreshBar" style="display:none; align-items:center; gap:10px; padding:7px 14px; background:rgba(124,58,237,0.08); border:1px solid rgba(124,58,237,0.2); border-radius:10px; margin-bottom:10px; font-size:0.8rem; color:var(--text-muted);">
+              <span id="liveIndicatorDot" style="display:inline-block; width:8px; height:8px; background:#22c55e; border-radius:50%; animation:pulse 1.5s infinite;"></span>
+              <span id="lastRefreshText">Baru saja diperbarui</span>
+              <span style="opacity:0.4;">•</span>
+              <span id="nextRefreshText">Refresh dalam 5:00</span>
+              <button class="modern-btn btn-glass btn-xs" id="btnManualRefresh" style="margin-left:auto;">🔄 Refresh Sekarang</button>
+            </div>
+
             <!-- Filter Toolbar -->
             <div class="filter-toolbar">
               <!-- Filter Pills -->
@@ -430,6 +442,13 @@
 
               <!-- Search -->
               <div class="filter-inputs">
+                <!-- School Filter (Super Admin only) -->
+                <div class="search-input-box" id="schoolFilterBox" style="display:none;">
+                  <span class="search-icon">🏫</span>
+                  <select id="schoolFilterSelect" class="custom-input" style="background:transparent; cursor:pointer;">
+                    <option value="all">Semua Sekolah</option>
+                  </select>
+                </div>
                 <div class="search-input-box">
                   <span class="search-icon">🔍</span>
                   <input type="text" id="searchColleagueInput" class="custom-input" placeholder="Cari nama atau NIP guru...">
@@ -448,6 +467,7 @@
                     </th>
                     <th width="44">No</th>
                     <th width="170">NIP</th>
+                    <th id="thSekolah" style="display:none;" width="120">Sekolah</th>
                     <th>Nama Lengkap</th>
                     <th width="85">Masuk</th>
                     <th width="85">Pulang</th>
@@ -457,7 +477,7 @@
                 </thead>
                 <tbody id="colleaguesTableBody">
                   <tr>
-                    <td colspan="7" class="table-empty">
+                    <td colspan="8" class="table-empty">
                       <div class="loading-spinner"></div>
                       <span>Memuat data presensi dari ePresensi Jateng...</span>
                     </td>
