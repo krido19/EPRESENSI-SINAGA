@@ -101,18 +101,20 @@ async function sendWhatsApp(targetOrToken, messageOrTarget, tokenOrMessage = nul
     target = targetOrToken; message = messageOrTarget; tokenOverride = tokenOrMessage;
   }
 
-  const cfg            = loadConfig();
-  const isBaileysActive = waSock && waConnectionStatus === 'connected';
-  const gateway        = cfg.waGateway || (isBaileysActive ? 'baileys' : (cfg.fonnteToken ? 'fonnte' : 'baileys'));
+  const cfg             = loadConfig();
 
-  if (gateway === 'fonnte' && !isBaileysActive && (tokenOverride || cfg.fonnteToken)) {
+  // Prioritas: jika ada Fonnte token (dari sekolah/override) → pakai Fonnte
+  // Baileys hanya dipakai jika tidak ada Fonnte token sama sekali
+  const effectiveToken = tokenOverride || cfg.fonnteToken || null;
+  const gateway        = effectiveToken ? 'fonnte' : (cfg.waGateway || 'baileys');
+
+  if (gateway === 'fonnte' && effectiveToken) {
     try {
-      const token    = tokenOverride || cfg.fonnteToken;
       const formData = new URLSearchParams();
       formData.append('target', target);
       formData.append('message', message);
       formData.append('countryCode', '62');
-      const res    = await fetch('https://api.fonnte.com/send', { method: 'POST', headers: { Authorization: token }, body: formData });
+      const res    = await fetch('https://api.fonnte.com/send', { method: 'POST', headers: { Authorization: effectiveToken }, body: formData });
       const result = await res.json();
       const isSuccess = result.status === true || result.status === 'true';
       return { success: isSuccess, data: result, error: isSuccess ? null : (result.reason || result.message || 'Fonnte gagal mengirim pesan'), gateway: 'fonnte' };
@@ -120,6 +122,7 @@ async function sendWhatsApp(targetOrToken, messageOrTarget, tokenOrMessage = nul
       return { success: false, error: `Fonnte Error: ${err.message}`, gateway: 'fonnte' };
     }
   } else {
+    // Baileys fallback — hanya jika tidak ada Fonnte token
     if (!waSock || waConnectionStatus !== 'connected') {
       return { success: false, error: 'WhatsApp Web belum terhubung. Silakan buka menu Pengaturan & scan QR Code WhatsApp.', gateway: 'baileys' };
     }
