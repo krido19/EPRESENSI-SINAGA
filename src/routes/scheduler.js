@@ -18,7 +18,7 @@ router.post('/run-now', async (req, res) => {
       const results = [];
       for (const schoolRow of schools) {
         const cfg    = buildTenantCfg(schoolRow);
-        const result = await runWeeklyRekapLogic(cfg);
+        const result = await runWeeklyRekapLogic(cfg, true); // true = isTest
         totalSent   += result.sent || 0;
         results.push({ sekolah: cfg.namaSekolah, ...result });
       }

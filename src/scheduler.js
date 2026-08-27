@@ -230,12 +230,20 @@ function buildWeeklyRekapMessage(target, template) {
   let totalHadir = 0, totalHariKerja = 0;
   const lines = [];
   for (const wd of weekDays) {
+    const tglStr = String(wd.tanggal).padStart(2,'0') + '/' + String(wd.bulan).padStart(2,'0');
     const entry = history.find(h => h.tanggal === wd.tanggal);
-    if (!entry || entry.isWeekend) continue;
+    
+    if (!entry) {
+      lines.push('• ' + wd.hari.padEnd(7,' ') + ' ' + tglStr + ' ⏳ Belum Ada Data');
+      totalHariKerja++; // Asumsikan hari kerja kecuali kalau besok ternyata libur, tapi defaultnya hari kerja
+      continue;
+    }
+    
+    if (entry.isWeekend) continue;
+    
     const emoji = STATUS_EMOJI[entry.status] || '❓';
     const isLibur = entry.status.startsWith('Libur');
     const statusShort = entry.status === 'Libur (Hari Besar Nasional)' ? 'Libur Nasional' : entry.status;
-    const tglStr = String(wd.tanggal).padStart(2,'0') + '/' + String(wd.bulan).padStart(2,'0');
     let jamInfo = '';
     // Tampilkan jam untuk Hadir DAN Terlambat (keduanya isHadir=true)
     if ((entry.isHadir || entry.status === 'Terlambat') && entry.jamMasuk && entry.jamMasuk !== '-') {
@@ -255,16 +263,24 @@ function buildWeeklyRekapMessage(target, template) {
 }
 
 // ─── runWeeklyRekapLogic ──────────────────────────────────────────────────────
-async function runWeeklyRekapLogic(cfg) {
-  const labelWaktu = '📊 Rekap Mingguan';
+async function runWeeklyRekapLogic(cfg, isTest = false) {
+  const labelWaktu = '📊 Rekap Mingguan' + (isTest ? ' (Test)' : '');
   const now = new Date();
   const wib = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
   const dayOfWeek = wib.getDay();
-  const daysToLastFriday = (dayOfWeek + 1) % 7 + 1;
+  
+  let daysToTargetFriday;
+  if (isTest) {
+    const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+    daysToTargetFriday = adjustedDay - 5;
+  } else {
+    daysToTargetFriday = (dayOfWeek + 1) % 7 + 1;
+  }
+
   const weekDays = [];
   for (let i = 4; i >= 0; i--) {
     const d = new Date(wib);
-    d.setDate(wib.getDate() - (daysToLastFriday + i));
+    d.setDate(wib.getDate() - (daysToTargetFriday + i));
     weekDays.push({ tanggal: d.getDate(), bulan: d.getMonth() + 1, tahun: d.getFullYear(), hari: ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][d.getDay()] });
   }
   addLog({ type: 'info', message: `${labelWaktu}: Memulai pengiriman rekap ${cfg.namaSekolah}…`, school: cfg.namaSekolah });
