@@ -94,6 +94,10 @@ function buildTenantCfg(row) {
     siangMinute: row.siang_minute ?? loc.siangMinute ?? 30,
     pulangHour:  row.pulang_hour  ?? 18,
     pulangMinute: row.pulang_minute ?? 0,
+    // ── Jadwal khusus Jumat (pulang lebih awal) ──
+    jumatPulangEnabled: row.jumat_pulang_enabled ?? loc.jumatPulangEnabled ?? true,
+    jumatPulangHour:    row.jumat_pulang_hour    ?? loc.jumatPulangHour    ?? 14,
+    jumatPulangMinute:  row.jumat_pulang_minute  ?? loc.jumatPulangMinute  ?? 0,
     messagePagi:           row.message_pagi         || loc.messagePagi         || DEF_MSG_PAGI,
     messagePagiSudah:      row.message_pagi_sudah   || loc.messagePagiSudah    || DEF_MSG_PAGI_SUDAH,
     messageSiang:          row.message_siang        || loc.messageSiang        || DEF_MSG_SIANG,
@@ -431,6 +435,12 @@ function setupScheduler() {
           }
           if (H === cfg.pulangHour && M === cfg.pulangMinute) {
             console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah}`);
+            await runSchedulerLogic('pulang', cfg);
+            didRun = true;
+          }
+          // ── Pengingat pulang khusus Jumat (jam 14:00 default) ──
+          if (cfg.jumatPulangEnabled !== false && dayOfWeek === 5 && H === cfg.jumatPulangHour && M === cfg.jumatPulangMinute) {
+            console.log(`[Scheduler 🕌 Jumat Pulang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
             await runSchedulerLogic('pulang', cfg);
             didRun = true;
           }
