@@ -32,9 +32,10 @@ getActiveSchools()                ← query Supabase (cache 5 menit)
       ▼
 for each school → buildTenantCfg()
       │
-      ├── H:M === pagiHour:pagiMinute    → runSchedulerLogic('pagi', cfg)
-      ├── H:M === siangHour:siangMinute  → runSchedulerLogic('siang', cfg)
-      └── H:M === pulangHour:pulangMinute → runSchedulerLogic('pulang', cfg)
+      ├── H:M === pagiHour:pagiMinute                         → runSchedulerLogic('pagi', cfg)
+      ├── H:M === siangHour:siangMinute                       → runSchedulerLogic('siang', cfg)
+      ├── H:M === pulangHour:pulangMinute                     → runSchedulerLogic('pulang', cfg)
+      └── dayOfWeek===5 && H:M === jumatPulangHour:Minute 🆕  → runSchedulerLogic('pulang', cfg)
                                                │
                                                ▼
                                     ensureTenantSession() → login ePresensi
@@ -100,6 +101,11 @@ masterCron = cron.schedule('* * * * *', async () => {
       if (H === cfg.pulangHour && M === cfg.pulangMinute) {
         runSchedulerLogic('pulang', cfg).catch(...);
       }
+      // 🆕 Jadwal khusus Jumat — pulang lebih awal (default 14:00)
+      if (cfg.jumatPulangEnabled !== false && dayOfWeek === 5
+          && H === cfg.jumatPulangHour && M === cfg.jumatPulangMinute) {
+        runSchedulerLogic('pulang', cfg).catch(...);
+      }
     }
   } finally {
     schedulerRunning = false;  // ⚠️ selalu reset guard!
@@ -109,6 +115,9 @@ masterCron = cron.schedule('* * * * *', async () => {
 
 > **Kenapa `* * * * *` bukan langsung di jam tertentu?**
 > Karena jadwal pagi/siang/pulang setiap sekolah **berbeda-beda** dan bisa diubah dari dashboard. Master cron hanya jadi "jantung" yang berdetak setiap menit, lalu memeriksa apakah sekarang waktunya kirim.
+
+> **Kenapa jadwal Jumat pakai `dayOfWeek === 5`?**
+> `dayOfWeek` diambil dari `wib.getDay()` — hasilnya `0`=Minggu, `1`=Senin, ..., `5`=**Jumat**, `6`=Sabtu. Jadi kondisi `dayOfWeek === 5` memastikan pengingat pulang Jumat **hanya berjalan di hari Jumat**. Untuk keperluan testing, kondisi ini bisa dilepas sementara.
 
 ---
 
@@ -209,12 +218,23 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
 | `pagi_minute` | int | `30` | Menit notif pagi |
 | `siang_hour` | int | `15` | Jam notif siang |
 | `siang_minute` | int | `30` | Menit notif siang |
-| `pulang_hour` | int | `18` | Jam notif pulang |
-| `pulang_minute` | int | `0` | Menit notif pulang |
+| `pulang_hour` | int | `18` | Jam notif pulang hari biasa |
+| `pulang_minute` | int | `0` | Menit notif pulang hari biasa |
+| `jumat_pulang_enabled` 🆕 | bool | `true` | ON/OFF pengingat pulang khusus Jumat |
+| `jumat_pulang_hour` 🆕 | int | `14` | Jam notif pulang Jumat (WIB) |
+| `jumat_pulang_minute` 🆕 | int | `0` | Menit notif pulang Jumat |
 | `message_pagi` | text | — | Template pesan belum absen pagi |
 | `message_pagi_sudah` | text | — | Template pesan sudah absen pagi |
-| `message_pulang` | text | — | Template pesan belum absen pulang |
-| `message_pulang_sudah` | text | — | Template pesan sudah absen pulang |
+| `message_pulang` | text | — | Template pesan belum absen pulang (dipakai juga untuk Jumat) |
+| `message_pulang_sudah` | text | — | Template pesan sudah absen pulang (dipakai juga untuk Jumat) |
+
+> **⚠️ Migration SQL** (jalankan sekali di Supabase SQL Editor):
+> ```sql
+> ALTER TABLE school_configs
+>   ADD COLUMN IF NOT EXISTS jumat_pulang_enabled  boolean NOT NULL DEFAULT true,
+>   ADD COLUMN IF NOT EXISTS jumat_pulang_hour     smallint NOT NULL DEFAULT 14,
+>   ADD COLUMN IF NOT EXISTS jumat_pulang_minute   smallint NOT NULL DEFAULT 0;
+> ```
 
 > Placeholder `{nama}` di template akan diganti otomatis dengan nama guru.
 
@@ -274,7 +294,13 @@ for (const row of schools) {
   if (H === cfg.siangHour && M === cfg.siangMinute) runSchedulerLogic('siang', cfg);
   if (H === cfg.pulangHour && M === cfg.pulangMinute) runSchedulerLogic('pulang', cfg);
 
-  // ✅ Tambahkan di sini:
+  // 🆕 Jadwal Jumat — sudah ditambahkan:
+  if (cfg.jumatPulangEnabled !== false && dayOfWeek === 5
+      && H === cfg.jumatPulangHour && M === cfg.jumatPulangMinute) {
+    runSchedulerLogic('pulang', cfg).catch(e => console.error('[Jumat Pulang] Error:', e.message));
+  }
+
+  // ✅ Contoh cron baru lainnya:
   if (H === 6 && M === 0) {
     runDailyReport(cfg).catch(e => console.error('[DailyReport] Error:', e.message));
   }
@@ -703,4 +729,13 @@ Atau gunakan `Kelola_PM2.bat` yang sudah tersedia.
 
 ---
 
-*Dibuat: 2026-08-19 | ePresensi Sinaga — SMKN 3 Magelang*
+*Dibuat: 2026-08-19 | Terakhir diperbarui: 2026-08-31 | ePresensi Sinaga — SMKN 3 Magelang*
+
+---
+
+## 📋 Riwayat Perubahan
+
+| Tanggal | Perubahan |
+|---------|----------|
+| 2026-08-19 | Dokumen dibuat |
+| 2026-08-31 | Tambah jadwal khusus **Jumat pulang awal** (`jumat_pulang_*`), penjelasan `dayOfWeek`, dan migration SQL Supabase |
