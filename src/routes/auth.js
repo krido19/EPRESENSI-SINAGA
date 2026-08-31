@@ -196,6 +196,9 @@ router.get('/config', async (req, res) => {
     schedulerPulangEnabled: schoolCfg?.scheduler_pulang_enabled ?? base.schedulerPulangEnabled ?? true,
     pulangHour:             schoolCfg?.pulang_hour             ?? base.pulangHour             ?? 18,
     pulangMinute:           schoolCfg?.pulang_minute           ?? base.pulangMinute           ?? 0,
+    jumatPulangEnabled:     schoolCfg?.jumat_pulang_enabled    ?? base.jumatPulangEnabled    ?? true,
+    jumatPulangHour:        schoolCfg?.jumat_pulang_hour       ?? base.jumatPulangHour       ?? 14,
+    jumatPulangMinute:      schoolCfg?.jumat_pulang_minute     ?? base.jumatPulangMinute     ?? 0,
 
     // Template pesan — Supabase dulu, lalu local
     message:            base.message            || '',
@@ -213,12 +216,12 @@ router.get('/config', async (req, res) => {
 // POST /api/config
 router.post('/config', async (req, res) => {
   const current = loadConfig();
-  const allowed = ['authMode','username','password','cookie','waGateway','fonnteToken','waNumber','schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute','schedulerSiangEnabled','siangHour','siangMinute','schedulerPulangEnabled','pulangHour','pulangMinute','message','messagePagi','messagePagiSudah','messageSiang','messageSiangSudah','messagePulang','messagePulangSudah','testModeSudahAbsen'];
+  const allowed = ['authMode','username','password','cookie','waGateway','fonnteToken','waNumber','schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute','schedulerSiangEnabled','siangHour','siangMinute','schedulerPulangEnabled','pulangHour','pulangMinute','jumatPulangEnabled','jumatPulangHour','jumatPulangMinute','message','messagePagi','messagePagiSudah','messageSiang','messageSiangSudah','messagePulang','messagePulangSudah','testModeSudahAbsen'];
   const updated = { ...current };
   for (const key of allowed) { if (req.body[key] !== undefined && req.body[key] !== '') updated[key] = req.body[key]; }
   saveConfig(updated);
   const schoolId = req.schoolId || req.user?.schoolId;
-  const syncData = { scheduler_enabled: updated.schedulerEnabled !== false, scheduler_siang_enabled: updated.schedulerSiangEnabled !== false, pagi_hour: Number(updated.pagiHour ?? 7), pagi_minute: Number(updated.pagiMinute ?? 30), siang_hour: Number(updated.siangHour ?? 15), siang_minute: Number(updated.siangMinute ?? 30), pulang_hour: Number(updated.pulangHour ?? 18), pulang_minute: Number(updated.pulangMinute ?? 0), message_pagi: updated.messagePagi || null, message_pagi_sudah: updated.messagePagiSudah || null, message_siang: updated.messageSiang || null, message_siang_sudah: updated.messageSiangSudah || null, message_pulang: updated.messagePulang || null, message_pulang_sudah: updated.messagePulangSudah || null };
+  const syncData = { scheduler_enabled: updated.schedulerEnabled !== false, scheduler_siang_enabled: updated.schedulerSiangEnabled !== false, pagi_hour: Number(updated.pagiHour ?? 7), pagi_minute: Number(updated.pagiMinute ?? 30), siang_hour: Number(updated.siangHour ?? 15), siang_minute: Number(updated.siangMinute ?? 30), pulang_hour: Number(updated.pulangHour ?? 18), pulang_minute: Number(updated.pulangMinute ?? 0), jumat_pulang_enabled: updated.jumatPulangEnabled !== false, jumat_pulang_hour: Number(updated.jumatPulangHour ?? 14), jumat_pulang_minute: Number(updated.jumatPulangMinute ?? 0), message_pagi: updated.messagePagi || null, message_pagi_sudah: updated.messagePagiSudah || null, message_siang: updated.messageSiang || null, message_siang_sudah: updated.messageSiangSudah || null, message_pulang: updated.messagePulang || null, message_pulang_sudah: updated.messagePulangSudah || null };
   if (schoolId) {
     const { error } = await supabase.from('school_configs')
       .upsert({ ...syncData, school_id: schoolId }, { onConflict: 'school_id' });
@@ -230,7 +233,7 @@ router.post('/config', async (req, res) => {
     if (error) console.error('[Config] Gagal sync semua sekolah:', error.message);
     else console.log('[Config] Jadwal sync ke semua sekolah selesai.');
   }
-  const schedulerFields = ['schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute','schedulerSiangEnabled','siangHour','siangMinute','schedulerPulangEnabled','pulangHour','pulangMinute'];
+  const schedulerFields = ['schedulerEnabled','schedulerPagiEnabled','pagiHour','pagiMinute','schedulerSiangEnabled','siangHour','siangMinute','schedulerPulangEnabled','pulangHour','pulangMinute','jumatPulangEnabled','jumatPulangHour','jumatPulangMinute'];
   const schedulerChanged = schedulerFields.some(k => req.body[k] !== undefined && req.body[k] !== '');
   if (schedulerChanged) {
     console.log('[Config] Setting jadwal berubah — reset cache & restart scheduler...');

@@ -440,6 +440,10 @@ const cfgSchedulerPulangEnabled   = document.getElementById('cfgSchedulerPulangE
 const cfgPulangHour               = document.getElementById('cfgPulangHour');
 const cfgPulangMinute             = document.getElementById('cfgPulangMinute');
 
+const cfgJumatPulangEnabled       = document.getElementById('cfgJumatPulangEnabled');
+const cfgJumatPulangHour          = document.getElementById('cfgJumatPulangHour');
+const cfgJumatPulangMinute        = document.getElementById('cfgJumatPulangMinute');
+
 const btnTestLogin                = document.getElementById('btnTestLogin');
 const testLoginFeedback           = document.getElementById('testLoginFeedback');
 
@@ -607,7 +611,7 @@ window.updateDateStripFromChart = function(day) {
 // ─── Init Options (Hour/Minute selects for scheduler) ─────────────────────────
 function initSelectOptions() {
   // Populate Pagi & Pulang Hour & Minute Selects
-  [cfgPagiHour, cfgSiangHour, cfgPulangHour].forEach(sel => {
+  [cfgPagiHour, cfgSiangHour, cfgPulangHour, cfgJumatPulangHour].forEach(sel => {
     if (!sel) return;
     sel.innerHTML = '';
     for (let i = 0; i < 24; i++) {
@@ -618,7 +622,7 @@ function initSelectOptions() {
     }
   });
 
-  [cfgPagiMinute, cfgSiangMinute, cfgPulangMinute].forEach(sel => {
+  [cfgPagiMinute, cfgSiangMinute, cfgPulangMinute, cfgJumatPulangMinute].forEach(sel => {
     if (!sel) return;
     sel.innerHTML = '';
     for (let i = 0; i < 60; i++) {
@@ -898,6 +902,10 @@ async function loadConfig() {
     if (cfgSchedulerPulangEnabled) cfgSchedulerPulangEnabled.checked = config.schedulerPulangEnabled !== false;
     if (cfgPulangHour) cfgPulangHour.value = String(config.pulangHour ?? 18);
     if (cfgPulangMinute) cfgPulangMinute.value = String(config.pulangMinute ?? 0);
+
+    if (cfgJumatPulangEnabled) cfgJumatPulangEnabled.checked = config.jumatPulangEnabled !== false;
+    if (cfgJumatPulangHour) cfgJumatPulangHour.value = String(config.jumatPulangHour ?? 14);
+    if (cfgJumatPulangMinute) cfgJumatPulangMinute.value = String(config.jumatPulangMinute ?? 0);
 
     if (cfgMessagePagi) cfgMessagePagi.value = config.messagePagi || '';
     if (cfgMessagePagiSudah) cfgMessagePagiSudah.value = config.messagePagiSudah || '';
@@ -2550,6 +2558,9 @@ if (configForm) {
       schedulerPulangEnabled: cfgSchedulerPulangEnabled ? cfgSchedulerPulangEnabled.checked : true,
       pulangHour: parseInt(cfgPulangHour?.value ?? 18),
       pulangMinute: parseInt(cfgPulangMinute?.value ?? 0),
+      jumatPulangEnabled: cfgJumatPulangEnabled ? cfgJumatPulangEnabled.checked : true,
+      jumatPulangHour: parseInt(cfgJumatPulangHour?.value ?? 14),
+      jumatPulangMinute: parseInt(cfgJumatPulangMinute?.value ?? 0),
     };
 
     try {

@@ -730,6 +730,30 @@
                 </div>
               </div>
 
+              <!-- Jadwal Khusus: Jumat Pulang -->
+              <div class="schedule-box mb-4" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <div>
+                    <strong style="color: var(--teal-400);">🕌 4. Jadwal Khusus Jumat (Pulang Lebih Awal)</strong>
+                    <div class="text-muted text-sm">Cek absen pulang khusus hari Jumat</div>
+                  </div>
+                  <label class="custom-switch">
+                    <input type="checkbox" id="cfgJumatPulangEnabled" checked>
+                    <span class="switch-slider"></span>
+                  </label>
+                </div>
+                <div class="form-grid-small">
+                  <div class="form-item">
+                    <label class="form-label">Jam (WIB)</label>
+                    <select id="cfgJumatPulangHour" class="custom-select font-mono"></select>
+                  </div>
+                  <div class="form-item">
+                    <label class="form-label">Menit</label>
+                    <select id="cfgJumatPulangMinute" class="custom-select font-mono"></select>
+                  </div>
+                </div>
+              </div>
+
               <div class="checkbox-container mt-2">
                 <label class="custom-switch">
                   <input type="checkbox" id="cfgSchedulerEnabled" checked>
