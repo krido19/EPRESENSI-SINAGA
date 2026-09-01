@@ -3194,22 +3194,6 @@ html, body {
    MODERN SAAS REDESIGN — Sidebar, Topbar, Cards, Timeline
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ─── Sidebar Overhaul ─────────────────────────────────────────────────────── */
-.dashboard-sidebar {
-  width: 230px;
-  background: #0d0f1a;
-  border-right: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0; bottom: 0; left: 0;
-  z-index: 100;
-  padding: 20px 14px 16px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-shadow: 4px 0 30px rgba(0,0,0,0.5);
-  transition: width 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1);
-}
 
 .sidebar-brand {
   display: flex;
@@ -3352,19 +3336,6 @@ html, body {
 }
 
 .sidebar-sched-mini { padding: 0 2px; }
-
-/* ─── Dashboard Main ───────────────────────────────────────────────────────── */
-.dashboard-main {
-  margin-left: 230px;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-}
 
 /* ─── Topbar Compact SaaS ──────────────────────────────────────────────────── */
 .main-topbar {
@@ -3575,8 +3546,8 @@ html, body {
 .kpi-grid {
   display: grid;
   grid-template-columns: 1.6fr 1fr 1fr 1fr;
-  gap: 14px;
-  padding: 20px 24px 0;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 /* ── Hero card (Kehadiran) ── */
