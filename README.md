@@ -37,9 +37,13 @@ Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gra
 - **Multi-Select Checkboxes:** Memilih beberapa guru tertentu untuk mengirim pesan massal sekaligus via *Floating Action Bar*.
 - **Quick Send Unabsent:** Tombol cepat untuk mengirim pengingat ke seluruh rekan yang belum absen hari ini.
 
-### ⏰ 4. Dual Scheduler Engine Otomatis (WIB)
-- **🌅 Pagi (07:30 WIB):** Bot otomatis memeriksa presensi dan mengirim pengingat masuk ke rekan yang belum absen.
-- **🌆 Pulang (18:00 WIB):** Bot otomatis memeriksa presensi dan mengirim pengingat pulang ke rekan yang belum absen.
+### ⏰ 4. Multi-Jadwal Scheduler Otomatis (WIB)
+- **🌅 Pagi:** Bot otomatis memeriksa presensi dan mengirim pengingat masuk ke rekan yang belum absen.
+- **☀️ Siang:** Notifikasi sesi tengah hari (opsional, bisa diaktifkan dari dashboard).
+- **🌆 Pulang:** Bot otomatis memeriksa presensi dan mengirim pengingat pulang ke rekan yang belum absen.
+- **🕌 Jumat Pulang Awal (Baru!):** Jadwal khusus hari Jumat dengan jam pulang yang berbeda (default 14:00 WIB) — karena sekolah pulang lebih awal. Dapat dikonfigurasi dari dashboard.
+- **📊 Rekap Mingguan (Sabtu Pagi):** Bot otomatis mengirim rekap absensi minggu lalu (Senin–Jumat) ke seluruh guru, lengkap dengan rincian status dan jam masuk/pulang per hari.
+- **📅 Rekap Bulanan (Tanggal 1, 07:10 WIB, Baru!):** Setiap tanggal 1, bot otomatis mengirim rekap absensi bulan sebelumnya — seluruh hari kerja dengan status dan jam lengkap.
 - **Live Countdown Timer:** Penghitung mundur waktu riil menuju jadwal eksekusi bot berikutnya.
 
 ### 📊 5. Dynamic Excel Importer & Template Generator
@@ -52,13 +56,14 @@ Dikembangkan secara khusus dengan integrasi **WhatsApp Web Self-Hosted (100% Gra
 - **Auto-Backup & Atomic Storage:** Mem-backup `config.json` secara otomatis dan melakukan *auto-restore* jika file korup. Mencegah kerusakan file saat *power loss*.
 - **Anti-Crash Guard & Process Manager:** Global error listener (`uncaughtException`), serta dilengkapi script **PM2** (`Setup_PM2.bat` / `Kelola_PM2.bat`) untuk *auto-restart* di background.
 
-### 📈 7. Monitoring & Reliabilitas Pengiriman (Baru!)
+### 📈 7. Monitoring, Reliabilitas & Notifikasi Telegram (Baru!)
 - **Health Check Endpoint (`/health`):** Endpoint khusus untuk memonitor status server, koneksi WhatsApp, dan scheduler. Siap diintegrasikan dengan *UptimeRobot* (24/7).
 - **Ngrok Auto-Healing Tunnel:** Terowongan publik (*public URL*) Ngrok yang dijaga oleh PM2. Dilengkapi pendeteksi *offline* otomatis—jika internet putus, Ngrok akan me-reset dirinya sendiri agar PM2 bisa melakukan *auto-restart*.
 - **Persistent Logs via Supabase:** Riwayat pengiriman WhatsApp dicatat permanen ke database Supabase (`notification_logs`), sehingga data tidak hilang saat restart.
 - **Smart Retry Mechanism:** Jika pengiriman WhatsApp gagal (timeout sesaat), sistem otomatis mengulang 3x dengan *exponential backoff* (2s ➡️ 4s ➡️ 8s).
 - **WhatsApp Disconnect Alert:** Sistem otomatis mengirimkan pesan peringatan ke nomor Admin jika koneksi WhatsApp terputus lebih dari 5 menit.
 - **Smart Cache Invalidation:** Memastikan bot mengambil data presensi paling aktual (force refresh) saat eksekusi otomatis tanpa terjebak *cache* lama.
+- **📲 Notifikasi Telegram Otomatis (Baru!):** Setiap kali scheduler selesai kirim WA, sistem membaca `notification_logs` Supabase dan mengirim laporan ke Telegram Admin — berisi daftar guru yang **berhasil** dan **gagal** menerima pesan. Sumber data dari log, bukan asumsi, sehingga 100% akurat.
 
 ### 🎨 8. Modern Sidebar, Auto-Hide & Theme Switcher
 - **🍔 Hamburger & Auto-Hide Sidebar:** Mode ciut (*Icon-Only 78px*) di desktop dengan *auto-expand on hover*, dan *off-canvas drawer* di HP.
@@ -152,11 +157,13 @@ epresensi-jateng/
 
 - **Backend:** Node.js, Express.js, `@whiskeysockets/baileys` (Multi-Device WA), `cheerio` (DOM Scraper), `node-cron`, `@supabase/supabase-js`, `dotenv`, `multer`, `xlsx`, `pino`, `qrcode`, `@ngrok/ngrok`.
 - **Frontend:** Vanilla HTML5, Modern CSS Variables (Design Tokens, Dark/Light Mode, Glassmorphism), Vanilla JavaScript (ES6+), `Plus Jakarta Sans`, `JetBrains Mono`.
-- **Database:** Supabase (PostgreSQL) — recipients, notification_logs, schools.
+- **Database:** Supabase (PostgreSQL) — `recipients`, `notification_logs`, `school_configs`, `schools`, `attendance_records`.
 - **Data Provider:** Portal Resmi ePresensi BKD Pemerintah Provinsi Jawa Tengah.
-- **Monitoring:** UptimeRobot (24/7 health check) + Ngrok (public tunnel dengan Auto-Healing).
+- **Monitoring:** UptimeRobot (24/7 health check) + Ngrok (public tunnel dengan Auto-Healing) + **Telegram Bot** (laporan scheduler real-time).
 
 ---
 
 ## 📚 Dokumentasi Terkait
 - 📘 **[Panduan & Troubleshooting Baileys (BAILEYS_GUIDE.md)](BAILEYS_GUIDE.md):** Penjelasan mendalam mengenai siklus hidup koneksi WebSocket, penanganan reconnect/logout, pemformatan JID internasional, dan penghindaran konflik gateway.
+- 📅 **[Panduan Cron Job & WhatsApp Gateway (CRON_JOB_README.md)](CRON_JOB_README.md):** Referensi teknis lengkap mengenai arsitektur scheduler multi-tenant, jadwal Jumat, rekap mingguan/bulanan, Baileys lifecycle, dan cara menambah cron job baru.
+- 🚀 **[Panduan Deploy VPS (PANDUAN_DEPLOY_VPS.md)](PANDUAN_DEPLOY_VPS.md):** Langkah-langkah push dari PC Windows dan pull di VPS Linux + PM2 restart.
