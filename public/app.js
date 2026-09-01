@@ -3442,22 +3442,74 @@ loadGraphStats();
       }
       tbody.innerHTML = r.schools.map((s, i) => {
         const cfg    = s.school_configs?.[0] || {};
+
+        // Plan badge
         const planBadge = s.plan === 'pro'
-          ? '<span style="color:#10b981;font-weight:600;">✅ Pro</span>'
-          : '<span style="color:#f59e0b;font-weight:600;">🆓 Free</span>';
-        const schedulerBadge = cfg.scheduler_enabled !== false
-          ? '<span style="color:#10b981;">Aktif</span>'
-          : '<span style="color:#ef4444;">Nonaktif</span>';
+          ? '<span class="sa-plan-badge sa-plan-pro">PRO</span>'
+          : '<span class="sa-plan-badge sa-plan-free">FREE</span>';
+
+        // Scheduler status
+        const isActive = cfg.scheduler_enabled !== false;
+        const schedulerBadge = isActive
+          ? '<span class="sa-status-dot sa-status-active"></span><span style="color:#10b981;font-size:.8rem;font-weight:600;">Aktif</span>'
+          : '<span class="sa-status-dot sa-status-inactive"></span><span style="color:#ef4444;font-size:.8rem;">Nonaktif</span>';
+
+        // Jam jadwal
         const jam = `${String(cfg.pagi_hour??7).padStart(2,'0')}:${String(cfg.pagi_minute??30).padStart(2,'0')} / ${String(cfg.siang_hour??15).padStart(2,'0')}:${String(cfg.siang_minute??30).padStart(2,'0')} / ${String(cfg.pulang_hour??18).padStart(2,'0')}:${String(cfg.pulang_minute??0).padStart(2,'0')}`;
-        return `<tr>
-          <td class="font-mono">${i+1}</td>
-          <td><strong>${s.name}</strong><br><span style="font-size:.75rem;opacity:.6;">${s.npsn||'-'}</span></td>
-          <td class="font-mono" style="font-size:.82rem;">${s.email}</td>
-          <td>${planBadge}</td>
-          <td>${schedulerBadge}</td>
-          <td class="font-mono" style="font-size:.82rem;">${jam}</td>
+
+        // Avatar inisial sekolah
+        const initials = (s.name || 'S').split(' ').filter(w => w.match(/[A-Z0-9]/i)).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+
+        // Kehadiran (placeholder, bisa diisi dari data real)
+        const kehadiran = s.kehadiran_pct != null ? s.kehadiran_pct : null;
+        const kehadiranHtml = kehadiran != null
+          ? `<div style="display:flex;align-items:center;gap:8px;">
+               <div style="flex:1;height:5px;border-radius:5px;background:rgba(255,255,255,0.1);overflow:hidden;">
+                 <div style="width:${kehadiran}%;height:100%;background:${kehadiran>80?'#10b981':'#f59e0b'};border-radius:5px;"></div>
+               </div>
+               <span style="font-size:.8rem;font-weight:600;color:${kehadiran>80?'#10b981':'#f59e0b'};">${kehadiran}%</span>
+             </div>`
+          : '<span style="color:var(--text-muted);font-size:.75rem;">-</span>';
+
+        // Guru count
+        const guruCount = s.recipients_count ?? s.guru_count ?? '-';
+
+        return `<tr class="sa-school-row">
+          <td class="font-mono" style="color:var(--text-muted);font-size:.8rem;">${i+1}</td>
           <td>
-            <button class="modern-btn" style="padding:5px 10px;font-size:.78rem;background:rgba(239,68,68,.15);color:#f87171;" onclick="deleteSaasSchool('${s.id}','${s.name}')">🗑️ Hapus</button>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="sa-school-avatar">${initials || '🏫'}</div>
+              <div>
+                <div style="font-weight:600;font-size:.88rem;">${s.name}</div>
+                <div style="font-size:.72rem;color:var(--text-muted);">${s.npsn||s.email||'-'}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:.82rem;color:var(--text-muted);">${guruCount !== '-' ? guruCount + ' Guru' : '-'}</td>
+          <td>${kehadiranHtml}</td>
+          <td>${planBadge}</td>
+          <td><div style="display:flex;align-items:center;gap:6px;">${schedulerBadge}</div></td>
+          <td>
+            <div class="sa-action-menu-wrap" style="position:relative;">
+              <button class="sa-action-btn" onclick="toggleSaActionMenu(event,'samenu-${s.id}')" title="Aksi">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+              <div class="sa-action-dropdown" id="samenu-${s.id}" style="display:none;">
+                <button onclick="closeSaActionMenus();showToast('Fitur detail segera hadir','info')" class="sa-action-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Lihat Detail
+                </button>
+                <button onclick="closeSaActionMenus();showToast('Fitur edit segera hadir','info')" class="sa-action-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit Sekolah
+                </button>
+                <div style="height:1px;background:rgba(255,255,255,0.07);margin:4px 0;"></div>
+                <button onclick="closeSaActionMenus();deleteSaasSchool('${s.id}','${s.name}')" class="sa-action-item sa-action-danger">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  Hapus Sekolah
+                </button>
+              </div>
+            </div>
           </td>
         </tr>`;
       }).join('');
@@ -3544,6 +3596,20 @@ loadGraphStats();
       showToast(`❌ ${e.message}`, 'error');
     }
   };
+
+  // ── Menu ⋮ action dropdown ─────────────────────────────────────────────────
+  window.closeSaActionMenus = function() {
+    document.querySelectorAll('.sa-action-dropdown').forEach(d => d.style.display = 'none');
+  };
+  window.toggleSaActionMenu = function(e, id) {
+    e.stopPropagation();
+    const menu = document.getElementById(id);
+    const isOpen = menu?.style.display !== 'none';
+    closeSaActionMenus();
+    if (menu && !isOpen) menu.style.display = 'block';
+  };
+  document.addEventListener('click', closeSaActionMenus);
+
 })();
 
 /* ════════════════════════════════════════════════════════════
