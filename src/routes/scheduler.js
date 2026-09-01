@@ -67,4 +67,12 @@ router.post('/run-now', async (req, res) => {
   }
 });
 
+// GET /api/scheduler/config-status — cek status konfigurasi tanpa expose secrets
+router.get('/config-status', (req, res) => {
+  res.json({
+    telegramConfigured: !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_ADMIN_ID),
+    fonnteConfigured:   !!(process.env.FONNTE_TOKEN),
+  });
+});
+
 module.exports = router;

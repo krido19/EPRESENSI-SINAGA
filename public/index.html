@@ -770,30 +770,42 @@
             <div class="form-divider" style="margin: 20px 0 16px;"></div>
 
             <div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 10px; padding: 16px;">
-              <div style="margin-bottom: 10px;">
-                <strong style="color: var(--indigo-400);">▶ Kirim Notifikasi Sekarang (Manual)</strong>
-                <p class="text-muted text-sm" style="margin: 4px 0 0;">Kirim laporan ke <strong>semua</strong> guru. Yang sudah absen akan mendapat ucapan terima kasih, yang belum mendapat peringatan.</p>
+              <div style="margin-bottom: 12px; display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <strong style="color: var(--indigo-400);">▶ Kirim Notifikasi Sekarang (Manual)</strong>
+                  <p class="text-muted text-sm" style="margin: 4px 0 0;">Kirim laporan ke <strong>semua</strong> guru. Yang sudah absen mendapat ucapan terima kasih, yang belum mendapat peringatan.</p>
+                </div>
+                <div id="tgStatusBadge" style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); font-size:0.75rem; color:#10b981; white-space:nowrap;">
+                  <span>⏳</span> <span id="tgStatusText">Cek Telegram...</span>
+                </div>
               </div>
+
+              <!-- Last Sent Info -->
+              <div id="lastSentInfo" style="margin-bottom:12px; padding:8px 12px; background:rgba(255,255,255,0.04); border-radius:8px; font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:8px;">
+                <span>⏱</span>
+                <span id="lastSentText">Memuat info terakhir kirim...</span>
+              </div>
+
               <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button type="button" id="btnRunNowPagi" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
-                  🌅 Jalankan Sekarang (Pagi)
+                <button type="button" id="btnRunNowPagi" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;" title="Kirim pengingat pagi ke semua guru">
+                  🌅 Pagi <span class="btn-recipient-badge" id="badgePagi"></span>
                 </button>
-                <button type="button" id="btnRunNowPulang" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
-                  🌆 Jalankan Sekarang (Pulang)
+                <button type="button" id="btnRunNowPulang" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;" title="Kirim pengingat pulang ke semua guru">
+                  🌆 Pulang <span class="btn-recipient-badge" id="badgePulang"></span>
                 </button>
-                <button type="button" id="btnRunNowRekap" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
-                  📊 Rekap Mingguan (Test)
+                <button type="button" id="btnRunNowRekap" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;" title="Kirim rekap mingguan (Senin–Jumat)">
+                  📊 Rekap Mingguan <span class="btn-recipient-badge" id="badgeRekapMingguan"></span>
                 </button>
-                <button type="button" id="btnRunNowRekapBulanan" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
-                  📅 Rekap Bulanan (Test)
+                <button type="button" id="btnRunNowRekapBulanan" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;" title="Kirim rekap bulan lalu ke semua guru">
+                  📅 Rekap Bulanan <span class="btn-recipient-badge" id="badgeRekapBulanan"></span>
                 </button>
-                <button type="button" id="btnRunNowArchiver" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
-                  💾 Simpan Data Hari Ini (Test)
+                <button type="button" id="btnRunNowArchiver" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;" title="Simpan snapshot absensi hari ini ke Supabase">
+                  💾 Simpan Data Hari Ini
                 </button>
               </div>
               <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
                 <input type="date" id="backfillDate" class="modern-input" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;" />
-                <button type="button" id="btnRunNowBackfill" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;">
+                <button type="button" id="btnRunNowBackfill" class="modern-btn btn-glass" style="flex: 1; min-width: 140px;" title="Tarik data absensi dari ePresensi untuk tanggal tertentu">
                   🚀 Tarik Data per Tanggal
                 </button>
               </div>

@@ -2591,9 +2591,18 @@ async function runNowScheduler(type) {
     : type === 'archiver' ? document.getElementById('btnRunNowArchiver')
     : type === 'backfill' ? document.getElementById('btnRunNowBackfill') : document.getElementById('btnRunNowPulang');
   const label = type === 'pagi' ? '🌅 Pagi' : type === 'rekap_mingguan' ? '📊 Rekap Mingguan' : type === 'rekap_bulanan' ? '📅 Rekap Bulanan' : type === 'archiver' ? '💾 Arsip' : type === 'backfill' ? '🚀 Backfill' : '🌆 Pulang';
+
+  // ── Konfirmasi sebelum kirim ──
+  const badgeEl = btn?.querySelector('.btn-recipient-badge');
+  const jumlah  = badgeEl?.textContent?.replace(/\D/g, '') || '';
+  const konfirmasiMsg = jumlah
+    ? `Kirim ${label} ke ${jumlah} guru sekarang?`
+    : `Jalankan ${label} sekarang ke semua penerima terdaftar?`;
+  if (!confirm(konfirmasiMsg)) return;
+
   const origText = btn?.innerHTML;
   if (btn) { btn.disabled = true; btn.innerHTML = `⏳ Mengirim ${label}...`; }
-  
+
   let payload = { type };
   if (type === 'backfill') {
     const bDate = document.getElementById('backfillDate').value;
@@ -2615,6 +2624,7 @@ async function runNowScheduler(type) {
     if (data.success) {
       showToast(data.message || `${label}: Selesai!`, 'success');
       loadLogs();
+      loadLastSentInfo(); // refresh last sent setelah kirim
     } else {
       showToast(`${label} Error: ${data.message || data.error || 'Terjadi kesalahan tidak diketahui'}`, 'error');
     }
@@ -2623,6 +2633,91 @@ async function runNowScheduler(type) {
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = origText; }
   }
+}
+
+// ── Badge jumlah penerima di tombol ──────────────────────────────────────────
+async function loadSchedulerBadges() {
+  try {
+    const res  = await fetch('/api/recipients?aktif=true');
+    if (!res.ok) return;
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : (data.data || []);
+    const count = list.length;
+    ['badgePagi','badgePulang','badgeRekapMingguan','badgeRekapBulanan'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = count + ' guru';
+    });
+  } catch (_) {}
+}
+
+// ── Status Telegram ───────────────────────────────────────────────────────────
+async function checkTelegramStatus() {
+  const badge   = document.getElementById('tgStatusBadge');
+  const textEl  = document.getElementById('tgStatusText');
+  if (!badge || !textEl) return;
+  try {
+    const res  = await fetch('/api/scheduler/config-status');
+    const data = await res.json();
+    const hasTg = data?.telegramConfigured || false;
+    if (hasTg) {
+      badge.style.background = 'rgba(16,185,129,0.12)';
+      badge.style.borderColor = 'rgba(16,185,129,0.3)';
+      badge.style.color = '#10b981';
+      badge.querySelector('span').textContent = '✅';
+      textEl.textContent = 'Telegram Aktif';
+    } else {
+      badge.style.background = 'rgba(239,68,68,0.12)';
+      badge.style.borderColor = 'rgba(239,68,68,0.3)';
+      badge.style.color = '#ef4444';
+      badge.querySelector('span').textContent = '⚠️';
+      textEl.textContent = 'Telegram Belum Dikonfigurasi';
+    }
+  } catch (_) {
+    // Fallback: cek env vars via ping
+    const textEl2 = document.getElementById('tgStatusText');
+    if (textEl2) textEl2.textContent = 'Status tidak diketahui';
+  }
+}
+
+// ── Last Sent Info ────────────────────────────────────────────────────────────
+async function loadLastSentInfo() {
+  const el = document.getElementById('lastSentText');
+  if (!el) return;
+  try {
+    const res  = await fetch('/api/logs?limit=5');
+    if (!res.ok) return;
+    const data = await res.json();
+    const logs = Array.isArray(data) ? data : (data.logs || []);
+    const lastSent = logs.find(l => l.type === 'sent' || l.type === 'rekap_mingguan' || l.type === 'rekap_bulanan');
+    if (lastSent) {
+      const d = new Date(lastSent.timestamp || lastSent.created_at);
+      const wib = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+      const jam = `${String(wib.getHours()).padStart(2,'0')}:${String(wib.getMinutes()).padStart(2,'0')} WIB`;
+      const tgl = wib.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'short' });
+      el.textContent = `Terakhir kirim: ${tgl}, ${jam} — ${lastSent.message?.substring(0, 60) || '...'}`;
+    } else {
+      el.textContent = 'Belum ada riwayat pengiriman hari ini.';
+    }
+  } catch (_) {
+    el.textContent = 'Gagal memuat info terakhir kirim.';
+  }
+}
+
+// ── Init saat tab config aktif ────────────────────────────────────────────────
+document.querySelectorAll('.tab-item[data-tab="config"]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setTimeout(() => {
+      loadSchedulerBadges();
+      checkTelegramStatus();
+      loadLastSentInfo();
+    }, 300);
+  });
+});
+// Juga jalankan saat halaman load jika tab config aktif
+if (document.getElementById('tab-config')?.classList.contains('active')) {
+  loadSchedulerBadges();
+  checkTelegramStatus();
+  loadLastSentInfo();
 }
 
 const btnRunNowPagi         = document.getElementById('btnRunNowPagi');
@@ -2637,6 +2732,7 @@ if (btnRunNowRekap)        btnRunNowRekap.addEventListener('click',        () =>
 if (btnRunNowRekapBulanan) btnRunNowRekapBulanan.addEventListener('click', () => runNowScheduler('rekap_bulanan'));
 if (btnRunNowArchiver)     btnRunNowArchiver.addEventListener('click',     () => runNowScheduler('archiver'));
 if (btnRunNowBackfill)     btnRunNowBackfill.addEventListener('click',     () => runNowScheduler('backfill'));
+
 
 if (btnTestLogin) {
   btnTestLogin.addEventListener('click', async () => {
