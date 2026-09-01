@@ -327,10 +327,12 @@ router.get('/recipients/template', async (req, res) => {
 
 // Recipients CRUD
 router.get('/recipients', async (req, res) => {
-
   try {
     let query = supabase.from('recipients').select('*, schools(name)');
     if (req.userRole !== 'super_admin') query = query.eq('school_id', req.schoolId);
+    // Support filter ?aktif=true
+    if (req.query.aktif === 'true')  query = query.eq('aktif', true);
+    if (req.query.aktif === 'false') query = query.eq('aktif', false);
     const { data, error } = await query;
     if (error) throw error;
     res.json(data || []);

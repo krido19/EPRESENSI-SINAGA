@@ -180,10 +180,16 @@ function applyRoleUI(role) {
     const templateAlertName = document.getElementById('templateAlertSchoolName');
     if (templateAlertName) templateAlertName.textContent = 'Sekolah';
 
-    // Auto switch ke tab Super Admin setelah DOM siap
+    // Restore tab dari localStorage, atau default ke superadmin jika belum ada
     setTimeout(() => {
-      const saTab = document.querySelector('[data-tab="superadmin"]');
-      if (saTab) saTab.click();
+      const savedTab = (() => { try { return localStorage.getItem('epresensi_active_tab'); } catch(_) { return null; } })();
+      const targetTab = savedTab || 'superadmin';
+      const tabBtn = document.querySelector(`[data-tab="${targetTab}"]`);
+      if (tabBtn) tabBtn.click();
+      else {
+        const saTab = document.querySelector('[data-tab="superadmin"]');
+        if (saTab) saTab.click();
+      }
       // Load data Super Admin
       if (window._saasLoadStats)   window._saasLoadStats();
       if (window._saasLoadSchools) window._saasLoadSchools();
@@ -684,6 +690,8 @@ window.switchNavTab = function(tabName) {
     dashboardSidebar.classList.remove('mobile-open');
     sidebarBackdrop?.classList.remove('show');
   }
+  // Simpan tab aktif ke localStorage
+  try { localStorage.setItem('epresensi_active_tab', targetTab); } catch(_) {}
   // Load data saat masuk ke tab tertentu
   if (targetTab === 'monitoring') { loadStatus(); loadColleagues(); }
   if (targetTab === 'config' || targetTab === 'template') loadConfig();
