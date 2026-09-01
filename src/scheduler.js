@@ -544,6 +544,15 @@ function setupScheduler() {
       const schools = await getActiveSchools();
       if (!schools.length) return;
 
+      // ── Rekap Bulanan Otomatis — tanggal 1 setiap bulan jam 07:00 WIB ──
+      if (wib.getDate() === 1 && H === 7 && M === 0) {
+        console.log(`[Scheduler 📅 Rekap Bulanan] Tanggal 1 — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
+        for (const schoolRow of schools) {
+          const bulananCfg = buildTenantCfg(schoolRow);
+          runMonthlyRekapLogic(bulananCfg, false).catch(e => console.error(`[Scheduler] Rekap Bulanan error (${bulananCfg.namaSekolah}):`, e.message));
+        }
+      }
+
       // Sequential per sekolah — hindari race condition WA/cookie
       for (let i = 0; i < schools.length; i++) {
         const row = schools[i];
