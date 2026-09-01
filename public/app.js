@@ -127,9 +127,14 @@ if (gatekeeperForm) {
         if (data.role)     localStorage.setItem('epresensi_user_role', data.role);
         if (data.schoolId) localStorage.setItem('epresensi_school_id', data.schoolId);
         else               localStorage.removeItem('epresensi_school_id');
+        // Simpan nama user: gunakan nama dari server atau derivasi dari email
+        const displayName = data.nama || data.name ||
+          (email ? email.split('@')[0].split('.').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') : 'Admin');
+        localStorage.setItem('epresensi_user_name',  displayName);
+        localStorage.setItem('epresensi_user_email', email);
         checkAppAuth();
-        applyRoleUI(data.role); // update tampilan sesuai role baru
-        showToast(`Selamat datang, ${data.role === 'super_admin' ? 'Super Admin' : 'Admin Sekolah'}!`, 'success');
+        applyRoleUI(data.role);
+        showToast(`Selamat datang, ${displayName}!`, 'success');
         requestNotificationPermission();
 
         // Selalu load status & monitoring untuk semua role (termasuk super_admin)
@@ -157,22 +162,58 @@ if (gatekeeperForm) {
 }
 
 // ─── Role-based UI ────────────────────────────────────────────────────────────
+// ─── Page Title Map per tab ──────────────────────────────────────────────────
+const TAB_TITLE_MAP = {
+  superadmin:  ['Dashboard',       'Ringkasan sistem presensi guru'],
+  monitoring:  ['Presensi',        'Monitoring kehadiran rekan guru hari ini'],
+  recipients:  ['Guru',            'Kelola daftar penerima notifikasi WhatsApp'],
+  config:      ['WhatsApp Bot',    'Konfigurasi gateway & scheduler otomatis'],
+  kalender:    ['Scheduler',       'Jadwal otomatis & kalender pengiriman'],
+  template:    ['Template Pesan',  'Atur template pesan WhatsApp'],
+  logs:        ['Laporan',         'Riwayat pengiriman & log aktivitas sistem'],
+  graph:       ['Graph',           'Peta arsitektur knowledge graph'],
+};
+
+function updateTopbarTitle(tab) {
+  const [title, sub] = TAB_TITLE_MAP[tab] || ['Dashboard',''];
+  const titleEl = document.getElementById('topbarPageTitle');
+  const subEl   = document.getElementById('topbarSubtitle');
+  if (titleEl) titleEl.textContent = title;
+  if (subEl)   subEl.textContent   = sub;
+}
+
 function applyRoleUI(role) {
   role = role || localStorage.getItem('epresensi_user_role') || 'school_admin';
   const navSA = document.getElementById('navSuperAdmin');
   window.isSuperAdmin = (role === 'super_admin');
 
+  // Populate sidebar user card + topbar user profile
+  const userName   = localStorage.getItem('epresensi_user_name')  || (role === 'super_admin' ? 'Super Admin' : 'Admin Sekolah');
+  const userEmail  = localStorage.getItem('epresensi_user_email') || '';
+  const initials   = userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || 'SA';
+  const roleLabel  = role === 'super_admin' ? 'Super Admin' : 'Admin Sekolah';
+
+  // Sidebar user card
+  const sbName   = document.getElementById('sidebarUserName');
+  const sbAvatar = document.getElementById('sidebarUserAvatar');
+  const sbRole   = document.getElementById('sidebarUserRoleText');
+  if (sbName)   sbName.textContent   = userName;
+  if (sbAvatar) sbAvatar.textContent = initials;
+  if (sbRole)   sbRole.textContent   = roleLabel;
+
+  // Topbar user profile
+  const tbAvatar   = document.getElementById('topbarUserAvatar');
+  const tbName2    = document.getElementById('topbarSchoolName');
+  const tbRoleLbl  = document.getElementById('topbarUserRoleLabel');
+  if (tbAvatar)  tbAvatar.textContent  = initials;
+  if (tbName2)   tbName2.textContent   = userName;
+  if (tbRoleLbl) tbRoleLbl.textContent = roleLabel;
+
   if (role === 'super_admin') {
     if (navSA) navSA.style.display = '';
-    // Ubah nama sekolah di topbar menjadi Super Admin
-    const tbName = document.getElementById('topbarSchoolName');
-    if (tbName) tbName.textContent = 'PANEL SUPER ADMIN';
-    
-    // Tampilkan badge di sidebar
-    const roleBadge = document.getElementById('sidebarRoleBadge');
-    if (roleBadge) roleBadge.style.display = 'inline-block';
+    // Sidebar brand
     const sidebarBrand = document.getElementById('sidebarBrandSubtitle');
-    if (sidebarBrand) sidebarBrand.textContent = 'Multi-Tenant System';
+    if (sidebarBrand) sidebarBrand.textContent = 'Guru';
 
     // Sembunyikan referensi SMKN 3 Magelang di panel lain
     const monitoringDesc = document.getElementById('monitoringPanelDesc');
@@ -180,7 +221,7 @@ function applyRoleUI(role) {
     const templateAlertName = document.getElementById('templateAlertSchoolName');
     if (templateAlertName) templateAlertName.textContent = 'Sekolah';
 
-    // Restore tab dari localStorage, atau default ke superadmin jika belum ada
+    // Restore tab dari localStorage, atau default ke superadmin
     setTimeout(() => {
       const savedTab = (() => { try { return localStorage.getItem('epresensi_active_tab'); } catch(_) { return null; } })();
       const targetTab = savedTab || 'superadmin';
@@ -190,26 +231,14 @@ function applyRoleUI(role) {
         const saTab = document.querySelector('[data-tab="superadmin"]');
         if (saTab) saTab.click();
       }
-      // Load data Super Admin
       if (window._saasLoadStats)   window._saasLoadStats();
       if (window._saasLoadSchools) window._saasLoadSchools();
     }, 300);
   } else {
     if (navSA) navSA.style.display = 'none';
-    const tbName = document.getElementById('topbarSchoolName');
-    if (tbName && tbName.textContent === 'PANEL SUPER ADMIN') {
-       tbName.textContent = 'SMKN 3 MAGELANG';
-    }
-    
-    // Sembunyikan badge di sidebar
-    const roleBadge = document.getElementById('sidebarRoleBadge');
-    if (roleBadge) roleBadge.style.display = 'none';
     const sidebarBrand = document.getElementById('sidebarBrandSubtitle');
-    if (sidebarBrand && sidebarBrand.textContent === 'Multi-Tenant System') {
-      sidebarBrand.textContent = 'SMKN 3 MAGELANG';
-    }
+    if (sidebarBrand) sidebarBrand.textContent = 'Guru';
 
-    // Kembalikan referensi SMKN 3 Magelang di panel lain
     const monitoringDesc = document.getElementById('monitoringPanelDesc');
     if (monitoringDesc && monitoringDesc.textContent === 'Daftar presensi real-time seluruh guru & staf.') {
       monitoringDesc.textContent = 'Daftar presensi real-time seluruh guru & staf SMKN 3 Magelang.';
@@ -692,6 +721,8 @@ window.switchNavTab = function(tabName) {
   }
   // Simpan tab aktif ke localStorage
   try { localStorage.setItem('epresensi_active_tab', targetTab); } catch(_) {}
+  // Update topbar title dinamis
+  if (typeof updateTopbarTitle === 'function') updateTopbarTitle(targetTab);
   // Load data saat masuk ke tab tertentu
   if (targetTab === 'monitoring') { loadStatus(); loadColleagues(); }
   if (targetTab === 'config' || targetTab === 'template') loadConfig();
