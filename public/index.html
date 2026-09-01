@@ -233,84 +233,96 @@
             <span class="pulse-dot"></span>
             <span id="headerStatusText">Sistem Terhubung</span>
           </div>
+
+          <!-- User Profile -->
+          <div class="topbar-user-profile" id="topbarUserProfile">
+            <div class="topbar-user-avatar" id="topbarUserAvatar">SA</div>
+            <div class="topbar-user-info">
+              <div class="topbar-user-name" id="topbarSchoolName">Super Admin</div>
+              <div class="topbar-user-role" id="topbarUserRoleLabel">Panel Super Admin</div>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.5;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
         </div>
       </header>
 
       <div class="main-body-container">
 
-        <!-- ─── KPI Cards Premium ─────────────────────────────────────────── -->
-        <section class="kpi-grid">
-
-          <!-- KPI HERO: Kehadiran Hari Ini -->
-          <div class="kpi-hero-card">
-            <div class="kpi-hero-top">
-              <div>
-                <div class="kpi-hero-label">KEHADIRAN HARI INI</div>
-                <div class="kpi-hero-value" id="hudColleaguePercent">0%</div>
-                <div class="kpi-hero-fraction" id="hudColleagueFraction">0 / 0 Guru Hadir</div>
-              </div>
-              <svg class="donut-chart-svg" viewBox="0 0 36 36">
-                <path class="donut-bg" stroke-width="3.6" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                <path id="hudDonutProgress" class="donut-progress" stroke-dasharray="0, 100" stroke-width="3.6" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-              </svg>
-            </div>
-            <div class="kpi-progress-wrap">
-              <div class="kpi-progress-bar"><div class="kpi-progress-fill" id="hudProgressFill" style="width:0%"></div></div>
-              <div class="kpi-progress-meta">
-                <span id="hudHadirCount" style="color:#10b981;font-weight:600;">0 Hadir</span>
-                <span id="hudTidakHadirCount" style="color:#ef4444;">0 Tidak Hadir</span>
-              </div>
-            </div>
-            <div class="kpi-trend" id="hudTrendBadge" style="display:none;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-              <span id="hudTrendText">vs kemarin</span>
-            </div>
-          </div>
-
-          <!-- KPI: Status Pribadi -->
-          <div class="kpi-card kpi-purple">
-            <div class="kpi-card-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-            <div class="kpi-card-label">STATUS ANDA</div>
-            <div class="kpi-card-value" id="hudPersonalStatus">MEMUAT...</div>
-            <div class="kpi-card-sub" id="hudPersonalTime">Masuk: - &bull; Pulang: -</div>
-            <button class="kpi-card-action" id="btnCheckOnly">Cek Sekarang →</button>
-          </div>
-
-          <!-- KPI: Bot Scheduler -->
-          <div class="kpi-card kpi-green">
-            <div class="kpi-card-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <div class="kpi-card-label">BOT SCHEDULER</div>
-            <div class="kpi-card-value font-mono" id="hudBotTime">07:30 &amp; 18:00</div>
-            <div class="kpi-card-sub font-mono" id="hudBotCountdown">Countdown...</div>
-          </div>
-
-          <!-- KPI: Guru Terdaftar -->
-          <div class="kpi-card kpi-blue">
-            <div class="kpi-card-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <div class="kpi-card-label">GURU TERDAFTAR</div>
-            <div class="kpi-card-value font-mono" id="hudRecipientCount">0</div>
-            <div class="kpi-card-sub">Aktif menerima WA</div>
-          </div>
-
-        </section>
-
-        <!-- ─── Tab Content Panels ───────────────────────────────────────────── -->
+        <!-- Tab Content Panels -->
         <div class="main-panel-wrapper">
 
         <!-- TAB 1: Monitoring Rekan Guru -->
         <div class="tab-panel active" id="tab-monitoring">
+
+          <!-- ─── KPI Cards — hanya di tab Presensi ──────────────────────── -->
+          <section class="kpi-grid">
+
+            <!-- KPI HERO: Kehadiran Hari Ini -->
+            <div class="kpi-hero-card">
+              <div class="kpi-hero-top">
+                <div>
+                  <div class="kpi-hero-label">KEHADIRAN HARI INI</div>
+                  <div class="kpi-hero-value" id="hudColleaguePercent">0%</div>
+                  <div class="kpi-hero-fraction" id="hudColleagueFraction">0 / 0 Guru Hadir</div>
+                </div>
+                <svg class="donut-chart-svg" viewBox="0 0 36 36">
+                  <path class="donut-bg" stroke-width="3.6" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                  <path id="hudDonutProgress" class="donut-progress" stroke-dasharray="0, 100" stroke-width="3.6" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                </svg>
+              </div>
+              <div class="kpi-progress-wrap">
+                <div class="kpi-progress-bar"><div class="kpi-progress-fill" id="hudProgressFill" style="width:0%"></div></div>
+                <div class="kpi-progress-meta">
+                  <span id="hudHadirCount" style="color:#10b981;font-weight:600;">0 Hadir</span>
+                  <span id="hudTidakHadirCount" style="color:#ef4444;">0 Tidak Hadir</span>
+                </div>
+              </div>
+              <div class="kpi-trend" id="hudTrendBadge" style="display:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                <span id="hudTrendText">vs kemarin</span>
+              </div>
+            </div>
+
+            <!-- KPI: Status Pribadi -->
+            <div class="kpi-card kpi-purple">
+              <div class="kpi-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="kpi-card-label">STATUS ANDA</div>
+              <div class="kpi-card-value" id="hudPersonalStatus">MEMUAT...</div>
+              <div class="kpi-card-sub" id="hudPersonalTime">Masuk: - &bull; Pulang: -</div>
+              <button class="kpi-card-action" id="btnCheckOnly">Cek Sekarang →</button>
+            </div>
+
+            <!-- KPI: Bot Scheduler -->
+            <div class="kpi-card kpi-green">
+              <div class="kpi-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="kpi-card-label">BOT SCHEDULER</div>
+              <div class="kpi-card-value font-mono" id="hudBotTime">07:30 &amp; 18:00</div>
+              <div class="kpi-card-sub font-mono" id="hudBotCountdown">Countdown...</div>
+            </div>
+
+            <!-- KPI: Guru Terdaftar -->
+            <div class="kpi-card kpi-blue">
+              <div class="kpi-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="kpi-card-label">GURU TERDAFTAR</div>
+              <div class="kpi-card-value font-mono" id="hudRecipientCount">0</div>
+              <div class="kpi-card-sub">Aktif menerima WA</div>
+            </div>
+
+          </section>
+
+          <!-- Panel konten Monitoring -->
           <div class="glass-card">
-            
+
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">Monitoring Presensi Rekan Guru</h2>
-                <p class="panel-desc" id="monitoringPanelDesc">Daftar presensi real-time seluruh guru & staf SMKN 3 Magelang.</p>
+                <p class="panel-desc" id="monitoringPanelDesc">Daftar presensi real-time seluruh guru &amp; staf SMKN 3 Magelang.</p>
               </div>
               <div class="panel-actions">
                 <button class="modern-btn btn-purple" id="btnQuickSendUnabsent">
