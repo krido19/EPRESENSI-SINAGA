@@ -655,8 +655,8 @@ function setupScheduler() {
           }
           // Jeda antar sekolah — beri waktu Baileys flush signal sessions
           if (didRun && i < schools.length - 1) {
-            console.log(`[Scheduler] ⏳ Jeda 60 detik sebelum sekolah berikutnya...`);
-            await new Promise(r => setTimeout(r, 60000));
+            console.log(`[Scheduler] ⏳ Jeda 15 detik sebelum sekolah berikutnya...`);
+            await new Promise(r => setTimeout(r, 15000));
           }
         } catch (schoolErr) {
           console.error(`[Scheduler] Error pada ${cfg.namaSekolah}: ${schoolErr.message}`);
