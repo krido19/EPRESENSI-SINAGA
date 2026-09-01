@@ -14,6 +14,60 @@ const { addLog, logNotificationToSupabase }    = require('./logger');
 const { sendWhatsAppWithRetry, getWaState }    = require('./whatsapp');
 const { ensureTenantSession, fetchColleaguesAttendance } = require('./epresensi');
 
+// ─── Telegram Notifier (baca dari notification_logs Supabase) ─────────────────
+async function notifyTelegramFromLog(type, schoolName, schoolId) {
+  const token   = process.env.TELEGRAM_BOT_TOKEN;
+  const adminId = process.env.TELEGRAM_ADMIN_ID;
+  if (!token || !adminId) return;
+  try {
+    // Ambil log 5 menit terakhir untuk sekolah ini
+    const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    let q = supabase
+      .from('notification_logs')
+      .select('nama, nomor, status, type, created_at')
+      .eq('type', type)
+      .gte('created_at', since)
+      .order('created_at', { ascending: false });
+    if (schoolId && schoolId !== 'local') q = q.eq('school_id', schoolId);
+    const { data: logs, error } = await q;
+    if (error || !logs || logs.length === 0) return; // tidak ada log → skip
+
+    const sent   = logs.filter(l => l.status === 'sent');
+    const failed = logs.filter(l => l.status !== 'sent');
+
+    const TYPE_LABEL = {
+      pagi:           '🌅 Pagi',
+      siang:          '☀️ Siang',
+      pulang:         '🌆 Pulang',
+      rekap_mingguan: '📊 Rekap Mingguan',
+      rekap_bulanan:  '📅 Rekap Bulanan',
+    };
+    const wib    = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    const jamWIB = `${String(wib.getHours()).padStart(2,'0')}:${String(wib.getMinutes()).padStart(2,'0')}`;
+
+    let msg = `<b>📋 ePresensi — ${TYPE_LABEL[type] || type} ${jamWIB} WIB</b>\n`;
+    msg    += `<b>🏫 ${schoolName}</b>\n\n`;
+
+    if (sent.length > 0) {
+      msg += `✅ <b>Terkirim (${sent.length}):</b>\n`;
+      msg += sent.map(l => `  • ${l.nama}`).join('\n') + '\n';
+    }
+    if (failed.length > 0) {
+      msg += `\n❌ <b>Gagal (${failed.length}):</b>\n`;
+      msg += failed.map(l => `  • ${l.nama}`).join('\n') + '\n';
+    }
+
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ chat_id: adminId, text: msg, parse_mode: 'HTML' })
+    });
+    console.log(`[TG Notify] Laporan ${type} terkirim ke Telegram (${sent.length} sent, ${failed.length} failed).`);
+  } catch (e) {
+    console.error('[TG Notify] Gagal kirim ke Telegram:', e.message);
+  }
+}
+
 // ─── Scheduler State ──────────────────────────────────────────────────────────
 let masterCron          = null;
 let schedulerRunning    = false;
@@ -223,6 +277,12 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
 
   const summaryMsg = `${labelWaktu}: Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru.`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr });
+
+  // Kirim laporan ke Telegram (baca dari notification_logs)
+  const _schoolId = config?.schoolId || null;
+  const _school   = config?.namaSekolah || 'Semua Sekolah';
+  setTimeout(() => notifyTelegramFromLog(type, _school, _schoolId).catch(() => {}), 3000);
+
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
 
@@ -326,6 +386,10 @@ async function runWeeklyRekapLogic(cfg, isTest = false) {
   }
   const summaryMsg = `${labelWaktu}: Rekap terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
+
+  // Kirim laporan ke Telegram (baca dari notification_logs)
+  setTimeout(() => notifyTelegramFromLog('rekap_mingguan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {}), 3000);
+
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
 
@@ -516,6 +580,10 @@ async function runMonthlyRekapLogic(cfg, isTest = false) {
   }
   const summaryMsg = `${labelWaktu}: Rekap ${monthName} ${targetYear} terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
+
+  // Kirim laporan ke Telegram (baca dari notification_logs)
+  setTimeout(() => notifyTelegramFromLog('rekap_bulanan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {}), 3000);
+
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
 
