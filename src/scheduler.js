@@ -433,8 +433,10 @@ async function runMonthlyRekapLogic(cfg, isTest = false) {
   const now = new Date();
   const wib = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
 
-  const targetMonth = wib.getMonth() + 1;
-  const targetYear  = wib.getFullYear();
+  // Selalu rekap bulan SEBELUMNYA — bulan berjalan belum memiliki data lengkap
+  const prevDate    = new Date(wib.getFullYear(), wib.getMonth() - 1, 1);
+  const targetMonth = prevDate.getMonth() + 1;
+  const targetYear  = prevDate.getFullYear();
   const monthName   = MONTH_NAMES[targetMonth - 1];
   const startDate   = `${targetYear}-${String(targetMonth).padStart(2,'0')}-01`;
   const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
