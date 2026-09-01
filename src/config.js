@@ -19,6 +19,9 @@ const DEF_MSG_EXTERNAL_PULANG = "Halo {nama}! 👋\n\nIni pengingat absensi pula
 // ─── Default WA Template — Rekap Mingguan (Sabtu Pagi) ───────────────────────
 const DEF_MSG_REKAP_MINGGUAN = "Halo {nama}! 👋\n\n📊 *REKAP HADIR MINGGU INI*\n({tanggal_mulai} – {tanggal_selesai})\n\n{detail_hari}\n\n✅ Total hadir: {total_hadir}/{total_hari_kerja} hari kerja\n\nE-PRESENSI SINAGA";
 
+// ─── Default WA Template — Rekap Bulanan (Akhir Bulan) ──────────────────────
+const DEF_MSG_REKAP_BULANAN  = "Halo {nama}! 👋\n\n📊 *REKAP HADIR BULAN {nama_bulan} {tahun}*\n\n{detail_hari}\n\n✅ Total hadir: {total_hadir}/{total_hari_kerja} hari kerja\n\nE-PRESENSI SINAGA";
+
 // ─── Storage File Paths ───────────────────────────────────────────────────────
 const CONFIG_FILE = path.join(__dirname, '..', 'config.json');
 const LOG_FILE    = path.join(__dirname, '..', 'logs.json');
@@ -79,6 +82,7 @@ function loadConfig() {
     messageExternalSiang:    data.messageExternalSiang  || DEF_MSG_EXTERNAL_SIANG,
     messageExternalPulang:   data.messageExternalPulang || DEF_MSG_EXTERNAL_PULANG,
     messageRekapMingguan:    data.messageRekapMingguan  || DEF_MSG_REKAP_MINGGUAN,
+    messageRekapBulanan:     data.messageRekapBulanan   || DEF_MSG_REKAP_BULANAN,
     appPassword,
     namaSekolah:             data.namaSekolah || 'SMKN 3 MAGELANG',
     unitCode:                data.unitCode    || 'F208007700',
@@ -109,5 +113,5 @@ module.exports = {
   DEF_MSG_PAGI, DEF_MSG_PAGI_SUDAH, DEF_MSG_SIANG, DEF_MSG_SIANG_SUDAH,
   DEF_MSG_PULANG, DEF_MSG_PULANG_SUDAH, DEF_MSG,
   DEF_MSG_EXTERNAL_PAGI, DEF_MSG_EXTERNAL_SIANG, DEF_MSG_EXTERNAL_PULANG,
-  DEF_MSG_REKAP_MINGGUAN
+  DEF_MSG_REKAP_MINGGUAN, DEF_MSG_REKAP_BULANAN
 };

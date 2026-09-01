@@ -7,7 +7,7 @@ const {
   DEF_MSG_PAGI, DEF_MSG_PAGI_SUDAH, DEF_MSG_SIANG, DEF_MSG_SIANG_SUDAH,
   DEF_MSG_PULANG, DEF_MSG_PULANG_SUDAH, DEF_MSG,
   DEF_MSG_EXTERNAL_PAGI, DEF_MSG_EXTERNAL_SIANG, DEF_MSG_EXTERNAL_PULANG,
-  DEF_MSG_REKAP_MINGGUAN
+  DEF_MSG_REKAP_MINGGUAN, DEF_MSG_REKAP_BULANAN
 } = require('./config');
 const { supabase }                             = require('./supabase');
 const { addLog, logNotificationToSupabase }    = require('./logger');
@@ -387,6 +387,136 @@ async function runDailyArchiverLogic(cfg) {
   return { success: true, message: `Berhasil mengarsipkan ${inserted} data guru.` };
 }
 
+// ─── buildMonthlyRekapMessage ─────────────────────────────────────────────────
+function buildMonthlyRekapMessage(target, template, monthName, year) {
+  const STATUS_EMOJI = { 'Hadir': '✅', 'Terlambat': '⏰', 'Belum Absen': '❌', 'Sakit': '🤒', 'Izin': '📋', 'Cuti': '🏖️', 'Dinas Luar': '🚗', 'Tugas Luar': '🚗', 'Libur (OFF)': '🏖️', 'Libur (Hari Besar Nasional)': '🎉', 'Belum Jadwal': '⏳' };
+  if (target.isExternal) {
+    return `Halo ${target.nama}! 👋\n\n📊 *REKAP BULAN ${monthName} ${year}*\nPengingat rekap absensi bulan ini untuk ${target.sekolahAsal || 'Sekolah Anda'}.\nSilakan cek sistem absensi sekolah Anda.\n\nE-PRESENSI SINAGA`;
+  }
+  const history = target.history || [];
+  let totalHadir = 0, totalHariKerja = 0;
+  const lines = [];
+  for (const entry of history) {
+    if (entry.isWeekend) continue;
+    const tglStr   = String(entry.tanggal).padStart(2,'0') + '/' + String(entry.bulan).padStart(2,'0');
+    const isLibur  = entry.status && entry.status.startsWith('Libur');
+    if (isLibur) {
+      lines.push(`• ${entry.hari.padEnd(7,' ')} ${tglStr} 🎉 ${entry.status === 'Libur (Hari Besar Nasional)' ? 'Libur Nasional' : entry.status}`);
+      continue;
+    }
+    totalHariKerja++;
+    const emoji = STATUS_EMOJI[entry.status] || '❓';
+    let jamInfo = '';
+    if ((entry.isHadir || entry.status === 'Terlambat') && entry.jamMasuk && entry.jamMasuk !== '-') {
+      jamInfo = ' (' + entry.jamMasuk;
+      if (entry.jamPulang && entry.jamPulang !== '-') jamInfo += '–' + entry.jamPulang;
+      jamInfo += ')';
+    }
+    lines.push(`• ${entry.hari.padEnd(7,' ')} ${tglStr} ${emoji} ${entry.status || 'Belum Ada Data'}${jamInfo}`);
+    if (entry.isHadir) totalHadir++;
+  }
+  if (lines.length === 0) lines.push('(Tidak ada data hari kerja bulan ini)');
+  return template
+    .replace(/\{nama\}/gi, target.nama)
+    .replace(/\{nama_bulan\}/gi, monthName)
+    .replace(/\{tahun\}/gi, String(year))
+    .replace(/\{detail_hari\}/gi, lines.join('\n'))
+    .replace(/\{total_hadir\}/gi, String(totalHadir))
+    .replace(/\{total_hari_kerja\}/gi, String(totalHariKerja));
+}
+
+// ─── runMonthlyRekapLogic ─────────────────────────────────────────────────────
+async function runMonthlyRekapLogic(cfg, isTest = false) {
+  const MONTH_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const labelWaktu = '📅 Rekap Bulanan' + (isTest ? ' (Test)' : '');
+  const now = new Date();
+  const wib = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+
+  const targetMonth = wib.getMonth() + 1;
+  const targetYear  = wib.getFullYear();
+  const monthName   = MONTH_NAMES[targetMonth - 1];
+  const startDate   = `${targetYear}-${String(targetMonth).padStart(2,'0')}-01`;
+  const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+  const endDate     = `${targetYear}-${String(targetMonth).padStart(2,'0')}-${String(daysInMonth).padStart(2,'0')}`;
+
+  addLog({ type: 'info', message: `${labelWaktu}: Memulai rekap ${monthName} ${targetYear} untuk ${cfg.namaSekolah}…`, school: cfg.namaSekolah });
+  console.log(`[MonthlyRekap] ${cfg.namaSekolah}: ${startDate} s/d ${endDate}`);
+
+  const validSchoolId = cfg.schoolId && cfg.schoolId !== 'local' ? cfg.schoolId : null;
+
+  let qRecords = supabase.from('attendance_records').select('*').gte('tanggal', startDate).lte('tanggal', endDate);
+  if (validSchoolId) qRecords = qRecords.eq('school_id', validSchoolId);
+  else               qRecords = qRecords.is('school_id', null);
+  const { data: recordsData, error } = await qRecords;
+  if (error || !recordsData) {
+    addLog({ type: 'warning', message: `${labelWaktu}: Gagal ambil data Supabase (${error?.message || 'unknown'}).`, school: cfg.namaSekolah });
+    return { success: false, error: 'Database error' };
+  }
+
+  let q = supabase.from('recipients').select('*').eq('aktif', true).eq('is_external', false);
+  if (validSchoolId) q = q.eq('school_id', validSchoolId);
+  const { data: recipientsData } = await q;
+  const registered = recipientsData || [];
+
+  const targets = [];
+  for (const r of registered) {
+    const cleanR = r.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const teacherRecords = recordsData.filter(rec => {
+      const cleanGuru = rec.nama.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return cleanGuru.includes(cleanR) || cleanR.includes(cleanGuru);
+    });
+    // Bangun history harian lengkap
+    const history = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj   = new Date(targetYear, targetMonth - 1, d);
+      const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+      const tglStr    = `${targetYear}-${String(targetMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const rec       = teacherRecords.find(r2 => r2.tanggal === tglStr);
+      history.push({
+        tanggal:   d,
+        bulan:     targetMonth,
+        hari:      DAYS[dateObj.getDay()],
+        isWeekend,
+        status:    rec?.status    || (isWeekend ? 'Libur (OFF)' : 'Belum Ada Data'),
+        isHadir:   rec ? (rec.status.toLowerCase().includes('hadir') || rec.status === 'Terlambat') : false,
+        jamMasuk:  rec?.jam_masuk  || null,
+        jamPulang: rec?.jam_pulang || null,
+      });
+    }
+    targets.push({ nama: r.nama, nomor: r.nomor, history });
+  }
+
+  // Penerima eksternal
+  let qExt = supabase.from('recipients').select('*').eq('aktif', true).eq('is_external', true);
+  if (validSchoolId) qExt = qExt.eq('school_id', validSchoolId);
+  const { data: extData } = await qExt;
+  for (const ext of (extData || [])) {
+    if (!targets.some(t => t.nomor === ext.nomor)) {
+      targets.push({ nama: ext.nama, nomor: ext.nomor, history: [], isExternal: true, sekolahAsal: ext.sekolah_asal || 'Sekolah Anda' });
+    }
+  }
+
+  if (targets.length === 0) {
+    addLog({ type: 'info', message: `${labelWaktu}: Tidak ada penerima terdaftar.`, school: cfg.namaSekolah });
+    return { success: true, sent: 0, total: 0, message: 'Tidak ada penerima.' };
+  }
+
+  const msgTemplate = cfg.messageRekapBulanan || DEF_MSG_REKAP_BULANAN;
+  let sentCount = 0;
+  const logsArr = [];
+  for (const t of targets) {
+    const msg  = buildMonthlyRekapMessage(t, msgTemplate, monthName, targetYear);
+    const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
+    if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
+    logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_bulanan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
+    await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+  }
+  const summaryMsg = `${labelWaktu}: Rekap ${monthName} ${targetYear} terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
+  addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
+  return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
+}
+
 // ─── setupScheduler ───────────────────────────────────────────────────────────
 function setupScheduler() {
   if (masterCron) { masterCron.stop(); masterCron = null; console.log('[Scheduler] Cron lama dihentikan, memulai ulang...'); }
@@ -470,7 +600,7 @@ function invalidateSchoolsCache() {
 
 module.exports = {
   getActiveSchools, buildTenantCfg, setupScheduler,
-  runSchedulerLogic, runWeeklyRekapLogic,
+  runSchedulerLogic, runWeeklyRekapLogic, runMonthlyRekapLogic,
   runBackfillLogic, runDailyArchiverLogic,
-  buildWeeklyRekapMessage, invalidateSchoolsCache
+  buildWeeklyRekapMessage, buildMonthlyRekapMessage, invalidateSchoolsCache
 };

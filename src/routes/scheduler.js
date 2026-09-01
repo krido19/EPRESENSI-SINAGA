@@ -5,7 +5,7 @@ const router = Router();
 const { loadConfig, saveConfig }  = require('../config');
 const { supabase }                = require('../supabase');
 const { addLog }                  = require('../logger');
-const { getActiveSchools, buildTenantCfg, runWeeklyRekapLogic, runDailyArchiverLogic, runBackfillLogic, runSchedulerLogic } = require('../scheduler');
+const { getActiveSchools, buildTenantCfg, runWeeklyRekapLogic, runMonthlyRekapLogic, runDailyArchiverLogic, runBackfillLogic, runSchedulerLogic } = require('../scheduler');
 
 // POST /api/scheduler/run-now
 router.post('/run-now', async (req, res) => {
@@ -23,6 +23,19 @@ router.post('/run-now', async (req, res) => {
         results.push({ sekolah: cfg.namaSekolah, ...result });
       }
       return res.json({ success: true, message: `Rekap mingguan selesai. Total ${totalSent} pesan terkirim.`, results });
+    }
+    if (type === 'rekap_bulanan') {
+      const schools = await getActiveSchools();
+      if (!schools || schools.length === 0) return res.json({ success: false, error: 'Tidak ada sekolah aktif di database.' });
+      let totalSent = 0;
+      const results = [];
+      for (const schoolRow of schools) {
+        const cfg    = buildTenantCfg(schoolRow);
+        const result = await runMonthlyRekapLogic(cfg, true); // true = isTest
+        totalSent   += result.sent || 0;
+        results.push({ sekolah: cfg.namaSekolah, ...result });
+      }
+      return res.json({ success: true, message: `Rekap bulanan selesai. Total ${totalSent} pesan terkirim.`, results });
     }
     if (type === 'archiver') {
       const schools = await getActiveSchools();

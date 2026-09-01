@@ -2586,10 +2586,11 @@ if (configForm) {
 async function runNowScheduler(type) {
   const btn = type === 'pagi'
     ? document.getElementById('btnRunNowPagi')
-    : type === 'rekap_mingguan' ? document.getElementById('btnRunNowRekap')
+    : type === 'rekap_mingguan'  ? document.getElementById('btnRunNowRekap')
+    : type === 'rekap_bulanan'   ? document.getElementById('btnRunNowRekapBulanan')
     : type === 'archiver' ? document.getElementById('btnRunNowArchiver')
     : type === 'backfill' ? document.getElementById('btnRunNowBackfill') : document.getElementById('btnRunNowPulang');
-  const label = type === 'pagi' ? '🌅 Pagi' : type === 'rekap_mingguan' ? '📊 Rekap' : type === 'archiver' ? '💾 Arsip' : type === 'backfill' ? '🚀 Backfill' : '🌆 Pulang';
+  const label = type === 'pagi' ? '🌅 Pagi' : type === 'rekap_mingguan' ? '📊 Rekap Mingguan' : type === 'rekap_bulanan' ? '📅 Rekap Bulanan' : type === 'archiver' ? '💾 Arsip' : type === 'backfill' ? '🚀 Backfill' : '🌆 Pulang';
   const origText = btn?.innerHTML;
   if (btn) { btn.disabled = true; btn.innerHTML = `⏳ Mengirim ${label}...`; }
   
@@ -2624,16 +2625,18 @@ async function runNowScheduler(type) {
   }
 }
 
-const btnRunNowPagi   = document.getElementById('btnRunNowPagi');
-const btnRunNowPulang = document.getElementById('btnRunNowPulang');
-const btnRunNowRekap  = document.getElementById('btnRunNowRekap');
-const btnRunNowArchiver = document.getElementById('btnRunNowArchiver');
-const btnRunNowBackfill = document.getElementById('btnRunNowBackfill');
-if (btnRunNowPagi)   btnRunNowPagi.addEventListener('click',   () => runNowScheduler('pagi'));
-if (btnRunNowPulang) btnRunNowPulang.addEventListener('click', () => runNowScheduler('pulang'));
-if (btnRunNowRekap)  btnRunNowRekap.addEventListener('click',  () => runNowScheduler('rekap_mingguan'));
-if (btnRunNowArchiver) btnRunNowArchiver.addEventListener('click', () => runNowScheduler('archiver'));
-if (btnRunNowBackfill) btnRunNowBackfill.addEventListener('click', () => runNowScheduler('backfill'));
+const btnRunNowPagi         = document.getElementById('btnRunNowPagi');
+const btnRunNowPulang       = document.getElementById('btnRunNowPulang');
+const btnRunNowRekap        = document.getElementById('btnRunNowRekap');
+const btnRunNowRekapBulanan = document.getElementById('btnRunNowRekapBulanan');
+const btnRunNowArchiver     = document.getElementById('btnRunNowArchiver');
+const btnRunNowBackfill     = document.getElementById('btnRunNowBackfill');
+if (btnRunNowPagi)         btnRunNowPagi.addEventListener('click',         () => runNowScheduler('pagi'));
+if (btnRunNowPulang)       btnRunNowPulang.addEventListener('click',       () => runNowScheduler('pulang'));
+if (btnRunNowRekap)        btnRunNowRekap.addEventListener('click',        () => runNowScheduler('rekap_mingguan'));
+if (btnRunNowRekapBulanan) btnRunNowRekapBulanan.addEventListener('click', () => runNowScheduler('rekap_bulanan'));
+if (btnRunNowArchiver)     btnRunNowArchiver.addEventListener('click',     () => runNowScheduler('archiver'));
+if (btnRunNowBackfill)     btnRunNowBackfill.addEventListener('click',     () => runNowScheduler('backfill'));
 
 if (btnTestLogin) {
   btnTestLogin.addEventListener('click', async () => {
