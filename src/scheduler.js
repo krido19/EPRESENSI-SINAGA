@@ -224,11 +224,16 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
     console.log(`[Scheduler DEBUG] schoolId saat query: ${validSchoolId || 'semua sekolah'} (sekolah: ${config.namaSekolah})`);
     if (validSchoolId) q = q.eq('school_id', validSchoolId);
     const { data, error } = await q;
-    if (error) console.error('[Scheduler] Error query recipients:', error.message);
+    if (error) {
+      // Supabase API/JWT error — bukan data kosong
+      console.error(`[Scheduler] ❌ Supabase ERROR (bukan data kosong): ${error.message} | code: ${error.code} | school: ${config.namaSekolah}`);
+      addLog({ type: 'error', message: `${labelWaktu}: Gagal query penerima dari Supabase (${error.code || error.message}). Kemungkinan issue JWT/API Supabase.`, school: config.namaSekolah });
+    }
     const allRecipients = data || [];
     if (allRecipients.length === 0) {
-      console.warn(`[Scheduler] ⚠️ Tabel 'recipients' kosong untuk school_id=${config.schoolId || 'semua'}.`);
-      addLog({ type: 'warning', message: `${labelWaktu}: Tidak ada penerima WA terdaftar.`, school: config.namaSekolah });
+      const reason = error ? 'Query Supabase gagal (JWT/API error)' : `Tidak ada data di tabel recipients untuk school_id=${validSchoolId || 'semua'}`;
+      console.warn(`[Scheduler] ⚠️ Recipients nol untuk ${config.namaSekolah}. Alasan: ${reason}`);
+      addLog({ type: 'warning', message: `${labelWaktu}: Tidak ada penerima WA. ${reason}.`, school: config.namaSekolah });
     } else {
       targets = allRecipients.map(r => ({ nama: r.nama, nomor: r.nomor, isHadir: false, isExternal: false }));
     }
