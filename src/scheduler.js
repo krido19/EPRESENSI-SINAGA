@@ -545,7 +545,7 @@ function setupScheduler() {
       if (!schools.length) return;
 
       // ── Rekap Bulanan Otomatis — tanggal 1 setiap bulan jam 07:00 WIB ──
-      if (wib.getDate() === 1 && H === 7 && M === 0) {
+      if (wib.getDate() === 1 && H === 7 && M === 10) {
         console.log(`[Scheduler 📅 Rekap Bulanan] Tanggal 1 — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
         for (const schoolRow of schools) {
           const bulananCfg = buildTenantCfg(schoolRow);
