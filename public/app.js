@@ -1262,7 +1262,22 @@ function applyColleaguesData(data) {
 
   if (hudColleaguePercent) hudColleaguePercent.textContent = `${percentage}%`;
   if (hudColleagueFraction) hudColleagueFraction.textContent = `${hadir} / ${total} Guru Hadir`;
-  
+
+  // KPI Hero Card extras
+  const progressFill   = document.getElementById('hudProgressFill');
+  const hadirCount     = document.getElementById('hudHadirCount');
+  const tidakHadirCount= document.getElementById('hudTidakHadirCount');
+  const trendBadge     = document.getElementById('hudTrendBadge');
+  const trendText      = document.getElementById('hudTrendText');
+  if (progressFill)    progressFill.style.width = `${percentage}%`;
+  if (hadirCount)      hadirCount.textContent    = `${hadir} Hadir`;
+  if (tidakHadirCount) tidakHadirCount.textContent = `${total - hadir} Tidak Hadir`;
+  // Tampilkan trend badge jika ada data
+  if (trendBadge && total > 0) {
+    trendBadge.style.display = 'inline-flex';
+    if (trendText) trendText.textContent = `${percentage}% kehadiran hari ini`;
+  }
+
   const btnDownloadTemplate = document.getElementById('btnDownloadTemplate');
   if (btnDownloadTemplate) btnDownloadTemplate.innerHTML = `📥 Unduh Template (${total} Guru)`;
   
