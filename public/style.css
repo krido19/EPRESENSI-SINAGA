@@ -1,7 +1,7 @@
-/* ═══════════════════════════════════════════════════════════════════════════════
-   ULTRA-PREMIUM MODERN SAAS DASHBOARD — ePresensi Jateng
-   Vibrant Purple Violet Mesh • Dark Glassmorphism • Plus Jakarta Sans
-═══════════════════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ULTRA-PREMIUM MODERN SAAS DASHBOARD â€” ePresensi Jateng
+   Vibrant Purple Violet Mesh â€¢ Dark Glassmorphism â€¢ Plus Jakarta Sans
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 :root {
   /* Dark Mode (Default) Design Tokens */
@@ -54,7 +54,7 @@
   --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ─── Light Mode Theme System ─────────────────────────────────────────────── */
+/* â”€â”€â”€ Light Mode Theme System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [data-theme="light"] {
   --bg-main: #f8fafc;
   --bg-card: rgba(255, 255, 255, 0.9);
@@ -219,7 +219,7 @@
   scrollbar-color: rgba(168, 85, 247, 0.25) transparent;
 }
 
-/* ─── Ultra-Sleek Modern Custom Scrollbar (Eliminate Clunky Native Scrollbars) ─ */
+/* â”€â”€â”€ Ultra-Sleek Modern Custom Scrollbar (Eliminate Clunky Native Scrollbars) â”€ */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -303,7 +303,7 @@ html, body {
 .mt-4 { margin-top: 1rem; }
 .mt-5 { margin-top: 1.25rem; }
 
-/* ─── Dashboard Root Layout (Left Sidebar + Main Content) ─────────────────── */
+/* â”€â”€â”€ Dashboard Root Layout (Left Sidebar + Main Content) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dashboard-root {
   display: flex;
   min-height: 100vh;
@@ -312,7 +312,7 @@ html, body {
   z-index: 1;
 }
 
-/* ─── Mobile & Drawer Backdrop ────────────────────────────────────────────── */
+/* â”€â”€â”€ Mobile & Drawer Backdrop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar-backdrop {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -329,7 +329,48 @@ html, body {
   pointer-events: auto;
 }
 
-/* ─── Left Sidebar (With Smooth Collapsible Auto-Hide) ────────────────────── */
+.dashboard-root.sidebar-collapsed .dashboard-sidebar {
+  width: 64px;
+  padding: 20px 10px 16px;
+}
+
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover {
+  width: 230px;
+  padding: 20px 14px 16px;
+  box-shadow: 12px 0 40px rgba(0,0,0,0.8), 0 0 30px rgba(168,85,247,0.2);
+}
+
+.dashboard-root.sidebar-collapsed .dashboard-main {
+  margin-left: 64px;
+}
+
+.dashboard-root.sidebar-collapsed .nav-text,
+.dashboard-root.sidebar-collapsed .brand-info,
+.dashboard-root.sidebar-collapsed .menu-label,
+.dashboard-root.sidebar-collapsed .sidebar-sched-mini,
+.dashboard-root.sidebar-collapsed .sidebar-user-info {
+  display: none;
+}
+
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .nav-text,
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .brand-info,
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .menu-label,
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-sched-mini,
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-user-info {
+  display: block;
+}
+
+.dashboard-root.sidebar-collapsed .sidebar-user-card { padding: 8px; justify-content: center; }
+.dashboard-root.sidebar-collapsed .sidebar-brand { padding-bottom: 12px; justify-content: center; }
+.dashboard-root.sidebar-collapsed .nav-item { justify-content: center; padding: 10px; }
+.dashboard-root.sidebar-collapsed .nav-item.active::before { display: none; }
+
+.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-menu .nav-item {
+  justify-content: flex-start;
+  padding: 9px 10px;
+}
+
+/* â”€â”€â”€ Left Sidebar (With Smooth Collapsible Auto-Hide) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dashboard-sidebar {
   width: 230px;
   background: #0d0f1a;
@@ -346,53 +387,9 @@ html, body {
   transition: width 0.3s cubic-bezier(0.16,1,0.3,1), transform 0.3s cubic-bezier(0.16,1,0.3,1);
 }
 
-/* Collapsed Desktop State */
-.dashboard-root.sidebar-collapsed .dashboard-sidebar {
-  width: 78px;
-  padding: 24px 12px 20px;
 }
 
-.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover {
-  width: 230px;
-  padding: 20px 14px 16px;
-  box-shadow: 12px 0 40px rgba(0,0,0,0.8), 0 0 30px rgba(168,85,247,0.2);
-}
-
-.dashboard-root.sidebar-collapsed .dashboard-main {
-  margin-left: 78px;
-}
-
-.dashboard-root.sidebar-collapsed .sidebar-brand .brand-info,
-.dashboard-root.sidebar-collapsed .sidebar-menu .nav-text,
-.dashboard-root.sidebar-collapsed .menu-label,
-.dashboard-root.sidebar-collapsed .sidebar-widget,
-.dashboard-root.sidebar-collapsed .bot-txt {
-  opacity: 0;
-  pointer-events: none;
-  display: none;
-}
-
-.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-brand .brand-info,
-.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-menu .nav-text,
-.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .menu-label,
-.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-widget,
-.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .bot-txt {
-  opacity: 1;
-  pointer-events: auto;
-  display: block;
-}
-
-.dashboard-root.sidebar-collapsed .sidebar-menu .nav-item {
-  justify-content: center;
-  padding: 12px 0;
-}
-
-.dashboard-root.sidebar-collapsed .dashboard-sidebar:hover .sidebar-menu .nav-item {
-  justify-content: flex-start;
-  padding: 12px 14px;
-}
-
-/* ─── Animated Hamburger Button ───────────────────────────────────────────── */
+/* â”€â”€â”€ Animated Hamburger Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .hamburger-btn {
   width: 38px;
   height: 38px;
@@ -628,7 +625,7 @@ html, body {
   flex-direction: column;
 }
 
-/* ─── Main Content Workspace ─────────────────────────────────────────────── */
+/* â”€â”€â”€ Main Content Workspace â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dashboard-main {
   flex: 1;
   margin-left: 230px;
@@ -683,7 +680,7 @@ html, body {
   width: 100%;
 }
 
-/* ─── Metric Cards Grid ────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Metric Cards Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -802,7 +799,7 @@ html, body {
   flex-wrap: wrap;
 }
 
-/* ─── Progress Bar ─────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Progress Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .progress-section {
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--border-glass);
@@ -833,7 +830,7 @@ html, body {
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ─── Filter Toolbar ───────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Filter Toolbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .filter-toolbar {
   display: flex;
   justify-content: space-between;
@@ -916,7 +913,7 @@ html, body {
   width: 170px;
 }
 
-/* ─── Date Strip Section (full width row above filter pills) ───────────────── */
+/* â”€â”€â”€ Date Strip Section (full width row above filter pills) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .date-strip-section {
   display: flex !important;
   flex-direction: row !important;
@@ -962,7 +959,7 @@ html, body {
 }
 
 
-/* ─── Modern Tables ────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Modern Tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .table-container {
   max-height: 520px;
   overflow-x: auto;
@@ -1080,7 +1077,7 @@ html, body {
   flex-wrap: wrap;
 }
 
-/* ─── Avatar Inisial Berwarna ─────────────────────────────────────────────── */
+/* â”€â”€â”€ Avatar Inisial Berwarna â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .teacher-avatar-wrap {
   display: flex;
   align-items: center;
@@ -1103,7 +1100,7 @@ html, body {
   text-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
 
-/* ─── SVG Donut Chart Metric ───────────────────────────────────────────────── */
+/* â”€â”€â”€ SVG Donut Chart Metric â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .metric-donut-wrap {
   display: flex;
   align-items: center;
@@ -1131,7 +1128,7 @@ html, body {
   filter: drop-shadow(0 0 6px var(--purple-500));
 }
 
-/* ─── Shimmer Skeleton Loading ─────────────────────────────────────────────── */
+/* â”€â”€â”€ Shimmer Skeleton Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .skeleton-box {
   background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.03) 75%);
   background-size: 200% 100%;
@@ -1150,7 +1147,7 @@ html, body {
   100% { background-position: -200% 0; }
 }
 
-/* ─── Floating Batch Action Bar ────────────────────────────────────────────── */
+/* â”€â”€â”€ Floating Batch Action Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .floating-batch-bar {
   position: fixed;
   bottom: 24px;
@@ -1188,7 +1185,7 @@ html, body {
   color: var(--purple-400);
 }
 
-/* ─── Theme Switcher Toggle Button ─────────────────────────────────────────── */
+/* â”€â”€â”€ Theme Switcher Toggle Button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .theme-toggle-btn {
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--border-glass);
@@ -1217,7 +1214,7 @@ html, body {
   cursor: pointer;
 }
 
-/* ─── Status Badges ────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Status Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .badge-status {
   display: inline-flex;
   align-items: center;
@@ -1396,7 +1393,7 @@ html, body {
   font-weight: 400;
 }
 
-/* ─── Right Sidebar ────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Right Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar-area {
   position: sticky;
   top: 20px;
@@ -1520,7 +1517,7 @@ html, body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-/* ─── Forms & Inputs ───────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Forms & Inputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .modern-form .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1808,7 +1805,7 @@ html, body {
   font-size: 0.85rem;
 }
 
-/* ─── Modals ───────────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -1961,7 +1958,7 @@ html, body {
   opacity: 1;
 }
 
-/* ─── Gatekeeper Access Screen (Landing) ─────────────────────────────────── */
+/* â”€â”€â”€ Gatekeeper Access Screen (Landing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .gatekeeper-screen {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -2066,16 +2063,16 @@ html, body {
 .text-left { text-align: left; }
 .mr-1 { margin-right: 4px; }
 
-/* ─────────────────────────────────────────────────────────────────────────────
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    RESPONSIVE BREAKPOINTS (PERFECT ON ALL DEVICES)
-───────────────────────────────────────────────────────────────────────────── */
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 @media (max-width: 1140px) {
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-/* ─── Responsive Adjustments ─────────────────────────────────────────────── */
+/* â”€â”€â”€ Responsive Adjustments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 1200px) {
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -2166,7 +2163,7 @@ html, body {
   }
 }
 
-/* ─── Graphify Knowledge Graph UI Styles ─────────────────────────────────── */
+/* â”€â”€â”€ Graphify Knowledge Graph UI Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .graph-view-btn {
   background: transparent;
   border: none;
@@ -2197,7 +2194,7 @@ html, body {
   background: rgba(0, 0, 0, 0.05) !important;
 }
 
-/* ─── Multi-School Switcher & Accounts UI ────────────────────────────────── */
+/* â”€â”€â”€ Multi-School Switcher & Accounts UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .school-switcher-btn {
   display: inline-flex;
   align-items: center;
@@ -2323,7 +2320,7 @@ html, body {
   color: var(--purple-700);
 }
 
-/* ─── 1-Month Analytics & Daily Chart Card ──────────────────────────────────── */
+/* â”€â”€â”€ 1-Month Analytics & Daily Chart Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .monthly-analytics-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -2678,7 +2675,7 @@ html, body {
   border-color: #e9d5ff;
 }
 
-/* ─── Modern Modal System (Overlay & Animations) ─────────────────────────── */
+/* â”€â”€â”€ Modern Modal System (Overlay & Animations) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -2804,7 +2801,7 @@ html, body {
   border-radius: var(--radius-md);
 }
 
-/* ─── Modern Horizontal Date Strip ───────────────────────────────────────── */
+/* â”€â”€â”€ Modern Horizontal Date Strip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 /* .date-strip-container (new) is the main flex row inside .date-strip-section */
 .date-strip-wrapper {
   display: flex;
@@ -2947,9 +2944,9 @@ html, body {
 [data-theme="light"] .date-pill.is-today .dp-num { color: #4c1d95; }
 [data-theme="light"] .date-pill.is-weekend { opacity: 0.45; }
 
-/* ══════════════════════════════════════════════════════════
-   KALENDER JADWAL — Calendar Component
-══════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   KALENDER JADWAL â€” Calendar Component
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .cal-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -3190,10 +3187,18 @@ html, body {
   font-weight: 600;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* ───────────────────────────────────────────────────────────────────────────── 
    MODERN SAAS REDESIGN — Sidebar, Topbar, Cards, Timeline
-   ═══════════════════════════════════════════════════════════════════════════ */
+   ─────────────────────────────────────────────────────────────────────────────  */
 
+/* ─── Mobile Sidebar ───────────────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  .dashboard-sidebar { transform: translateX(-100%); width: 240px; }
+  .dashboard-sidebar.mobile-open { transform: translateX(0); }
+  .dashboard-main { margin-left: 0; }
+  .topbar-search { max-width: 180px; }
+  .topbar-user-info, .topbar-user-profile > svg { display: none; }
+}
 
 .sidebar-brand {
   display: flex;
@@ -3337,7 +3342,7 @@ html, body {
 
 .sidebar-sched-mini { padding: 0 2px; }
 
-/* ─── Topbar Compact SaaS ──────────────────────────────────────────────────── */
+/* â”€â”€â”€ Topbar Compact SaaS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .main-topbar {
   padding: 12px 24px;
   display: flex;
@@ -3499,7 +3504,7 @@ html, body {
   line-height: 1;
 }
 
-/* ─── Collapsed Sidebar State ──────────────────────────────────────────────── */
+/* â”€â”€â”€ Collapsed Sidebar State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dashboard-root.sidebar-collapsed .dashboard-sidebar { width: 64px; padding: 20px 10px 16px; }
 .dashboard-root.sidebar-collapsed .dashboard-main    { margin-left: 64px; }
 .dashboard-root.sidebar-collapsed .nav-text,
@@ -3512,7 +3517,7 @@ html, body {
 .dashboard-root.sidebar-collapsed .nav-item { justify-content: center; padding: 10px; }
 .dashboard-root.sidebar-collapsed .nav-item.active::before { display: none; }
 
-/* ─── Light theme topbar ───────────────────────────────────────────────────── */
+/* â”€â”€â”€ Light theme topbar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 [data-theme="light"] .main-topbar {
   background: rgba(255,255,255,0.95);
   border-bottom: 1px solid rgba(0,0,0,0.08);
@@ -3529,7 +3534,7 @@ html, body {
 [data-theme="light"] .topbar-user-profile { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); }
 [data-theme="light"] .sidebar-user-card { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.08); }
 
-/* ─── Mobile Sidebar ───────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Mobile Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 960px) {
   .dashboard-sidebar { transform: translateX(-100%); width: 240px; }
   .dashboard-sidebar.mobile-open { transform: translateX(0); }
@@ -3539,9 +3544,9 @@ html, body {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    KPI CARDS PREMIUM LAYOUT
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .kpi-grid {
   display: grid;
@@ -3550,7 +3555,7 @@ html, body {
   margin-bottom: 24px;
 }
 
-/* ── Hero card (Kehadiran) ── */
+/* â”€â”€ Hero card (Kehadiran) â”€â”€ */
 .kpi-hero-card {
   background: linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(79,70,229,0.1) 100%);
   border: 1px solid rgba(139,92,246,0.3);
@@ -3646,7 +3651,7 @@ html, body {
   width: fit-content;
 }
 
-/* ── Small KPI cards ── */
+/* â”€â”€ Small KPI cards â”€â”€ */
 .kpi-card {
   border-radius: 14px;
   padding: 18px;
@@ -3752,9 +3757,9 @@ html, body {
 [data-theme="light"] .kpi-card-value { color: #111827; }
 
 
-/* ═══════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SUPERADMIN SCHOOL TABLE COMPONENTS
-   ═══════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* School avatar */
 .sa-school-avatar {
@@ -3785,7 +3790,7 @@ html, body {
 .sa-status-active   { background: #10b981; box-shadow: 0 0 5px #10b981; }
 .sa-status-inactive { background: #ef4444; }
 
-/* Action button ⋮ */
+/* Action button â‹® */
 .sa-action-btn {
   width: 32px; height: 32px; border-radius: 7px;
   border: 1px solid rgba(255,255,255,0.1);
