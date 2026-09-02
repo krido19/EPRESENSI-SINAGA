@@ -91,6 +91,7 @@ async function getActiveSchools() {
       .eq('scheduler_enabled', true);
 
     if (!error && data && data.length > 0) {
+      data.sort((a, b) => (a.schools?.name || '').localeCompare(b.schools?.name || '')); // SMK 1 sebelum SMK 3
       schoolsCache       = data;
       schoolsCacheExpiry = Date.now() + 60_000; // cache 1 menit (bukan 5) agar perubahan Supabase cepat aktif
       if (Date.now() - schoolsCacheLastLog > 60_000) {
