@@ -632,20 +632,37 @@ function setupScheduler() {
 
       // Sequential per sekolah — parallel menyebabkan Baileys crash lebih cepat (17s vs 57s)
       // Telegram di-await langsung setelah WA setiap sekolah (tidak pakai setTimeout)
-      for (const row of schools) {
+      for (let i = 0; i < schools.length; i++) {
+        const row = schools[i];
         const cfg = buildTenantCfg(row);
+
+        // ── Auto-offset jadwal: setiap sekolah +3 menit dari index ──────────────
+        const OFFSET_PER_SCHOOL = 3; // menit
+        function addOffset(hour, minute, offsetMin) {
+          const total = hour * 60 + minute + offsetMin;
+          return { hour: Math.floor(total / 60) % 24, minute: total % 60 };
+        }
+        const totalOffset     = i * OFFSET_PER_SCHOOL;
+        const effPagi         = addOffset(cfg.pagiHour,        cfg.pagiMinute,        totalOffset);
+        const effSiang        = addOffset(cfg.siangHour,       cfg.siangMinute,       totalOffset);
+        const effPulang       = addOffset(cfg.pulangHour,      cfg.pulangMinute,      totalOffset);
+        const effJumatPulang  = addOffset(cfg.jumatPulangHour, cfg.jumatPulangMinute, totalOffset);
+        if (totalOffset > 0) {
+          console.log(`[Scheduler] ⏱️ Auto-offset ${cfg.namaSekolah}: +${totalOffset} menit (index ${i})`);
+        }
+
         let runType = null;
         try {
           if (H === 22 && M === 0) {
             console.log(`[Scheduler 💾 Harian] ${cfg.namaSekolah} - 22:00 WIB`);
             await runDailyArchiverLogic(cfg);
           }
-          if (H === cfg.pagiHour && M === cfg.pagiMinute) {
+          if (H === effPagi.hour && M === effPagi.minute) {
             console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
             await runSchedulerLogic('pagi', cfg, true); // skipTelegram=true
             runType = 'pagi';
           }
-          if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) {
+          if (cfg.schedulerSiangEnabled !== false && H === effSiang.hour && M === effSiang.minute) {
             console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah}`);
             await runSchedulerLogic('siang', cfg, true);
             runType = 'siang';
