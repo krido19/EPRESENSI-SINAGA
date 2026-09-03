@@ -277,7 +277,7 @@ async function runSchedulerLogic(type = 'pagi', cfg = null, skipTelegram = false
     const msg  = template.replace(/\{nama\}/gi, t.nama).replace(/\{sekolah_asal\}/gi, t.sekolahAsal || '');
     const sRes = await sendWhatsAppWithRetry(t.nomor, msg, config.fonnteToken || null);
     if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
-    logNotificationToSupabase({ school_id: config.schoolId || null, type, nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
+    await logNotificationToSupabase({ school_id: config.schoolId || null, type, nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
     await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
   }
 
