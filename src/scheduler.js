@@ -285,9 +285,10 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr });
 
   // Kirim laporan ke Telegram (baca dari notification_logs)
+  // Pakai await langsung — setTimeout bisa mati saat Baileys crash (SMK 3 issue)
   const _schoolId = config?.schoolId || null;
   const _school   = config?.namaSekolah || 'Semua Sekolah';
-  setTimeout(() => notifyTelegramFromLog(type, _school, _schoolId).catch(() => {}), 3000);
+  await notifyTelegramFromLog(type, _school, _schoolId).catch(() => {});
 
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
@@ -394,7 +395,8 @@ async function runWeeklyRekapLogic(cfg, isTest = false) {
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
 
   // Kirim laporan ke Telegram (baca dari notification_logs)
-  setTimeout(() => notifyTelegramFromLog('rekap_mingguan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {}), 3000);
+  // Pakai await langsung — setTimeout bisa mati saat Baileys crash
+  await notifyTelegramFromLog('rekap_mingguan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
 
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
@@ -588,7 +590,8 @@ async function runMonthlyRekapLogic(cfg, isTest = false) {
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
 
   // Kirim laporan ke Telegram (baca dari notification_logs)
-  setTimeout(() => notifyTelegramFromLog('rekap_bulanan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {}), 3000);
+  // Pakai await langsung — setTimeout bisa mati saat Baileys crash
+  await notifyTelegramFromLog('rekap_bulanan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
 
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
