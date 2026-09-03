@@ -36,6 +36,7 @@ const adminRoutes     = require('./src/routes/admin');
 const schedulerRoutes = require('./src/routes/scheduler');
 const authRoutes      = require('./src/routes/auth');
 const apiRoutes       = require('./src/routes/api');
+const internalRoutes  = require('./src/routes/internal');
 
 // ─── Server Version ───────────────────────────────────────────────────────────
 const SERVER_VERSION = Date.now().toString();
@@ -59,6 +60,9 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/graphify-out', express.static(path.join(__dirname, 'graphify-out')));
+
+// ─── Internal Routes (localhost only, no auth) ───────────────────────────────
+app.use('/internal', internalRoutes);
 
 // ─── Global API Auth Guard ────────────────────────────────────────────────────
 app.use('/api', (req, res, next) => {
