@@ -237,3 +237,100 @@ curl -X POST http://localhost:3000/internal/run-scheduler \
 | Baileys | @whiskeysockets/baileys@7.0.0-rc14 |
 | Supabase | xkucjscvjemxjansrhwo.supabase.co |
 
+---
+
+## 🔴 Masalah 6: Telegram Tidak Terkirim — Race Condition logNotificationToSupabase (2026-09-04)
+
+### Gejala
+- WA SMK 1 ✅ tapi Telegram SMK 1 ❌ (atau kadang berhasil, kadang tidak)
+- Tidak konsisten antar jadwal
+
+### Root Cause: logNotificationToSupabase Tanpa await
+Di dalam loop kirim WA (scheduler.js), `logNotificationToSupabase` dipanggil **tanpa** `await`:
+
+```javascript
+// SEBELUM (bermasalah):
+logNotificationToSupabase({...}); // fire-and-forget → insert Supabase berjalan di background
+await new Promise(r => setTimeout(r, 1000)); // sleep
+// loop selesai...
+await notifyTelegramFromLog(...); // query notification_logs ← data BELUM tersimpan! → Telegram ❌
+```
+
+Karena insert Supabase berjalan async (fire-and-forget), saat `notifyTelegramFromLog` membaca `notification_logs`, data belum tentu sudah ada → hasilnya kosong → Telegram tidak dikirim.
+
+### Fix: Tambah await (src/scheduler.js baris 280)
+```javascript
+// SESUDAH (fixed):
+await logNotificationToSupabase({...}); // tunggu sampai tersimpan ke Supabase ✅
+await new Promise(r => setTimeout(r, 1000));
+// loop selesai...
+await notifyTelegramFromLog(...); // data SUDAH ada → Telegram ✅
+```
+
+### Hasil Setelah Fix (test 2026-09-04)
+```
+06:27 → SMK 1 Pagi WA ✅ + TG ✅
+06:30 → SMK 3 Pagi WA ✅ + TG ✅
+06:35 → SMK 1 Siang WA ✅ + TG ✅
+06:38 → SMK 3 Siang WA ✅ + TG ✅
+06:45 → SMK 1 Pulang WA ✅ + TG ✅
+```
+
+---
+
+## 🔴 Masalah 7: SMK 3 Pulang Jalan Bersamaan SMK 1 (Collision) (2026-09-04)
+
+### Gejala
+- SMK 1 Pulang 06:45 ✅ WA + TG ✅
+- SMK 3 Pulang trigger 06:45 (sama!) → WA ✅ tapi TG ❌ (crash 15 detik terlalu cepat)
+- SMK 3 harusnya jalan 06:48 (06:45 + 3 menit auto-offset)
+
+### Root Cause: Nilai DB SMK 3 Berbeda dari SMK 1
+Auto-offset menambahkan menit berdasarkan nilai DB **masing-masing sekolah**:
+- SMK 3 di DB: `pulang_minute = 42` (sisa dari test sebelumnya)
+- Dengan offset +3: `42 + 3 = 45` → sama dengan SMK 1 (06:45) → **collision!**
+
+| School | DB Value | Offset | Efektif |
+|--------|----------|--------|---------|
+| SMK 1 | pulang=06:45 | +0 | **06:45** ✅ |
+| SMK 3 | pulang=06:42 ❌ | +3 | **06:45** ❌ collision |
+| SMK 3 | pulang=06:45 ✅ | +3 | **06:48** ✅ |
+
+### Solusi
+Login dashboard **masing-masing sekolah** dan pastikan semua sekolah punya **nilai yang sama** sebagai base jadwal. Auto-offset kode yang akan menambah +3 menit per sekolah.
+
+**Aturan penting:** Jadwal di dashboard SMK 3 harus = Jadwal SMK 1 (nilai yang sama).  
+Kode yang otomatis beri +3 menit.
+
+### Cara Reset Jadwal Produksi
+Login sebagai SMK 1 dan SMK 3, set jadwal masing-masing ke:
+
+| Jadwal | Jam | Menit |
+|--------|-----|-------|
+| Pagi | 07:00 | 30 |
+| Siang | 15:00 | 30 |
+| Pulang | 18:00 | 00 |
+
+**Efektif setelah auto-offset:**
+
+| | SMK 1 | SMK 3 |
+|-|-------|-------|
+| Pagi | 07:30 | **07:33** |
+| Siang | 15:30 | **15:33** |
+| Pulang | 18:00 | **18:03** |
+
+> Tidak perlu restart PM2 atau push code — perubahan dashboard langsung tersimpan ke Supabase.
+
+---
+
+## 🔑 Info Server
+
+| Item | Value |
+|------|-------|
+| VPS | 119.28.100.51 (Tencent Cloud, OpenCloudOS 9) |
+| App path | /root/epresensi/ |
+| PM2 process | epresensi-sinaga (id: 4) |
+| Baileys | @whiskeysockets/baileys@7.0.0-rc14 |
+| Supabase | xkucjscvjemxjansrhwo.supabase.co |
+
+
