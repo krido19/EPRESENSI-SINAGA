@@ -630,47 +630,42 @@ function setupScheduler() {
         }
       }
 
-      // Paralel per sekolah — keduanya jalan bersamaan sebelum Baileys WASM crash
-      // Telegram dikirim SETELAH semua sekolah selesai WA (bukan di dalam tiap sekolah)
-      const schoolResults = await Promise.all(schools.map(async (row) => {
+      // Sequential per sekolah — parallel menyebabkan Baileys crash lebih cepat (17s vs 57s)
+      // Telegram di-await langsung setelah WA setiap sekolah (tidak pakai setTimeout)
+      for (const row of schools) {
         const cfg = buildTenantCfg(row);
-        const runResult = { cfg, type: null };
+        let runType = null;
         try {
           if (H === 22 && M === 0) {
             console.log(`[Scheduler 💾 Harian] ${cfg.namaSekolah} - 22:00 WIB`);
             await runDailyArchiverLogic(cfg);
-            runResult.type = 'archiver';
           }
           if (H === cfg.pagiHour && M === cfg.pagiMinute) {
             console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
             await runSchedulerLogic('pagi', cfg, true); // skipTelegram=true
-            runResult.type = 'pagi';
+            runType = 'pagi';
           }
           if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) {
             console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah}`);
             await runSchedulerLogic('siang', cfg, true);
-            runResult.type = 'siang';
+            runType = 'siang';
           }
           if (H === cfg.pulangHour && M === cfg.pulangMinute) {
             console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah}`);
             await runSchedulerLogic('pulang', cfg, true);
-            runResult.type = 'pulang';
+            runType = 'pulang';
           }
           if (cfg.jumatPulangEnabled !== false && dayOfWeek === 5 && H === cfg.jumatPulangHour && M === cfg.jumatPulangMinute) {
             console.log(`[Scheduler 🕌 Jumat Pulang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
             await runSchedulerLogic('pulang', cfg, true);
-            runResult.type = 'pulang';
+            runType = 'pulang';
+          }
+          // Kirim Telegram langsung setelah WA sekolah ini selesai (await, bukan setTimeout)
+          if (runType) {
+            await notifyTelegramFromLog(runType, cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
           }
         } catch (schoolErr) {
           console.error(`[Scheduler] Error pada ${cfg.namaSekolah}: ${schoolErr.message}`);
-        }
-        return runResult;
-      }));
-
-      // Setelah SEMUA sekolah selesai kirim WA — baru kirim Telegram
-      for (const { cfg, type: runType } of schoolResults) {
-        if (runType && runType !== 'archiver') {
-          await notifyTelegramFromLog(runType, cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
         }
       }
 
