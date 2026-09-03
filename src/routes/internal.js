@@ -28,13 +28,22 @@ function checkSecret(req, res, next) {
 // ─── POST /internal/run-scheduler ─────────────────────────────────────────────
 // Body: { type: "pagi"|"siang"|"pulang"|"rekap_mingguan"|"rekap_bulanan"|"archiver", secret: "..." }
 router.post('/run-scheduler', onlyLocalhost, checkSecret, async (req, res) => {
-  const type = req.body?.type || 'pagi';
-  console.log(`[Internal] Manual trigger: type=${type}`);
+  const type      = req.body?.type      || 'pagi';
+  const schoolId  = req.body?.school_id || null; // opsional: filter 1 sekolah saja
+  console.log(`[Internal] Manual trigger: type=${type}${schoolId ? ` school_id=${schoolId}` : ' (semua sekolah)'}`);
 
   try {
-    const schools = await getActiveSchools();
+    let schools = await getActiveSchools();
     if (!schools || schools.length === 0) {
       return res.json({ success: false, error: 'Tidak ada sekolah aktif di database.' });
+    }
+
+    // Filter ke 1 sekolah jika school_id diberikan
+    if (schoolId) {
+      schools = schools.filter(s => s.school_id === schoolId || s.schools?.id === schoolId);
+      if (schools.length === 0) {
+        return res.json({ success: false, error: `Sekolah dengan school_id=${schoolId} tidak ditemukan atau tidak aktif.` });
+      }
     }
 
     // Paralel — kedua sekolah kirim WA bersamaan (Telegram menyusul setelah semua selesai)
