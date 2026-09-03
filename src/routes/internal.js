@@ -4,7 +4,8 @@ const router = Router();
 
 const {
   getActiveSchools, buildTenantCfg,
-  runSchedulerLogic, runWeeklyRekapLogic, runMonthlyRekapLogic, runDailyArchiverLogic
+  runSchedulerLogic, runWeeklyRekapLogic, runMonthlyRekapLogic, runDailyArchiverLogic,
+  notifyTelegramFromLog
 } = require('../scheduler');
 
 // ─── Middleware: hanya localhost ────────────────────────────────────────────────
@@ -36,28 +37,37 @@ router.post('/run-scheduler', onlyLocalhost, checkSecret, async (req, res) => {
       return res.json({ success: false, error: 'Tidak ada sekolah aktif di database.' });
     }
 
-    const results = [];
-    let totalSent = 0;
-
-    for (const schoolRow of schools) {
+    // Paralel — kedua sekolah kirim WA bersamaan (Telegram menyusul setelah semua selesai)
+    const schoolResults = await Promise.all(schools.map(async (schoolRow) => {
       const cfg = buildTenantCfg(schoolRow);
       let result;
-
-      if (type === 'rekap_mingguan') {
-        result = await runWeeklyRekapLogic(cfg, true);
-      } else if (type === 'rekap_bulanan') {
-        result = await runMonthlyRekapLogic(cfg, true);
-      } else if (type === 'archiver') {
-        result = await runDailyArchiverLogic(cfg);
-      } else {
-        // pagi / siang / pulang
-        result = await runSchedulerLogic(type, cfg);
+      try {
+        if (type === 'rekap_mingguan') {
+          result = await runWeeklyRekapLogic(cfg, true, true); // skipTelegram=true
+        } else if (type === 'rekap_bulanan') {
+          result = await runMonthlyRekapLogic(cfg, true, true);
+        } else if (type === 'archiver') {
+          result = await runDailyArchiverLogic(cfg);
+        } else {
+          result = await runSchedulerLogic(type, cfg, true); // skipTelegram=true
+        }
+      } catch (err) {
+        result = { success: false, sent: 0, error: err.message };
       }
+      console.log(`[Internal] WA selesai: ${cfg.namaSekolah} — ${result.message || result.error}`);
+      return { cfg, sekolah: cfg.namaSekolah, type, ...result };
+    }));
 
-      totalSent += result.sent || 0;
-      results.push({ sekolah: cfg.namaSekolah, ...result });
-      console.log(`[Internal] Selesai: ${cfg.namaSekolah} — ${result.message || result.error}`);
+    // Setelah SEMUA sekolah selesai WA — baru kirim Telegram
+    console.log('[Internal] Semua sekolah selesai WA — kirim laporan Telegram...');
+    for (const { cfg, type: runType } of schoolResults) {
+      if (runType && runType !== 'archiver') {
+        await notifyTelegramFromLog(runType, cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
+      }
     }
+
+    const results = schoolResults.map(({ cfg: _cfg, ...rest }) => rest);
+    const totalSent = schoolResults.reduce((sum, r) => sum + (r.sent || 0), 0);
 
     return res.json({
       success: true,
@@ -69,6 +79,7 @@ router.post('/run-scheduler', onlyLocalhost, checkSecret, async (req, res) => {
     console.error('[Internal] Error saat run-scheduler:', err.message);
     return res.status(500).json({ success: false, error: err.message });
   }
+
 });
 
 module.exports = router;

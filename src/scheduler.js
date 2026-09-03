@@ -169,7 +169,7 @@ function buildTenantCfg(row) {
 }
 
 // ─── runSchedulerLogic ────────────────────────────────────────────────────────
-async function runSchedulerLogic(type = 'pagi', cfg = null) {
+async function runSchedulerLogic(type = 'pagi', cfg = null, skipTelegram = false) {
   const config  = cfg || loadConfig();
   const { waSock, waConnectionStatus } = getWaState();
   const gateway = config.waGateway || 'baileys';
@@ -288,7 +288,7 @@ async function runSchedulerLogic(type = 'pagi', cfg = null) {
   // Pakai await langsung — setTimeout bisa mati saat Baileys crash (SMK 3 issue)
   const _schoolId = config?.schoolId || null;
   const _school   = config?.namaSekolah || 'Semua Sekolah';
-  await notifyTelegramFromLog(type, _school, _schoolId).catch(() => {});
+  if (!skipTelegram) await notifyTelegramFromLog(type, _school, _schoolId).catch(() => {});
 
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
@@ -396,7 +396,7 @@ async function runWeeklyRekapLogic(cfg, isTest = false) {
 
   // Kirim laporan ke Telegram (baca dari notification_logs)
   // Pakai await langsung — setTimeout bisa mati saat Baileys crash
-  await notifyTelegramFromLog('rekap_mingguan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
+  if (!skipTelegram) await notifyTelegramFromLog('rekap_mingguan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
 
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
@@ -591,7 +591,7 @@ async function runMonthlyRekapLogic(cfg, isTest = false) {
 
   // Kirim laporan ke Telegram (baca dari notification_logs)
   // Pakai await langsung — setTimeout bisa mati saat Baileys crash
-  await notifyTelegramFromLog('rekap_bulanan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
+  if (!skipTelegram) await notifyTelegramFromLog('rekap_bulanan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
 
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
@@ -630,46 +630,47 @@ function setupScheduler() {
         }
       }
 
-      // Sequential per sekolah — hindari race condition WA/cookie
-      for (let i = 0; i < schools.length; i++) {
-        const row = schools[i];
+      // Paralel per sekolah — keduanya jalan bersamaan sebelum Baileys WASM crash
+      // Telegram dikirim SETELAH semua sekolah selesai WA (bukan di dalam tiap sekolah)
+      const schoolResults = await Promise.all(schools.map(async (row) => {
         const cfg = buildTenantCfg(row);
-        let didRun = false;
+        const runResult = { cfg, type: null };
         try {
           if (H === 22 && M === 0) {
             console.log(`[Scheduler 💾 Harian] ${cfg.namaSekolah} - 22:00 WIB`);
             await runDailyArchiverLogic(cfg);
-            didRun = true;
+            runResult.type = 'archiver';
           }
           if (H === cfg.pagiHour && M === cfg.pagiMinute) {
             console.log(`[Scheduler 🌅 Pagi] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
-            await runSchedulerLogic('pagi', cfg);
-            didRun = true;
+            await runSchedulerLogic('pagi', cfg, true); // skipTelegram=true
+            runResult.type = 'pagi';
           }
           if (cfg.schedulerSiangEnabled !== false && H === cfg.siangHour && M === cfg.siangMinute) {
             console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah}`);
-            await runSchedulerLogic('siang', cfg);
-            didRun = true;
+            await runSchedulerLogic('siang', cfg, true);
+            runResult.type = 'siang';
           }
           if (H === cfg.pulangHour && M === cfg.pulangMinute) {
             console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah}`);
-            await runSchedulerLogic('pulang', cfg);
-            didRun = true;
+            await runSchedulerLogic('pulang', cfg, true);
+            runResult.type = 'pulang';
           }
-          // ── Pengingat pulang khusus Jumat (jam 14:00 default) ──
           if (cfg.jumatPulangEnabled !== false && dayOfWeek === 5 && H === cfg.jumatPulangHour && M === cfg.jumatPulangMinute) {
             console.log(`[Scheduler 🕌 Jumat Pulang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
-            await runSchedulerLogic('pulang', cfg);
-            didRun = true;
-          }
-          // Jeda antar sekolah — beri waktu Baileys flush signal sessions
-          if (didRun && i < schools.length - 1) {
-            console.log(`[Scheduler] ⏳ Jeda 2 detik sebelum sekolah berikutnya...`);
-            await new Promise(r => setTimeout(r, 2000));
+            await runSchedulerLogic('pulang', cfg, true);
+            runResult.type = 'pulang';
           }
         } catch (schoolErr) {
           console.error(`[Scheduler] Error pada ${cfg.namaSekolah}: ${schoolErr.message}`);
-          // lanjut ke sekolah berikutnya
+        }
+        return runResult;
+      }));
+
+      // Setelah SEMUA sekolah selesai kirim WA — baru kirim Telegram
+      for (const { cfg, type: runType } of schoolResults) {
+        if (runType && runType !== 'archiver') {
+          await notifyTelegramFromLog(runType, cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
         }
       }
 
@@ -690,5 +691,6 @@ module.exports = {
   getActiveSchools, buildTenantCfg, setupScheduler,
   runSchedulerLogic, runWeeklyRekapLogic, runMonthlyRekapLogic,
   runBackfillLogic, runDailyArchiverLogic,
-  buildWeeklyRekapMessage, buildMonthlyRekapMessage, invalidateSchoolsCache
+  buildWeeklyRekapMessage, buildMonthlyRekapMessage, invalidateSchoolsCache,
+  notifyTelegramFromLog
 };
