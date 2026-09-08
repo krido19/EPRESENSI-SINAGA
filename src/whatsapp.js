@@ -21,6 +21,22 @@ let waDisconnectedAt   = null;
 
 // ─── initBaileys ──────────────────────────────────────────────────────────────
 async function initBaileys() {
+  // ── Bersihkan socket lama sebelum buat yang baru (anti zombie socket) ────────
+  // Tanpa ini, setiap reconnect menambah event listener baru sementara socket lama
+  // masih aktif → dua proses berebut file session kriptografi → libsignal crash lebih cepat
+  if (waSock) {
+    try {
+      waSock.ev?.removeAllListeners();
+      if (waSock.ws) {
+        waSock.ws.removeAllListeners();
+        waSock.ws.terminate?.();
+      }
+    } catch (e) {
+      console.warn('[Baileys] Gagal cleanup socket lama:', e.message);
+    }
+    waSock = null;
+  }
+
   try {
     const { state, saveCreds } = await useMultiFileAuthState(BAILEYS_AUTH_DIR);
     const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: [2, 3000, 1015901307] }));
@@ -106,6 +122,7 @@ async function initBaileys() {
     console.error('Error initBaileys:', err.message);
   }
 }
+
 
 // ─── sendWhatsApp ─────────────────────────────────────────────────────────────
 async function sendWhatsApp(targetOrToken, messageOrTarget, tokenOrMessage = null) {

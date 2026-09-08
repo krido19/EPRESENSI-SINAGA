@@ -388,15 +388,15 @@ async function runWeeklyRekapLogic(cfg, isTest = false) {
     const msg  = buildWeeklyRekapMessage(t, msgTemplate);
     const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
     if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
-    logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_mingguan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
+    await logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_mingguan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg }); // await: pastikan tersimpan sebelum TG baca
     await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
   }
   const summaryMsg = `${labelWaktu}: Rekap terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
 
   // Kirim laporan ke Telegram (baca dari notification_logs)
-  // Pakai await langsung — setTimeout bisa mati saat Baileys crash
-  if (!skipTelegram) await notifyTelegramFromLog('rekap_mingguan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
+  // FIX: hapus skipTelegram (variabel tidak terdefinisi di scope ini) → selalu kirim
+  await notifyTelegramFromLog('rekap_mingguan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
 
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
@@ -583,15 +583,15 @@ async function runMonthlyRekapLogic(cfg, isTest = false) {
     const msg  = buildMonthlyRekapMessage(t, msgTemplate, monthName, targetYear);
     const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
     if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
-    logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_bulanan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
+    await logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_bulanan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg }); // await: pastikan tersimpan sebelum TG baca
     await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
   }
   const summaryMsg = `${labelWaktu}: Rekap ${monthName} ${targetYear} terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
 
   // Kirim laporan ke Telegram (baca dari notification_logs)
-  // Pakai await langsung — setTimeout bisa mati saat Baileys crash
-  if (!skipTelegram) await notifyTelegramFromLog('rekap_bulanan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
+  // FIX: hapus skipTelegram (variabel tidak terdefinisi di scope ini) → selalu kirim
+  await notifyTelegramFromLog('rekap_bulanan', cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
 
   return { success: true, sent: sentCount, total: targets.length, message: summaryMsg };
 }
@@ -609,11 +609,20 @@ function setupScheduler() {
       if (dayOfWeek === 0) return;
       if (dayOfWeek === 6) {
         const satSchools = await getActiveSchools();
-        for (const satRow of satSchools) {
+        // Sequential + auto-offset — sama seperti hari kerja agar tidak crash Baileys
+        for (let i = 0; i < satSchools.length; i++) {
+          const satRow = satSchools[i];
           const satCfg = buildTenantCfg(satRow);
-          if (H === satCfg.pagiHour && M === satCfg.pagiMinute) {
+          const totalOffSat = i * 3; // +3 menit per sekolah
+          const totalSatMin = satCfg.pagiHour * 60 + satCfg.pagiMinute + totalOffSat;
+          const effSatPagi = { hour: Math.floor(totalSatMin / 60) % 24, minute: totalSatMin % 60 };
+          if (H === effSatPagi.hour && M === effSatPagi.minute) {
             console.log(`[Scheduler 📊 Rekap Mingguan] ${satCfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
-            runWeeklyRekapLogic(satCfg).catch(e => console.error(`[Scheduler] Rekap Mingguan error (${satCfg.namaSekolah}):`, e.message));
+            try {
+              await runWeeklyRekapLogic(satCfg);
+            } catch(e) {
+              console.error(`[Scheduler] Rekap Mingguan error (${satCfg.namaSekolah}): ${e.message}`);
+            }
           }
         }
         return;
@@ -621,12 +630,16 @@ function setupScheduler() {
       const schools = await getActiveSchools();
       if (!schools.length) return;
 
-      // ── Rekap Bulanan Otomatis — tanggal 1 setiap bulan jam 07:00 WIB ──
+      // ── Rekap Bulanan Otomatis — tanggal 1 setiap bulan jam 07:10 WIB (sequential) ──
       if (wib.getDate() === 1 && H === 7 && M === 10) {
         console.log(`[Scheduler 📅 Rekap Bulanan] Tanggal 1 — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
         for (const schoolRow of schools) {
           const bulananCfg = buildTenantCfg(schoolRow);
-          runMonthlyRekapLogic(bulananCfg, false).catch(e => console.error(`[Scheduler] Rekap Bulanan error (${bulananCfg.namaSekolah}):`, e.message));
+          try {
+            await runMonthlyRekapLogic(bulananCfg, false);
+          } catch(e) {
+            console.error(`[Scheduler] Rekap Bulanan error (${bulananCfg.namaSekolah}): ${e.message}`);
+          }
         }
       }
 
@@ -667,12 +680,13 @@ function setupScheduler() {
             await runSchedulerLogic('siang', cfg, true);
             runType = 'siang';
           }
-          if (H === cfg.pulangHour && M === cfg.pulangMinute) {
+          // ── FIX: Gunakan effPulang & effJumatPulang (bukan cfg langsung) ─────
+          if (H === effPulang.hour && M === effPulang.minute) {
             console.log(`[Scheduler 🌆 Pulang] ${cfg.namaSekolah}`);
             await runSchedulerLogic('pulang', cfg, true);
             runType = 'pulang';
           }
-          if (cfg.jumatPulangEnabled !== false && dayOfWeek === 5 && H === cfg.jumatPulangHour && M === cfg.jumatPulangMinute) {
+          if (cfg.jumatPulangEnabled !== false && dayOfWeek === 5 && H === effJumatPulang.hour && M === effJumatPulang.minute) {
             console.log(`[Scheduler 🕌 Jumat Pulang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
             await runSchedulerLogic('pulang', cfg, true);
             runType = 'pulang';
