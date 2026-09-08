@@ -216,8 +216,47 @@ function getWaState() {
 function setWaSock(sock) { waSock = sock; }
 function setWaStatus(status) { waConnectionStatus = status; }
 
+// ─── reconnectBaileys ─────────────────────────────────────────────────────────
+// Dipanggil scheduler 1 menit sebelum jadwal kirim.
+// Tujuan: beri Baileys sesi segar sehingga pre-keys belum terpakai
+// → crash terjadi LEBIH LAMA (setelah semua pesan terkirim, bukan di tengah).
+async function reconnectBaileys() {
+  console.log('[Baileys] ⚡ Force reconnect (pre-send refresh)...');
+  // Matikan socket lama
+  if (waSock) {
+    try {
+      waSock.ev?.removeAllListeners();
+      waSock.ws?.removeAllListeners();
+      waSock.ws?.terminate?.();
+    } catch (e) { /* abaikan */ }
+    waSock = null;
+    waConnectionStatus = 'disconnected';
+  }
+  // Tunggu sebentar agar OS release file handle
+  await new Promise(r => setTimeout(r, 1500));
+  // Reconnect
+  await initBaileys();
+  // Tunggu sampai connected (max 20 detik)
+  return new Promise((resolve) => {
+    if (waConnectionStatus === 'connected') return resolve();
+    const poll = setInterval(() => {
+      if (waConnectionStatus === 'connected') {
+        clearInterval(poll);
+        clearTimeout(timeout);
+        resolve();
+      }
+    }, 500);
+    const timeout = setTimeout(() => {
+      clearInterval(poll);
+      console.warn('[Baileys] reconnect timeout — lanjut tanpa tunggu');
+      resolve();
+    }, 20000);
+  });
+}
+
 module.exports = {
   initBaileys,
+  reconnectBaileys,
   sendWhatsApp,
   sendWhatsAppWithRetry,
   sendToAllRecipients,

@@ -11,7 +11,7 @@ const {
 } = require('./config');
 const { supabase }                             = require('./supabase');
 const { addLog, logNotificationToSupabase }    = require('./logger');
-const { sendWhatsAppWithRetry, getWaState }    = require('./whatsapp');
+const { sendWhatsAppWithRetry, getWaState, reconnectBaileys } = require('./whatsapp');
 const { ensureTenantSession, fetchColleaguesAttendance } = require('./epresensi');
 
 // ─── Telegram Notifier (baca dari notification_logs Supabase) ─────────────────
@@ -643,8 +643,13 @@ function setupScheduler() {
         }
       }
 
-      // Sequential per sekolah — parallel menyebabkan Baileys crash lebih cepat (17s vs 57s)
-      // Telegram di-await langsung setelah WA setiap sekolah (tidak pakai setTimeout)
+// ─── TG Checkpoint tracking (in-memory, cleared on restart) ──────────────────
+// Mencegah Telegram dikirim 2x jika primary send berhasil + checkpoint juga jalan.
+// Setelah crash+restart, Set ini kosong → checkpoint akan jalan (yang diinginkan).
+const tgCheckpointSent = new Set();
+
+      // Sequential per sekolah — parallel menyebabkan Baileys crash lebih cepat
+      // Telegram di-await langsung setelah WA setiap sekolah
       for (let i = 0; i < schools.length; i++) {
         const row = schools[i];
         const cfg = buildTenantCfg(row);
@@ -662,6 +667,42 @@ function setupScheduler() {
         const effJumatPulang  = addOffset(cfg.jumatPulangHour, cfg.jumatPulangMinute, totalOffset);
         if (totalOffset > 0) {
           console.log(`[Scheduler] ⏱️ Auto-offset ${cfg.namaSekolah}: +${totalOffset} menit (index ${i})`);
+        }
+
+        // ── nowMin — dipakai oleh pre-send reconnect & TG checkpoint ────────
+        const nowMin = H * 60 + M;
+
+        // ── Pre-send reconnect: 1 menit sebelum jadwal pertama (i=0 saja) ─────
+        // Tujuan: beri Baileys sesi segar agar semua pesan bisa terkirim sebelum crash
+        if (i === 0) {
+          const reconnectTimes = [
+            cfg.pagiHour * 60 + cfg.pagiMinute - 1,
+            cfg.siangHour * 60 + cfg.siangMinute - 1,
+            cfg.pulangHour * 60 + cfg.pulangMinute - 1,
+          ];
+          if (reconnectTimes.includes(nowMin)) {
+            console.log(`[Scheduler] ⚡ Pre-send reconnect Baileys (1 menit sebelum jadwal)...`);
+            await reconnectBaileys().catch(e => console.warn('[Scheduler] reconnect warning:', e.message));
+          }
+        }
+
+        // ── TG Checkpoint: 8 menit setelah jadwal (backup jika Baileys crash sebelum TG) ──
+        // Bekerja independen dari Baileys — hanya fetch HTTP ke api.telegram.org
+        const todayKey = wib.toISOString().slice(0, 10);
+        const checkTimes = [
+          { offset: effPagi.hour * 60 + effPagi.minute + 8,     type: 'pagi' },
+          { offset: effSiang.hour * 60 + effSiang.minute + 8,   type: 'siang' },
+          { offset: effPulang.hour * 60 + effPulang.minute + 8, type: 'pulang' },
+        ];
+        for (const ct of checkTimes) {
+          if (nowMin === ct.offset % 1440) {
+            const key = `${ct.type}_${todayKey}_${cfg.schoolId}`;
+            if (!tgCheckpointSent.has(key)) {
+              console.log(`[TG Checkpoint] Kirim backup TG ${ct.type} — ${cfg.namaSekolah}`);
+              await notifyTelegramFromLog(ct.type, cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
+              tgCheckpointSent.add(key);
+            }
+          }
         }
 
         let runType = null;
