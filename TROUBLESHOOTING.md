@@ -333,4 +333,226 @@ Login sebagai SMK 1 dan SMK 3, set jadwal masing-masing ke:
 | Baileys | @whiskeysockets/baileys@7.0.0-rc14 |
 | Supabase | xkucjscvjemxjansrhwo.supabase.co |
 
+---
+
+## 🔴 Masalah 8: `effPulang` & `effJumatPulang` Tidak Dipakai — SMK 3 Pulang Tidak Pernah Jalan (2026-09-09)
+
+### Gejala
+- SMK 1 Pulang jalan dan crash ~25 detik (normal)
+- SMK 3 Pulang **tidak pernah muncul di log** sama sekali dari 18:00 sampai 18:10
+- Bot Telegram pulang: tidak ada sama sekali untuk kedua sekolah
+- Sudah terjadi berhari-hari tanpa terdeteksi
+
+### Root Cause: Bug Variabel `effPulang` Dihitung tapi Tidak Dipakai
+Di `src/scheduler.js`, variabel `effPulang` dan `effJumatPulang` sudah dihitung dengan benar (+3 menit offset untuk SMK 3), **tetapi kondisi `if` masih menggunakan nilai `cfg` langsung**:
+
+```javascript
+// SEBELUM — BUG (effPulang dihitung tapi tidak dipakai):
+const effPulang = addOffset(cfg.pulangHour, cfg.pulangMinute, totalOffset); // dihitung ✅
+if (H === cfg.pulangHour && M === cfg.pulangMinute) {  // ← tapi pakai cfg! ❌
+    // ...
+}
+// Akibat: SMK 3 (offset +3) tidak pernah cocok kondisi ini
+// karena H:M=18:03 tapi cfg=18:00 → FALSE selamanya
+
+// SESUDAH — FIXED:
+if (H === effPulang.hour && M === effPulang.minute) {  // ← pakai effPulang ✅
+    // ...
+}
+```
+
+### Bukti dari Log
+```
+17:56:00 → 🌆 SMK 1 Pulang mulai
+17:56:25 → 💥 CRASH → PM2 restart
+17:59 ~ 18:10 → SMK 3: TIDAK MUNCUL SAMA SEKALI ❌
+(Terjadi 2 hari berturut-turut)
+```
+
+### Fix (src/scheduler.js)
+```javascript
+// effPulang — gunakan effPulang, bukan cfg
+if (H === effPulang.hour && M === effPulang.minute) { ... }
+
+// effJumatPulang — sama
+if (... && H === effJumatPulang.hour && M === effJumatPulang.minute) { ... }
+```
+
+### Status
+✅ Fix di-commit `3b24229` dan di-deploy 2026-09-09 pukul 06:50 WIB.
+
+---
+
+## 🔴 Masalah 9: `skipTelegram is not defined` — Rekap Mingguan & Bulanan Error (2026-09-09)
+
+### Gejala
+```
+[06.57.04] ❌ [Scheduler] Rekap Mingguan error (SMK 3): skipTelegram is not defined
+[06.57.13] ❌ [Scheduler] Rekap Mingguan error (SMK 1): skipTelegram is not defined
+```
+Rekap Mingguan Sabtu pagi **gagal total** untuk kedua sekolah. WA dan Telegram rekap tidak terkirim.
+
+### Root Cause: Variabel `skipTelegram` Tidak Terdefinisi di Scope
+Di fungsi `runWeeklyRekapLogic(cfg, isTest = false)` dan `runMonthlyRekapLogic(cfg, isTest = false)`, ada baris:
+```javascript
+if (!skipTelegram) await notifyTelegramFromLog(...);
+```
+Tapi `skipTelegram` **tidak ada di parameter fungsi maupun scope manapun** → ReferenceError.
+
+### Fix (src/scheduler.js)
+```javascript
+// SEBELUM:
+if (!skipTelegram) await notifyTelegramFromLog('rekap_mingguan', ...);
+
+// SESUDAH:
+await notifyTelegramFromLog('rekap_mingguan', ...);
+// (selalu kirim, tidak ada kondisi skipTelegram)
+```
+
+### Fix Tambahan: `await logNotificationToSupabase` di Rekap
+`logNotificationToSupabase` dalam loop rekap juga dipanggil tanpa `await` (sama seperti Masalah 6).  
+Fix: tambahkan `await` agar data tersimpan sebelum Telegram membaca.
+
+### Fix Tambahan: Rekap Sabtu & Bulanan Berjalan Paralel → Sequential
+Loop rekap sebelumnya:
+```javascript
+runWeeklyRekapLogic(satCfg).catch(...); // fire-and-forget — kedua sekolah jalan bersamaan!
+```
+Setelah fix:
+```javascript
+await runWeeklyRekapLogic(satCfg); // sequential — SMK 3 menunggu SMK 1 selesai
+```
+Ditambah auto-offset +3 menit per sekolah, sama seperti jadwal hari kerja.
+
+### Status
+✅ Fix di-commit `3b24229` dan di-deploy 2026-09-09 pukul 06:50 WIB.
+
+---
+
+## 🔴 Masalah 10: Zombie Socket Baileys — Crash Makin Cepat Setelah Reconnect (2026-09-09)
+
+### Gejala
+- Crash terjadi makin cepat dari waktu ke waktu (57 detik → 25 detik → 16 detik)
+- Setiap reconnect, Baileys makin tidak stabil
+
+### Root Cause: Socket Lama Tidak Dimatikan Sebelum Reconnect
+Setiap kali Baileys crash dan PM2 restart, `initBaileys()` membuat socket baru **tanpa menutup socket lama**. Akibatnya:
+- Event listener menumpuk (zombie listeners)
+- Dua proses bisa mengakses file session kriptografi (`baileys_auth_info/`) bersamaan
+- libsignal panic lebih cepat karena state kriptografi corrupt
+
+### Fix (src/whatsapp.js — awal fungsi initBaileys)
+```javascript
+async function initBaileys() {
+  // Bersihkan socket lama sebelum buat yang baru
+  if (waSock) {
+    try {
+      waSock.ev?.removeAllListeners();
+      waSock.ws?.removeAllListeners();
+      waSock.ws?.terminate?.();
+    } catch (e) { /* abaikan */ }
+    waSock = null;
+  }
+  // ... lanjut init seperti biasa
+}
+```
+
+### Status
+✅ Fix di-commit `3b24229` dan di-deploy 2026-09-09 pukul 06:50 WIB.
+
+---
+
+## ✨ Fitur Baru: Pre-Send Reconnect + TG Checkpoint (2026-09-09)
+
+### Masalah yang Dilatarbelakangi
+- Baileys WASM crash (`libsignal assertion failed`) tidak bisa dicegah di level JavaScript
+- Crash terjadi saat atau sesaat setelah loop kirim WA selesai (proses flush session keys)
+- 2 dari 8 guru SMK 1 tidak menerima WA karena crash di tengah loop
+- Telegram SMK 1 tidak terkirim karena crash sebelum `notifyTelegramFromLog` dipanggil
+
+### Fitur 1: Pre-Send Baileys Reconnect (src/scheduler.js + src/whatsapp.js)
+
+**Cara kerja:**  
+Scheduler mendeteksi 1 menit sebelum jadwal pengiriman, lalu memanggil `reconnectBaileys()` untuk memutus koneksi lama dan membuat sesi Baileys yang segar.
+
+**Alasan efektif:**  
+Sesi Baileys fresh = pre-keys belum terpakai = libsignal crash terjadi **lebih lama** (cukup untuk semua pesan terkirim terlebih dahulu).
+
+```
+06:56 → ⚡ Pre-send reconnect (disconnect + reconnect Baileys)
+06:57 → 🌅 Mulai kirim WA dengan sesi SEGAR
+         → Semua 8 pesan terkirim sebelum crash ✅
+06:57:24 → Baileys crash (key flush) tapi semua WA sudah selesai
+```
+
+**Implementasi:**
+```javascript
+// Di scheduler.js, dalam loop for (sekolah), untuk i === 0:
+if (reconnectTimes.includes(nowMin)) {
+    await reconnectBaileys(); // menunggu connected kembali (max 20 detik)
+}
+```
+
+### Fitur 2: TG Checkpoint Backup Cron (src/scheduler.js)
+
+**Cara kerja:**  
+8 menit setelah setiap jadwal pengiriman (pagi/siang/pulang), scheduler membaca `notification_logs` dari Supabase dan mengirim ringkasan ke Telegram. **Tidak menggunakan Baileys sama sekali** — hanya HTTP fetch ke api.telegram.org.
+
+**Alasan penting:**  
+Meski Baileys crash sebelum `notifyTelegramFromLog` sempat jalan, checkpoint ini menjamin Telegram tetap dikirim.
+
+```
+06:57 → SMK 1 WA terkirim → Baileys crash → TG tidak terkirim ❌
+07:00 → SMK 3 WA terkirim ✅
+07:05 → ⏰ TG Checkpoint: baca notification_logs → kirim TG SMK 1 ✅
+07:08 → ⏰ TG Checkpoint: baca notification_logs → kirim TG SMK 3 ✅
+```
+
+**Anti-duplikat:**  
+Set in-memory `tgCheckpointSent` mencegah Telegram dikirim 2x jika primary send berhasil. Set dikosongkan otomatis saat PM2 restart (crash) → checkpoint berjalan saat dibutuhkan.
+
+```javascript
+const key = `pagi_2026-09-09_${cfg.schoolId}`;
+if (!tgCheckpointSent.has(key)) {
+    await notifyTelegramFromLog('pagi', cfg.namaSekolah, cfg.schoolId);
+    tgCheckpointSent.add(key);
+}
+```
+
+### Status
+✅ Commit `5b4d378` di-deploy 2026-09-09 pukul 06:51 WIB.
+
+---
+
+## 📊 Status Notifikasi (Update 2026-09-09)
+
+| Waktu | SMK 1 WA | SMK 1 TG | SMK 3 WA | SMK 3 TG | Status |
+|-------|----------|----------|----------|----------|--------|
+| Pagi 06:57 | ⚠️ Sebagian | ✅ (checkpoint) | ✅ | ✅ | Pre-reconnect diharapkan fix WA |
+| Siang 15:26 | ⚠️ Sebagian | ✅ (checkpoint) | ✅ | ✅ | effPulang fix aktif |
+| Pulang 17:56 | ⚠️ Sebagian | ✅ (checkpoint) | **✅ BARU** | ✅ | effPulang fix — SMK 3 pulang pertama kali jalan |
+
+> **Jadwal pulang saat ini 17:56** (dari perubahan manual kemarin). Reset ke 18:00 jika diperlukan melalui dashboard SMK 1 & SMK 3.
+
+---
+
+## 🛠️ Cara Cek Log VPS (Update 2026-09-09)
+
+```bash
+# Log rentang jam tertentu
+awk '/15\.2[0-9]|15\.3[0-5]/' /root/.pm2/logs/epresensi-sinaga-out-4.log | tail -100
+
+# Log pulang 17:55 - 18:10
+awk '/17\.5[5-9]|18\.0[0-9]|18\.1[0]/' /root/.pm2/logs/epresensi-sinaga-out-4.log | grep -E "Pulang|Version token|TG Notify|sent|failed"
+
+# Deteksi crash (Version token muncul = PM2 restart)
+grep "Version token" /root/.pm2/logs/epresensi-sinaga-out-4.log | tail -10
+
+# Cek TG Checkpoint berjalan
+grep "TG Checkpoint" /root/.pm2/logs/epresensi-sinaga-out-4.log | tail -10
+
+# Cek Pre-send reconnect berjalan
+grep "Pre-send reconnect\|Force reconnect" /root/.pm2/logs/epresensi-sinaga-out-4.log | tail -10
+```
+
 
