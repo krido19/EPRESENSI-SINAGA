@@ -282,7 +282,7 @@ async function runSchedulerLogic(type = 'pagi', cfg = null, skipTelegram = false
     const sRes = await sendWhatsAppWithRetry(t.nomor, msg, config.fonnteToken || null);
     if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
     await logNotificationToSupabase({ school_id: config.schoolId || null, type, nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
-    await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+    await new Promise(r => setTimeout(r, 500)); // Diperkecil dari 1-2s ke 500ms
   }
 
   const summaryMsg = `${labelWaktu}: Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru.`;
@@ -393,7 +393,7 @@ async function runWeeklyRekapLogic(cfg, isTest = false) {
     const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
     if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
     await logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_mingguan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg }); // await: pastikan tersimpan sebelum TG baca
-    await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+    await new Promise(r => setTimeout(r, 500)); // Diperkecil dari 1-2s ke 500ms
   }
   const summaryMsg = `${labelWaktu}: Rekap terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
@@ -588,7 +588,7 @@ async function runMonthlyRekapLogic(cfg, isTest = false) {
     const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
     if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
     await logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_bulanan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg }); // await: pastikan tersimpan sebelum TG baca
-    await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+    await new Promise(r => setTimeout(r, 500)); // Diperkecil dari 1-2s ke 500ms
   }
   const summaryMsg = `${labelWaktu}: Rekap ${monthName} ${targetYear} terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });

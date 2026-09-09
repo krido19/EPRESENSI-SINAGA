@@ -171,13 +171,15 @@ async function sendWhatsApp(targetOrToken, messageOrTarget, tokenOrMessage = nul
 }
 
 // ─── sendWhatsAppWithRetry ────────────────────────────────────────────────────
-async function sendWhatsAppWithRetry(target, message, tokenOverride = null, maxRetry = 3) {
+async function sendWhatsAppWithRetry(target, message, tokenOverride = null, maxRetry = 2) {
   let lastResult = null;
   for (let attempt = 1; attempt <= maxRetry; attempt++) {
     lastResult = await sendWhatsApp(target, message, tokenOverride);
     if (lastResult.success) return lastResult;
     if (attempt < maxRetry) {
-      const delayMs = 2000 * Math.pow(2, attempt - 1);
+      // Linear backoff: 1s, 2s (dari exponential 2s, 4s)
+      // Dikurangi agar guru yg kena retry tidak makan window 26 detik Baileys
+      const delayMs = 1000 * attempt;
       console.warn(`[WA Retry] Gagal (attempt ${attempt}/${maxRetry}) ke ${target} — coba lagi dalam ${delayMs/1000}s: ${lastResult.error}`);
       await new Promise(r => setTimeout(r, delayMs));
     }
