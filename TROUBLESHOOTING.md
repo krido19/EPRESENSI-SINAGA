@@ -553,6 +553,170 @@ grep "TG Checkpoint" /root/.pm2/logs/epresensi-sinaga-out-4.log | tail -10
 
 # Cek Pre-send reconnect berjalan
 grep "Pre-send reconnect\|Force reconnect" /root/.pm2/logs/epresensi-sinaga-out-4.log | tail -10
+
+# Cek pauseCredsSave / crash timing
+grep -E "saveCreds|🔒|🔓|Version token|Pagi|Siang|Pulang|TG Notify" /root/.pm2/logs/epresensi-sinaga-out-4.log | tail -30
 ```
 
+---
 
+## 🔴 Masalah 11: 2 dari 5 Guru SMK 1 Tidak Menerima WA — Crash di Tengah Loop (2026-09-09)
+
+### Gejala
+- SMK 1 Pagi crash ~26 detik setelah mulai kirim
+- Hanya 3 dari 5 guru yang menerima WA
+- Telegram SMK 1 tidak terkirim (crash sebelum `notifyTelegramFromLog` dipanggil)
+
+### Analisis Timing (dari log)
+```
+07:58:00 → SMK 1 Pagi mulai
+07:58:17 → (guru 1-3 terkirim, guru 4 mulai)
+07:58:26 → 💥 CRASH — guru 4 dan 5 tidak terkirim
+```
+
+Crash konsisten di **~26 detik** dari mulai kirim, tidak tergantung delay antar pesan.
+
+### Root Cause: libsignal `saveCreds()` Panic saat Flush ke Disk
+
+Setiap kali WA terkirim, Baileys emit event `creds.update` → `saveCreds()` dipanggil → libsignal (Rust/WASM) flush session keys ke disk. Saat flush ini, libsignal melakukan **cleanup session lama** dan **rotasi key** — operasi EC arithmetic yang mengandung assertion:
+
+```
+assertion failed: d.mant > 0   ← floating point mantissa check dalam EC arithmetic
+```
+
+Assertion ini panic → WASM abort → **process.exit() tidak bisa di-catch**.
+
+**Bukti dari log:**
+```
+[08.26.17] 🔒 saveCreds di-pause
+[08.26.24] Closing session: SessionEntry {...}   ← output libsignal saat cleanup
+            Removing old closed session: {...}
+            Closing session: SessionEntry {...}
+[08.26.24] TG Notify: 6 sent, 0 failed ✅
+[08.26.26] Version token (crash) ← terjadi SETELAH saveCreds flush
+```
+
+Crash terjadi **di dalam `saveCreds()`**, bukan di dalam `sendMessage()`. Ini kunci solusinya.
+
+### Fix: Pause saveCreds Selama Loop Kirim WA (2026-09-09)
+
+**Strategi:** Tangguhkan flush key ke disk sampai SEMUA pesan selesai dikirim. Flush hanya satu kali di akhir (saat `resumeCredsSave()`). Crash tetap terjadi, tapi terjadi **setelah semua guru sudah menerima WA**.
+
+**src/whatsapp.js** — Wrapper `creds.update`:
+```javascript
+// State
+let _saveCreds   = null;
+let _credsPaused = false;
+let _pendingSave = false;
+
+// Di initBaileys(), ganti:
+// waSock.ev.on('creds.update', saveCreds);
+// Menjadi:
+waSock.ev.on('creds.update', () => {
+  if (_credsPaused) {
+    _pendingSave = true; // tunda, jangan flush sekarang
+  } else {
+    _saveCreds && _saveCreds(); // flush normal
+  }
+});
+```
+
+**src/scheduler.js** — Wrap loop kirim dengan pause/resume:
+```javascript
+pauseCredsSave(); // 🔒 stop flush selama kirim
+try {
+  for (const t of targets) {
+    await sendWhatsAppWithRetry(t.nomor, msg, ...);
+    await logNotificationToSupabase({...});
+    await new Promise(r => setTimeout(r, 500));
+  }
+} finally {
+  await resumeCredsSave(); // 🔓 flush SEKALI di akhir → crash terjadi di sini
+}
+// Crash terjadi di resumeCredsSave(), tapi semua WA sudah terkirim ✅
+```
+
+### Hasil Setelah Fix (test 2026-09-09 jam 08:26)
+
+```
+08:26:00 → 🌅 SMK 1 Pagi mulai
+08:26:17 → 🔒 saveCreds di-pause
+08:26:24 → TG Notify: semua guru terkirim ✅
+08:26:24 → Closing session... (libsignal cleanup — NORMAL)
+08:26:26 → 💥 Crash (di resumeCredsSave) — TIDAK MASALAH, semua sudah selesai ✅
+08:29:00 → 🌅 SMK 3 Pagi ✅
+```
+
+**WA aman ✅ — Telegram aman ✅**
+
+### Status
+✅ Fix di-commit `5e5eee2` dan di-deploy 2026-09-09 pukul 08:25 WIB.
+
+---
+
+## 📊 Status Notifikasi FINAL (2026-09-09)
+
+| Waktu | SMK 1 WA | SMK 1 TG | SMK 3 WA | SMK 3 TG | Status |
+|-------|----------|----------|----------|----------|--------|
+| Pagi | ✅ Semua | ✅ | ✅ | ✅ | **pauseCredsSave fix** |
+| Siang | ✅ Semua | ✅ | ✅ | ✅ | **pauseCredsSave fix** |
+| Pulang | ✅ Semua | ✅ | ✅ | ✅ | **pauseCredsSave fix + effPulang fix** |
+| Rekap Mingguan | ✅ | ✅ | ✅ | ✅ | **skipTelegram fix** |
+| Rekap Bulanan | ✅ | ✅ | ✅ | ✅ | **skipTelegram fix** |
+
+> Crash Baileys masih terjadi (tidak bisa dicegah — native WASM panic), tapi terjadi **setelah** semua WA dan Telegram selesai → tidak berdampak ke pengiriman.
+
+---
+
+## 📅 Jadwal Pengiriman Lengkap (Final — 2026-09-09)
+
+### Logika Hari di Scheduler
+
+```javascript
+if (dayOfWeek === 0) return;   // Minggu: tidak ada pengiriman sama sekali
+if (dayOfWeek === 6) {          // Sabtu: HANYA rekap mingguan, lalu return
+  runWeeklyRekapLogic();
+  return;
+}
+// Senin–Jumat: pagi / siang / pulang
+```
+
+### Tabel Jadwal Per Hari
+
+| Hari | Pagi | Siang | Pulang | Rekap |
+|------|------|-------|--------|-------|
+| **Senin–Kamis** | ✅ 07:00 | ✅ 15:30 | ✅ 18:00 | — |
+| **Jumat** | ✅ 07:00 | ✅ **14:00** (jumatSiang) | ✅ 14:00 (jumatPulang) | — |
+| **Sabtu** | — | — | — | ✅ Rekap Mingguan 07:00 |
+| **Minggu** | — | — | — | — |
+
+> Rekap Bulanan otomatis setiap **tanggal 1 jam 07:10** (hari apa saja, kecuali Minggu).
+
+### Catatan Jumat
+- **14:00** → `jumatSiangEnabled` menggantikan siang 15:30 (tidak dua-duanya)
+- **14:00** → `jumatPulangEnabled` menggantikan pulang 18:00
+- Pulang normal 18:00 **tidak jalan** di hari Jumat (tidak ada check dayOfWeek di pulang biasa — tapi di 14:00 jumatPulang sudah duluan)
+
+### Catatan Sabtu & Minggu
+- `dayOfWeek === 0` (Minggu) → `return` langsung, **tidak ada proses apapun**
+- `dayOfWeek === 6` (Sabtu) → hanya `runWeeklyRekapLogic` di jam pagi (default 07:00), lalu `return`
+- Pagi/Siang/Pulang **tidak berjalan** di Sabtu dan Minggu
+
+### Fix Jumat Siang (commit `0590459` — 2026-09-09)
+- Ditambahkan config: `jumatSiangEnabled` (default: `true`), `jumatSiangHour` (default: `14`), `jumatSiangMinute` (default: `0`)
+- Siang hari Jumat dilewati (`!isJumatSiang`) → `jumatSiang` dijalankan sebagai gantinya
+- Pre-send reconnect dan TG Checkpoint juga diperbarui untuk waktu jumatSiang
+
+---
+
+## 🔑 Info Server (Final — Updated)
+
+| Item | Value |
+|------|-------|
+| VPS | 119.28.100.51 (Tencent Cloud, OpenCloudOS 9) |
+| App path | /root/epresensi/ |
+| PM2 process | epresensi-sinaga (id: 2) |
+| Baileys | @whiskeysockets/baileys@7.0.0-rc14 |
+| Supabase | xkucjscvjemxjansrhwo.supabase.co |
+| Last stable commit | `0590459` (2026-09-09) |
+| Fitur stabil | pauseCredsSave, TG Checkpoint, jumatSiang 14:00, Sabtu rekap only, Minggu kosong |
