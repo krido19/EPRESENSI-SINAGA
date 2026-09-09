@@ -20,8 +20,8 @@ async function notifyTelegramFromLog(type, schoolName, schoolId) {
   const adminId = process.env.TELEGRAM_ADMIN_ID;
   if (!token || !adminId) return;
   try {
-    // Ambil log 5 menit terakhir untuk sekolah ini
-    const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // Ambil log 15 menit terakhir (checkpoint jalan di menit ke-8, butuh window lebih lebar)
+    const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     let q = supabase
       .from('notification_logs')
       .select('nama, nomor, status, type, created_at')
@@ -74,6 +74,10 @@ let schedulerRunning    = false;
 let schoolsCache        = null;
 let schoolsCacheExpiry  = 0;
 let schoolsCacheLastLog = 0;
+
+// Set in-memory: track mana yang sudah kirim TG (primary atau checkpoint)
+// Di module scope agar tidak reset tiap menit. Kosong saat PM2 restart (diinginkan).
+const tgCheckpointSent = new Set();
 
 // ─── getActiveSchools ─────────────────────────────────────────────────────────
 async function getActiveSchools() {
@@ -643,10 +647,6 @@ function setupScheduler() {
         }
       }
 
-// ─── TG Checkpoint tracking (in-memory, cleared on restart) ──────────────────
-// Mencegah Telegram dikirim 2x jika primary send berhasil + checkpoint juga jalan.
-// Setelah crash+restart, Set ini kosong → checkpoint akan jalan (yang diinginkan).
-const tgCheckpointSent = new Set();
 
       // Sequential per sekolah — parallel menyebabkan Baileys crash lebih cepat
       // Telegram di-await langsung setelah WA setiap sekolah
@@ -735,6 +735,9 @@ const tgCheckpointSent = new Set();
           // Kirim Telegram langsung setelah WA sekolah ini selesai (await, bukan setTimeout)
           if (runType) {
             await notifyTelegramFromLog(runType, cfg.namaSekolah, cfg.schoolId || null).catch(() => {});
+            // Tandai sudah kirim TG agar checkpoint tidak kirim duplikat
+            const todayStr = wib.toISOString().slice(0, 10);
+            tgCheckpointSent.add(`${runType}_${todayStr}_${cfg.schoolId}`);
           }
         } catch (schoolErr) {
           console.error(`[Scheduler] Error pada ${cfg.namaSekolah}: ${schoolErr.message}`);
