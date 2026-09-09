@@ -153,10 +153,14 @@ function buildTenantCfg(row) {
     siangMinute: row.siang_minute ?? loc.siangMinute ?? 30,
     pulangHour:  row.pulang_hour  ?? 18,
     pulangMinute: row.pulang_minute ?? 0,
-    // ── Jadwal khusus Jumat (pulang lebih awal) ──
+    // ── Jadwal khusus Jumat (siang & pulang lebih awal) ──
     jumatPulangEnabled: row.jumat_pulang_enabled ?? loc.jumatPulangEnabled ?? true,
     jumatPulangHour:    row.jumat_pulang_hour    ?? loc.jumatPulangHour    ?? 14,
     jumatPulangMinute:  row.jumat_pulang_minute  ?? loc.jumatPulangMinute  ?? 0,
+    // Jumat: siang lebih awal (default 14:00, menggantikan siang 15:30)
+    jumatSiangEnabled: row.jumat_siang_enabled ?? loc.jumatSiangEnabled ?? true,
+    jumatSiangHour:    row.jumat_siang_hour    ?? loc.jumatSiangHour    ?? 14,
+    jumatSiangMinute:  row.jumat_siang_minute  ?? loc.jumatSiangMinute  ?? 0,
     messagePagi:           row.message_pagi         || loc.messagePagi         || DEF_MSG_PAGI,
     messagePagiSudah:      row.message_pagi_sudah   || loc.messagePagiSudah    || DEF_MSG_PAGI_SUDAH,
     messageSiang:          row.message_siang        || loc.messageSiang        || DEF_MSG_SIANG,
@@ -690,6 +694,7 @@ function setupScheduler() {
         const effSiang        = addOffset(cfg.siangHour,       cfg.siangMinute,       totalOffset);
         const effPulang       = addOffset(cfg.pulangHour,      cfg.pulangMinute,      totalOffset);
         const effJumatPulang  = addOffset(cfg.jumatPulangHour, cfg.jumatPulangMinute, totalOffset);
+        const effJumatSiang   = addOffset(cfg.jumatSiangHour,  cfg.jumatSiangMinute,  totalOffset);
         if (totalOffset > 0) {
           console.log(`[Scheduler] ⏱️ Auto-offset ${cfg.namaSekolah}: +${totalOffset} menit (index ${i})`);
         }
@@ -704,6 +709,9 @@ function setupScheduler() {
             cfg.pagiHour * 60 + cfg.pagiMinute - 1,
             cfg.siangHour * 60 + cfg.siangMinute - 1,
             cfg.pulangHour * 60 + cfg.pulangMinute - 1,
+            // Jumat: tambahkan reconnect sebelum jumatSiang dan jumatPulang
+            cfg.jumatSiangHour * 60 + cfg.jumatSiangMinute - 1,
+            cfg.jumatPulangHour * 60 + cfg.jumatPulangMinute - 1,
           ];
           if (reconnectTimes.includes(nowMin)) {
             console.log(`[Scheduler] ⚡ Pre-send reconnect Baileys (1 menit sebelum jadwal)...`);
@@ -716,7 +724,10 @@ function setupScheduler() {
         const todayKey = wib.toISOString().slice(0, 10);
         const checkTimes = [
           { offset: effPagi.hour * 60 + effPagi.minute + 8,     type: 'pagi' },
-          { offset: effSiang.hour * 60 + effSiang.minute + 8,   type: 'siang' },
+          // Siang: gunakan effJumatSiang pada hari Jumat jika enabled
+          dayOfWeek === 5 && cfg.jumatSiangEnabled !== false
+            ? { offset: effJumatSiang.hour * 60 + effJumatSiang.minute + 8, type: 'siang' }
+            : { offset: effSiang.hour * 60 + effSiang.minute + 8,           type: 'siang' },
           { offset: effPulang.hour * 60 + effPulang.minute + 8, type: 'pulang' },
         ];
         for (const ct of checkTimes) {
@@ -741,8 +752,15 @@ function setupScheduler() {
             await runSchedulerLogic('pagi', cfg, true); // skipTelegram=true
             runType = 'pagi';
           }
-          if (cfg.schedulerSiangEnabled !== false && H === effSiang.hour && M === effSiang.minute) {
+          // Siang: pada hari Jumat gunakan jumatSiang (14:00), hari lain pakai siangHour (15:30)
+          const isJumatSiang = cfg.jumatSiangEnabled !== false && dayOfWeek === 5;
+          if (cfg.schedulerSiangEnabled !== false && !isJumatSiang && H === effSiang.hour && M === effSiang.minute) {
             console.log(`[Scheduler ☀️ Siang] ${cfg.namaSekolah}`);
+            await runSchedulerLogic('siang', cfg, true);
+            runType = 'siang';
+          }
+          if (cfg.schedulerSiangEnabled !== false && isJumatSiang && H === effJumatSiang.hour && M === effJumatSiang.minute) {
+            console.log(`[Scheduler ☀️ Jumat Siang] ${cfg.namaSekolah} — ${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')} WIB`);
             await runSchedulerLogic('siang', cfg, true);
             runType = 'siang';
           }
