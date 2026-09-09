@@ -399,13 +399,20 @@ async function runWeeklyRekapLogic(cfg, isTest = false) {
   const msgTemplate = cfg.messageRekapMingguan || DEF_MSG_REKAP_MINGGUAN;
   let sentCount = 0;
   const logsArr = [];
-  for (const t of targets) {
-    const msg  = buildWeeklyRekapMessage(t, msgTemplate);
-    const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
-    if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
-    await logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_mingguan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg }); // await: pastikan tersimpan sebelum TG baca
-    await new Promise(r => setTimeout(r, 500)); // Diperkecil dari 1-2s ke 500ms
+
+  pauseCredsSave(); // 🔒 tunda flush key — cegah crash di tengah loop
+  try {
+    for (const t of targets) {
+      const msg  = buildWeeklyRekapMessage(t, msgTemplate);
+      const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
+      if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
+      await logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_mingguan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
+      await new Promise(r => setTimeout(r, 500));
+    }
+  } finally {
+    await resumeCredsSave(); // 🔓 flush sekali di akhir
   }
+
   const summaryMsg = `${labelWaktu}: Rekap terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
 
@@ -594,13 +601,20 @@ async function runMonthlyRekapLogic(cfg, isTest = false) {
   const msgTemplate = cfg.messageRekapBulanan || DEF_MSG_REKAP_BULANAN;
   let sentCount = 0;
   const logsArr = [];
-  for (const t of targets) {
-    const msg  = buildMonthlyRekapMessage(t, msgTemplate, monthName, targetYear);
-    const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
-    if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
-    await logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_bulanan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg }); // await: pastikan tersimpan sebelum TG baca
-    await new Promise(r => setTimeout(r, 500)); // Diperkecil dari 1-2s ke 500ms
+
+  pauseCredsSave(); // 🔒 tunda flush key — cegah crash di tengah loop
+  try {
+    for (const t of targets) {
+      const msg  = buildMonthlyRekapMessage(t, msgTemplate, monthName, targetYear);
+      const sRes = await sendWhatsAppWithRetry(t.nomor, msg, cfg.fonnteToken || null);
+      if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
+      await logNotificationToSupabase({ school_id: cfg.schoolId || null, type: 'rekap_bulanan', nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
+      await new Promise(r => setTimeout(r, 500));
+    }
+  } finally {
+    await resumeCredsSave(); // 🔓 flush sekali di akhir
   }
+
   const summaryMsg = `${labelWaktu}: Rekap ${monthName} ${targetYear} terkirim ke ${sentCount}/${targets.length} penerima (${cfg.namaSekolah}).`;
   addLog({ type: sentCount > 0 ? 'sent' : 'error', message: summaryMsg, targets: logsArr, school: cfg.namaSekolah });
 
