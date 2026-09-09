@@ -11,7 +11,7 @@ const {
 } = require('./config');
 const { supabase }                             = require('./supabase');
 const { addLog, logNotificationToSupabase }    = require('./logger');
-const { sendWhatsAppWithRetry, getWaState, reconnectBaileys } = require('./whatsapp');
+const { sendWhatsAppWithRetry, getWaState, reconnectBaileys, pauseCredsSave, resumeCredsSave, forceCredsSave } = require('./whatsapp');
 const { ensureTenantSession, fetchColleaguesAttendance } = require('./epresensi');
 
 // ─── Telegram Notifier (baca dari notification_logs Supabase) ─────────────────
@@ -267,22 +267,33 @@ async function runSchedulerLogic(type = 'pagi', cfg = null, skipTelegram = false
 
   let sentCount = 0;
   const logsArr = [];
-  for (const t of targets) {
-    let template = '';
-    if (t.isExternal) {
-      if (type === 'pagi') template = config.messageExternalPagi || DEF_MSG_EXTERNAL_PAGI;
-      else if (type === 'siang') template = config.messageExternalSiang || DEF_MSG_EXTERNAL_SIANG;
-      else template = config.messageExternalPulang || DEF_MSG_EXTERNAL_PULANG;
-    } else {
-      if (type === 'pagi')       template = t.isHadir ? (config.messagePagiSudah || DEF_MSG_PAGI_SUDAH)     : (config.messagePagi   || DEF_MSG_PAGI);
-      else if (type === 'siang') template = t.isHadir ? (config.messageSiangSudah || DEF_MSG_SIANG_SUDAH)   : (config.messageSiang  || DEF_MSG_SIANG);
-      else                       template = t.isHadir ? (config.messagePulangSudah || DEF_MSG_PULANG_SUDAH) : (config.messagePulang || DEF_MSG_PULANG);
+
+  // ── Opsi 1: Pause saveCreds selama loop kirim ───────────────────────────────
+  // Hipotesis: libsignal assertion panic (d.mant > 0) terjadi saat saveCreds flush key ke disk.
+  // Dengan menunda flush sampai SEMUA pesan selesai, kita coba hindari crash di tengah loop.
+  pauseCredsSave();
+
+  try {
+    for (const t of targets) {
+      let template = '';
+      if (t.isExternal) {
+        if (type === 'pagi') template = config.messageExternalPagi || DEF_MSG_EXTERNAL_PAGI;
+        else if (type === 'siang') template = config.messageExternalSiang || DEF_MSG_EXTERNAL_SIANG;
+        else template = config.messageExternalPulang || DEF_MSG_EXTERNAL_PULANG;
+      } else {
+        if (type === 'pagi')       template = t.isHadir ? (config.messagePagiSudah || DEF_MSG_PAGI_SUDAH)     : (config.messagePagi   || DEF_MSG_PAGI);
+        else if (type === 'siang') template = t.isHadir ? (config.messageSiangSudah || DEF_MSG_SIANG_SUDAH)   : (config.messageSiang  || DEF_MSG_SIANG);
+        else                       template = t.isHadir ? (config.messagePulangSudah || DEF_MSG_PULANG_SUDAH) : (config.messagePulang || DEF_MSG_PULANG);
+      }
+      const msg  = template.replace(/\{nama\}/gi, t.nama).replace(/\{sekolah_asal\}/gi, t.sekolahAsal || '');
+      const sRes = await sendWhatsAppWithRetry(t.nomor, msg, config.fonnteToken || null);
+      if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
+      await logNotificationToSupabase({ school_id: config.schoolId || null, type, nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
+      await new Promise(r => setTimeout(r, 500)); // Diperkecil dari 1-2s ke 500ms
     }
-    const msg  = template.replace(/\{nama\}/gi, t.nama).replace(/\{sekolah_asal\}/gi, t.sekolahAsal || '');
-    const sRes = await sendWhatsAppWithRetry(t.nomor, msg, config.fonnteToken || null);
-    if (sRes.success) { sentCount++; logsArr.push({ nama: t.nama, nomor: t.nomor, text: msg }); }
-    await logNotificationToSupabase({ school_id: config.schoolId || null, type, nama: t.nama, nomor: t.nomor, status: sRes.success ? 'sent' : 'failed', error_msg: sRes.success ? null : (sRes.error || 'unknown'), gateway: sRes.gateway || 'baileys', message: msg });
-    await new Promise(r => setTimeout(r, 500)); // Diperkecil dari 1-2s ke 500ms
+  } finally {
+    // Resume saveCreds & force flush sekali di akhir (aman: semua pesan sudah terkirim)
+    await resumeCredsSave();
   }
 
   const summaryMsg = `${labelWaktu}: Notifikasi WA terkirim ke ${sentCount}/${targets.length} guru.`;

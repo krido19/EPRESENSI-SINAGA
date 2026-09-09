@@ -19,6 +19,11 @@ let waConnectionStatus = 'disconnected';
 let waConnectedUser    = null;
 let waDisconnectedAt   = null;
 
+// saveCreds reference — dibutuhkan untuk pauseCredsSave/resumeCredsSave
+let _saveCreds      = null; // fungsi asli dari useMultiFileAuthState
+let _credsPaused    = false; // apakah sedang di-pause?
+let _pendingSave    = false; // apakah ada perubahan creds yang belum disimpan?
+
 // ─── initBaileys ──────────────────────────────────────────────────────────────
 async function initBaileys() {
   // ── Bersihkan socket lama sebelum buat yang baru (anti zombie socket) ────────
@@ -64,7 +69,18 @@ async function initBaileys() {
       });
     }
 
-    waSock.ev.on('creds.update', saveCreds);
+    _saveCreds = saveCreds;
+    _credsPaused = false;
+    _pendingSave = false;
+
+    // Wrapper: skip save jika sedang di-pause, tapi tandai ada perubahan
+    waSock.ev.on('creds.update', () => {
+      if (_credsPaused) {
+        _pendingSave = true; // tandai: ada key baru yang belum disimpan
+      } else {
+        _saveCreds && _saveCreds();
+      }
+    });
 
     waSock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
@@ -256,9 +272,37 @@ async function reconnectBaileys() {
   });
 }
 
+// ─── pauseCredsSave / resumeCredsSave / forceCredsSave ───────────────────────
+// Opsi 1 crash prevention: tangguhkan flush creds ke disk selama loop kirim WA.
+// Hipotesis: libsignal assertion panic terjadi saat saveCreds → WASM flush keys.
+// Dengan menunda save sampai semua pesan selesai, kita menghindari panic per-pesan.
+function pauseCredsSave() {
+  _credsPaused = true;
+  _pendingSave = false;
+  console.log('[Baileys] 🔒 saveCreds di-pause selama loop kirim WA');
+}
+
+async function resumeCredsSave() {
+  _credsPaused = false;
+  if (_pendingSave && _saveCreds) {
+    _pendingSave = false;
+    console.log('[Baileys] 🔓 saveCreds di-resume — flush key ke disk...');
+    try { await _saveCreds(); } catch (e) { console.warn('[Baileys] saveCreds error:', e.message); }
+  }
+}
+
+async function forceCredsSave() {
+  if (_saveCreds) {
+    try { await _saveCreds(); } catch (e) { console.warn('[Baileys] forceCredsSave error:', e.message); }
+  }
+}
+
 module.exports = {
   initBaileys,
   reconnectBaileys,
+  pauseCredsSave,
+  resumeCredsSave,
+  forceCredsSave,
   sendWhatsApp,
   sendWhatsAppWithRetry,
   sendToAllRecipients,
